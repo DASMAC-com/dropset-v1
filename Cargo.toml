@@ -14,6 +14,8 @@ anyhow = "1.0"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 pinocchio = { version = "0.9.2" }
 pinocchio-pubkey = { version = "0.3.0" }
+pinocchio-token = { version = "0.4.0" }
+pinocchio-token-interface = { package = "pinocchio-token-interface", git = "https://github.com/solana-program/token.git", rev = "75116550519a9ee3fdfa6c819aca91e383fffa39" }
 solana-sdk = "2.2.0"
 static_assertions = "1.1.0"
 strum = "0.27.2"

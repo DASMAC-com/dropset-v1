@@ -4,6 +4,10 @@ use pinocchio::program_error::ProgramError;
 #[repr(u8)]
 pub enum DropsetError {
     InvalidInstructionTag,
+    InsufficientByteLength,
+    UninitializedData,
+    InvalidAccountDiscriminant,
+    UnallocatedAccountData,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -17,6 +21,10 @@ impl From<DropsetError> for &'static str {
     fn from(value: DropsetError) -> Self {
         match value {
             DropsetError::InvalidInstructionTag => "Invalid instruction tag",
+            DropsetError::InsufficientByteLength => "Not enough bytes passed",
+            DropsetError::UninitializedData => "Data passed was not initialized",
+            DropsetError::InvalidAccountDiscriminant => "Invalid account discriminant",
+            DropsetError::UnallocatedAccountData => "Account data hasn't been properly allocated",
         }
     }
 }
@@ -30,3 +38,5 @@ impl core::fmt::Display for DropsetError {
 
 #[cfg(not(target_os = "solana"))]
 impl std::error::Error for DropsetError {}
+
+pub type DropsetResult = Result<(), DropsetError>;

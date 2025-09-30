@@ -39,6 +39,7 @@ version = "0.1.0"
 dependencies = [
  "pinocchio",
  "pinocchio-pubkey",
+ "pinocchio-token-interface",
  "static_assertions",
  "strum",
  "strum_macros",
@@ -80,6 +81,15 @@ dependencies = [
  "five8_const",
  "pinocchio",
  "sha2-const-stable",
+]
+
+[[package]]
+name = "pinocchio-token-interface"
+version = "0.0.0"
+source = "git+https://github.com/solana-program/token.git?rev=75116550519a9ee3fdfa6c819aca91e383fffa39#75116550519a9ee3fdfa6c819aca91e383fffa39"
+dependencies = [
+ "pinocchio",
+ "pinocchio-pubkey",
 ]
 
 [[package]]
