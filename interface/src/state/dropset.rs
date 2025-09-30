@@ -17,8 +17,8 @@ pub struct MarketEscrow {
 
 #[repr(C)]
 pub struct Market {
-    pub header: MarketHeader,
-    pub sectors: [u8],
+    header: MarketHeader,
+    sectors: [u8],
 }
 
 const_assert_eq!(core::mem::size_of::<MarketEscrow>(), NODE_PAYLOAD_SIZE);
