@@ -32,6 +32,16 @@ pub unsafe fn load<T: Transmutable>(bytes: &[u8]) -> Result<&T, DropsetError> {
     Ok(&*(bytes.as_ptr() as *const T))
 }
 
+/// Returns a reference to a `T: Transmutable` from the given bytes.
+///
+/// # Safety
+/// - Caller must guarantee `bytes` is a valid representation of `T`.
+/// - Caller must guarantee `bytes.len()` is equal to `T::LEN`.
+#[inline(always)]
+pub unsafe fn load_unchecked<T: Transmutable>(bytes: &[u8]) -> &T {
+    &*(bytes.as_ptr() as *const T)
+}
+
 /// Returns a mutable reference to a `T: Transmutable` from the given bytes after checking the byte
 /// length.
 ///
@@ -43,4 +53,14 @@ pub unsafe fn load_mut<T: Transmutable>(bytes: &mut [u8]) -> Result<&mut T, Drop
         return Err(DropsetError::InsufficientByteLength);
     }
     Ok(&mut *(bytes.as_ptr() as *mut T))
+}
+
+/// Returns a mutable reference to a `T: Transmutable` from the given bytes.
+///
+/// # Safety
+/// - Caller must guarantee `bytes` is a valid representation of `T`.
+/// - Caller must guarantee `bytes.len()` is equal to `T::LEN`.
+#[inline(always)]
+pub unsafe fn load_unchecked_mut<T: Transmutable>(bytes: &mut [u8]) -> &mut T {
+    &mut *(bytes.as_ptr() as *mut T)
 }
