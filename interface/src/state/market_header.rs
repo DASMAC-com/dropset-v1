@@ -18,17 +18,25 @@ const_assert_eq!(MARKET_HEADER_SIZE, size_of::<MarketHeader>());
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct MarketHeader {
+    /// The market account's account discriminant, a u64 stored as little-endian bytes.
     discriminant: [u8; 8],
-    len: [u8; U32_SIZE],
-    free_head: LeSectorIndex,
-    deque_head: LeSectorIndex,
-    deque_tail: LeSectorIndex,
+    /// The total number of fully initialized seats, a u32 stored as little-endian bytes.
+    num_seats: [u8; U32_SIZE],
+    /// The total number of account bytes allocated past the market header.
+    sector_bytes: [u8; U32_SIZE],
+    /// The sector index of the top (first) node in the stack of free nodes.
+    free_stack_top: LeSectorIndex,
+    /// The sector index of the head (first) node in the doubly linked list of seat nodes.
+    seat_dll_head: LeSectorIndex,
+    /// The sector index of the tail (last) node in the doubly linked list of seat nodes.
+    seat_dll_tail: LeSectorIndex,
+    /// The market's base mint public key.
     base_mint: Pubkey,
+    /// The market's quote mint public key.
     quote_mint: Pubkey,
-    pub version: u8,
     pub market_bump: u8,
     // Ensure alignment 8 for the data that comes after header.
-    _padding: [u8; 6],
+    _padding: [u8; 3],
 }
 
 unsafe impl Transmutable for MarketHeader {
@@ -39,15 +47,15 @@ impl MarketHeader {
     pub fn init(market_bump: u8, base_mint: &Pubkey, quote_mint: &Pubkey) -> Self {
         MarketHeader {
             discriminant: MARKET_ACCOUNT_DISCRIMINANT.to_le_bytes(),
-            len: [0; U32_SIZE],
-            free_head: NIL_LE,
-            deque_head: NIL_LE,
-            deque_tail: NIL_LE,
+            num_seats: [0; U32_SIZE],
+            sector_bytes: [0; U32_SIZE],
+            free_stack_top: NIL_LE,
+            seat_dll_head: NIL_LE,
+            seat_dll_tail: NIL_LE,
             base_mint: *base_mint,
             quote_mint: *quote_mint,
-            version: 0,
             market_bump,
-            _padding: [0; 6],
+            _padding: [0; 3],
         }
     }
 
@@ -65,42 +73,57 @@ impl MarketHeader {
     }
 
     #[inline(always)]
-    fn len(&self) -> u32 {
-        u32::from_le_bytes(self.len)
+    pub fn num_seats(&self) -> u32 {
+        u32::from_le_bytes(self.num_seats)
     }
 
     #[inline(always)]
-    fn set_len(&mut self, amount: u32) {
-        self.len = amount.to_le_bytes();
+    pub fn set_num_seats(&mut self, amount: u32) {
+        self.num_seats = amount.to_le_bytes();
     }
 
     #[inline(always)]
-    fn free_head(&self) -> SectorIndex {
-        self.free_head.get()
+    pub fn sector_bytes(&self) -> u32 {
+        u32::from_le_bytes(self.sector_bytes)
     }
 
     #[inline(always)]
-    fn set_free_head(&mut self, index: SectorIndex) {
-        self.free_head.set(index);
+    pub fn set_sector_bytes(&mut self, num_bytes: u32) {
+        self.sector_bytes = num_bytes.to_le_bytes();
     }
 
     #[inline(always)]
-    fn deque_head(&self) -> SectorIndex {
-        self.deque_head.get()
+    pub fn free_stack_top_mut_ref(&mut self) -> &mut LeSectorIndex {
+        &mut self.free_stack_top
     }
 
     #[inline(always)]
-    fn set_deque_head(&mut self, index: SectorIndex) {
-        self.deque_head.set(index);
+    pub fn free_stack_top(&self) -> SectorIndex {
+        self.free_stack_top.get()
     }
 
     #[inline(always)]
-    fn deque_tail(&self) -> SectorIndex {
-        self.deque_tail.get()
+    pub fn set_free_stack_top(&mut self, index: SectorIndex) {
+        self.free_stack_top.set(index);
     }
 
     #[inline(always)]
-    fn set_deque_tail(&mut self, index: SectorIndex) {
-        self.deque_tail.set(index);
+    pub fn seat_dll_head(&self) -> SectorIndex {
+        self.seat_dll_head.get()
+    }
+
+    #[inline(always)]
+    pub fn set_seat_dll_head(&mut self, index: SectorIndex) {
+        self.seat_dll_head.set(index);
+    }
+
+    #[inline(always)]
+    pub fn seat_dll_tail(&self) -> SectorIndex {
+        self.seat_dll_tail.get()
+    }
+
+    #[inline(always)]
+    pub fn set_seat_dll_tail(&mut self, index: SectorIndex) {
+        self.seat_dll_tail.set(index);
     }
 }
