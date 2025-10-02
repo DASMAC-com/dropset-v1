@@ -11,12 +11,24 @@ use crate::{
 };
 
 pub struct Market<Header, SectorBytes> {
-    header: Header,
-    sectors: SectorBytes,
+    pub header: Header,
+    pub sectors: SectorBytes,
 }
 
 pub type MarketRef<'a> = Market<&'a MarketHeader, &'a [u8]>;
 pub type MarketRefMut<'a> = Market<&'a mut MarketHeader, &'a mut [u8]>;
+
+impl AsRef<MarketHeader> for &MarketHeader {
+    fn as_ref(&self) -> &MarketHeader {
+        self
+    }
+}
+
+impl AsMut<MarketHeader> for &mut MarketHeader {
+    fn as_mut(&mut self) -> &mut MarketHeader {
+        self
+    }
+}
 
 impl<'a> MarketRef<'a> {
     pub fn from_bytes(data: &'a [u8]) -> Result<Self, DropsetError> {
@@ -68,15 +80,6 @@ where
     Header: AsRef<MarketHeader>,
     SectorBytes: AsRef<[u8]>,
 {
-    #[inline(always)]
-    pub fn borrow(&self) -> Market<&MarketHeader, &[u8]> {
-        Market {
-            header: self.header.as_ref(),
-            sectors: self.sectors.as_ref(),
-        }
-    }
-
-    #[inline(always)]
     pub fn init(
         // This data should only have been initialized with zeroes, nothing else.
         zeroed_market_account_data: &mut [u8],
@@ -100,11 +103,12 @@ where
             return Err(DropsetError::UnalignedData);
         }
 
-        let market = MarketRefMut::from_bytes_mut_unchecked(zeroed_market_account_data)?;
+        // Initialize the market header.
+        let mut market = MarketRefMut::from_bytes_mut_unchecked(zeroed_market_account_data)?;
         *market.header = MarketHeader::init(market_bump, base_mint, quote_mint);
 
-        // Initialize the free stack.
-        let mut stack = Stack::new(market.sectors, market.header.free_stack_top_mut_ref());
+        // Initialize all sectors by adding them to the free stack.
+        let stack = &mut market.free_stack();
         let num_sectors = sector_bytes / SECTOR_SIZE;
         for s in (0..num_sectors).rev() {
             stack.push_free_node(SectorIndex(s as u32))?;
@@ -114,16 +118,9 @@ where
     }
 }
 
-impl<Header, SectorBytes> Market<Header, SectorBytes>
-where
-    Header: AsMut<MarketHeader>,
-    SectorBytes: AsMut<[u8]>,
-{
+impl MarketRefMut<'_> {
     #[inline(always)]
-    pub fn borrow_mut(&mut self) -> Market<&mut MarketHeader, &mut [u8]> {
-        Market {
-            header: self.header.as_mut(),
-            sectors: self.sectors.as_mut(),
-        }
+    pub fn free_stack(&mut self) -> Stack<'_> {
+        Stack::new_from_parts(self.header.as_mut().free_stack_top_mut_ref(), self.sectors)
     }
 }
