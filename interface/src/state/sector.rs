@@ -1,4 +1,4 @@
-use crate::state::U32_SIZE;
+use crate::{error::DropsetError, state::U32_SIZE};
 
 pub const SECTOR_SIZE: usize = 56;
 
@@ -7,6 +7,30 @@ pub const SECTOR_SIZE: usize = 56;
 /// The physical sector index of some slab of bytes. Sectors correspond directly to the byte offset
 /// as a factor of the sector type's size.
 pub struct SectorIndex(pub u32);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct NonNilSectorIndex(SectorIndex);
+
+impl NonNilSectorIndex {
+    /// Checks that the index is not NIL.
+    pub fn new(index: SectorIndex) -> Result<Self, DropsetError> {
+        if index.is_nil() {
+            return Err(DropsetError::InvalidSectorIndex);
+        }
+        Ok(Self(index))
+    }
+
+    #[inline(always)]
+    pub fn get(&self) -> SectorIndex {
+        self.0
+    }
+
+    /// Caller should ensure that the index passed to this function is non-NIL.
+    pub fn new_unchecked(index: SectorIndex) -> Self {
+        Self(index)
+    }
+}
 
 pub const NIL: SectorIndex = SectorIndex(u32::MAX);
 pub const NIL_LE: LeSectorIndex = LeSectorIndex(NIL.0.to_le_bytes());
