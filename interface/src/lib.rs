@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod instruction;
+pub mod pack;
 pub mod state;
 
 pub mod program {
