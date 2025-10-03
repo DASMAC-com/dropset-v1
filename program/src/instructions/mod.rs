@@ -1,9 +1,9 @@
 pub mod deposit;
 pub mod flush_events;
-pub mod initialize;
+pub mod register;
 pub mod withdraw;
 
 pub use {
-    deposit::process_deposit, flush_events::process_flush_events, initialize::process_initialize,
-    withdraw::process_withdraw,
+    deposit::process_deposit, flush_events::process_flush_events,
+    register::process_register_market, withdraw::process_withdraw,
 };

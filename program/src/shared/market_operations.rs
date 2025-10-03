@@ -67,7 +67,7 @@ pub fn find_insert_index(list: &LinkedList, user: &Pubkey) -> SectorIndex {
     NIL
 }
 
-pub fn initialize_market<'a>(
+pub fn initialize_market_account_data<'a>(
     // This data should only have been initialized with zeroes, nothing else.
     zeroed_market_account_data: &'a mut [u8],
     // TODO: Confirm this field can be properly removed, should be able to since the
@@ -106,7 +106,7 @@ pub fn initialize_market<'a>(
 
 #[cfg(test)]
 pub mod tests {
-    use super::initialize_market;
+    use super::initialize_market_account_data;
     use dropset_interface::state::{
         market_header::MARKET_HEADER_SIZE,
         market_seat::MarketSeat,
@@ -124,13 +124,13 @@ pub mod tests {
     fn market_insert_users() {
         const N_SECTORS: usize = 10;
         let mut bytes = [0u8; MARKET_HEADER_SIZE + SECTOR_SIZE * N_SECTORS];
-        let mut market = initialize_market(
+        let mut market = initialize_market_account_data(
             bytes.as_mut(),
             202,
             &pubkey!("11111111111111111111111111111111111111111111"),
             &pubkey!("22222222222222222222222222222222222222222222"),
         )
-        .expect("Should initialize market");
+        .expect("Should initialize market data");
 
         let mut seat_list = market.seat_list();
 

@@ -9,7 +9,7 @@ pub mod num_sectors;
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(test, derive(strum_macros::FromRepr, strum_macros::EnumIter))]
 pub enum InstructionTag {
-    Initialize,
+    RegisterMarket,
     Deposit,
     Withdraw,
     FlushEvents,
