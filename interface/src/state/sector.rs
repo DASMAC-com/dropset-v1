@@ -4,8 +4,9 @@ pub const SECTOR_SIZE: usize = 56;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Eq, PartialEq)]
-/// The physical sector index of some slab of bytes. Sectors correspond directly to the byte offset
-/// as a factor of the sector type's size.
+/// A stride-based index into an array of sectors.
+///
+/// Index `i` maps to byte offset `i × SECTOR_SIZE` for a raw `sectors: &[u8]` slice.
 pub struct SectorIndex(pub u32);
 
 #[repr(transparent)]
