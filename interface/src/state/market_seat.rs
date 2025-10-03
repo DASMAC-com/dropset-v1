@@ -13,8 +13,8 @@ use crate::{
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MarketSeat {
-    /// The trader's public key.
-    pub trader: Pubkey,
+    /// The user's public key.
+    pub user: Pubkey,
     /// Amount of base token deposited.
     base_deposited: [u8; U64_SIZE],
     /// Amount of quote token deposited.
@@ -26,9 +26,9 @@ pub struct MarketSeat {
 }
 
 impl MarketSeat {
-    pub fn new(trader: Pubkey, base: u64, quote: u64) -> Self {
+    pub fn new(user: Pubkey, base: u64, quote: u64) -> Self {
         MarketSeat {
-            trader,
+            user,
             base_deposited: base.to_le_bytes(),
             quote_deposited: quote.to_le_bytes(),
             base_available: base.to_le_bytes(),
@@ -45,7 +45,7 @@ impl NodePayload for MarketSeat {}
 
 impl Pack<NODE_PAYLOAD_SIZE> for MarketSeat {
     fn pack_into_slice(&self, dst: &mut [core::mem::MaybeUninit<u8>; NODE_PAYLOAD_SIZE]) {
-        write_bytes(dst, &self.trader);
+        write_bytes(dst, &self.user);
         write_bytes(dst, &self.base_deposited);
         write_bytes(dst, &self.quote_deposited);
     }

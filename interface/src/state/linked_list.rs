@@ -137,7 +137,7 @@ impl<'a> LinkedList<'a> {
         &mut self,
         seat: MarketSeat,
     ) -> Result<NonNilSectorIndex, DropsetError> {
-        let insert_index = self.find_insert_index(&seat.trader);
+        let insert_index = self.find_insert_index(&seat.user);
         // Safety: MarketSeat adheres to all layout, alignment, and size constraints.
         let seat_bytes = unsafe { seat.as_bytes() };
         match insert_index {
@@ -153,11 +153,11 @@ impl<'a> LinkedList<'a> {
     pub fn find_node_with_hint(
         &mut self,
         hint: NonNilSectorIndex,
-        trader: &Pubkey,
+        user: &Pubkey,
     ) -> Result<&mut Node, DropsetError> {
         let node = Node::from_non_nil_sector_index_mut(self.sectors, hint)?;
         let seat = node.load_payload_mut::<MarketSeat>();
-        if pubkey_eq(trader, &seat.trader) {
+        if pubkey_eq(user, &seat.user) {
             Ok(node)
         } else {
             Err(DropsetError::InvalidIndexHint)
@@ -167,18 +167,18 @@ impl<'a> LinkedList<'a> {
     /// Returns the index a node should be inserted before.
     ///
     /// ### NOTE: This function does not check for duplicates.
-    /// This function does not check for the trader already being registered in the seat
+    /// This function does not check for the user already being registered in the seat
     /// list. This *will* insert duplicates without prior checks!
     ///
     /// - `0` => Insert at the front of the list
     /// - `1..n` => Insert at `n - 1`, where `n` is an in-bounds index
     /// - `NIL` => Insert at the end of the list
-    pub fn find_insert_index(&self, trader: &Pubkey) -> SectorIndex {
+    pub fn find_insert_index(&self, user: &Pubkey) -> SectorIndex {
         for (index, node) in self.iter_seats() {
             let seat = node.load_payload::<MarketSeat>();
-            // A trader that already exists in the seat list should never be passed.
-            debug_assert_ne!(trader, &seat.trader);
-            if trader < &seat.trader {
+            // A user that already exists in the seat list should never be passed.
+            debug_assert_ne!(user, &seat.user);
+            if user < &seat.user {
                 // At 0, this inserts at front.
                 return index.get();
             }

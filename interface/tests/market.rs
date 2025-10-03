@@ -9,7 +9,7 @@ pub mod tests {
     use pinocchio_pubkey::pubkey;
 
     #[test]
-    fn market_insert_traders() {
+    fn market_insert_users() {
         const N_SECTORS: usize = 10;
         let mut bytes = [0u8; MARKET_HEADER_SIZE + SECTOR_SIZE * N_SECTORS];
         let mut market = initialize_market(
@@ -64,7 +64,7 @@ pub mod tests {
             .into_iter()
             .zip(expected_order.into_iter().enumerate())
         {
-            // The `actual` trader pubkeys should match the `expected` order.
+            // The `actual` user pubkeys should match the `expected` order.
             let (pk_e, pk_a) = (expected.1, &actual.1);
             assert_eq!(pk_e, pk_a);
         }
