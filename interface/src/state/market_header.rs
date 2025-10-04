@@ -29,9 +29,10 @@ pub struct MarketHeader {
     /// The sector index of the tail (last) node in the doubly linked list of seat nodes.
     seat_dll_tail: LeSectorIndex,
     /// The market's base mint public key.
-    base_mint: Pubkey,
+    pub base_mint: Pubkey,
     /// The market's quote mint public key.
-    quote_mint: Pubkey,
+    pub quote_mint: Pubkey,
+    /// The bump for the market PDA.
     pub market_bump: u8,
     // Ensure alignment 8 for the data that comes after header.
     _padding: [u8; 7],

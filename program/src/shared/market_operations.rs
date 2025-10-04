@@ -70,13 +70,8 @@ pub fn find_insert_index(list: &LinkedList, user: &Pubkey) -> SectorIndex {
 pub fn initialize_market_account_data<'a>(
     // This data should only have been initialized with zeroes, nothing else.
     zeroed_market_account_data: &'a mut [u8],
-    // TODO: Confirm this field can be properly removed, should be able to since the
-    // remaining length after the header size is checked in the body of this function.
-    // initial_num_sectors: u16,
     market_bump: u8,
-    // TODO: Use verified reference: &'a MintInfo
     base_mint: &Pubkey,
-    // TODO: Use verified reference: &'a MintInfo
     quote_mint: &Pubkey,
 ) -> Result<MarketRefMut<'a>, DropsetError> {
     let account_data_len = zeroed_market_account_data.len();
