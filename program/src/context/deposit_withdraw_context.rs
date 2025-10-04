@@ -13,14 +13,14 @@ pub struct DepositWithdrawContext<'a> {
     pub market_account: MarketAccountInfo<'a>,
     pub mint: MintInfo<'a>,
     pub user_ata: TokenAccountInfo<'a>,
-    pub vault_ata: TokenAccountInfo<'a>,
+    pub market_ata: TokenAccountInfo<'a>,
     pub token_program: TokenProgramInfo<'a>,
     pub system_program: SystemProgramInfo<'a>,
 }
 
 impl<'a> DepositWithdrawContext<'a> {
     pub fn load(accounts: &'a [AccountInfo]) -> Result<DepositWithdrawContext<'a>, ProgramError> {
-        let [user, market_account, mint, user_ata, vault_ata, token_program, system_program] =
+        let [user, market_account, mint, user_ata, market_ata, token_program, system_program] =
             accounts
         else {
             return Err(DropsetError::NotEnoughAccountKeys.into());
@@ -29,8 +29,8 @@ impl<'a> DepositWithdrawContext<'a> {
         let market_account = MarketAccountInfo::new(market_account)?;
         let mint = MintInfo::new(mint, &market_account)?;
         let user_ata = TokenAccountInfo::new(user_ata, mint.info.key(), user.key())?;
-        let vault_ata =
-            TokenAccountInfo::new(vault_ata, mint.info.key(), market_account.info.key())?;
+        let market_ata =
+            TokenAccountInfo::new(market_ata, mint.info.key(), market_account.info.key())?;
         let token_program = TokenProgramInfo::new(token_program)?;
 
         // No need to check this because the token transfer instructions will fail if it's invalid.
@@ -41,7 +41,7 @@ impl<'a> DepositWithdrawContext<'a> {
             market_account,
             mint,
             user_ata,
-            vault_ata,
+            market_ata,
             token_program,
             system_program,
         })

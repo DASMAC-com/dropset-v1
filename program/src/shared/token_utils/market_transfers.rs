@@ -3,11 +3,11 @@ use pinocchio::{program_error::ProgramError, ProgramResult};
 
 use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_signer};
 
-pub fn deposit_to_vault(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64, ProgramError> {
+pub fn deposit_to_market(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64, ProgramError> {
     if ctx.token_program.is_spl_token {
         pinocchio_token::instructions::Transfer {
             from: ctx.user_ata.info,
-            to: ctx.vault_ata.info,
+            to: ctx.market_ata.info,
             authority: ctx.user,
             amount,
         }
@@ -17,11 +17,11 @@ pub fn deposit_to_vault(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64
         Ok(amount)
     } else {
         let decimals = ctx.mint.get_mint_decimals()?;
-        let balance_before = ctx.vault_ata.get_balance()?;
+        let balance_before = ctx.market_ata.get_balance()?;
 
         pinocchio_token_2022::instructions::TransferChecked {
             from: ctx.user_ata.info,
-            to: ctx.vault_ata.info,
+            to: ctx.market_ata.info,
             mint: ctx.mint.info,
             authority: ctx.user,
             decimals,
@@ -30,7 +30,7 @@ pub fn deposit_to_vault(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64
         }
         .invoke()?;
 
-        let balance_after = ctx.vault_ata.get_balance()?;
+        let balance_after = ctx.market_ata.get_balance()?;
         // `spl_token_2022` amount deposited must be checked due to transfer hooks, fees, and other
         // extensions that may intercept a simple transfer and alter the amount transferred.
         let deposited = balance_after
@@ -40,7 +40,7 @@ pub fn deposit_to_vault(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64
     }
 }
 
-pub fn withdraw_from_vault(ctx: &DepositWithdrawContext, amount: u64) -> ProgramResult {
+pub fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) -> ProgramResult {
     let (base_mint, quote_mint, market_bump) = {
         // Safety: Single immutable borrow to the market account data.
         let data = unsafe { ctx.market_account.info.borrow_data_unchecked() };
@@ -51,7 +51,7 @@ pub fn withdraw_from_vault(ctx: &DepositWithdrawContext, amount: u64) -> Program
 
     if ctx.token_program.is_spl_token {
         pinocchio_token::instructions::Transfer {
-            from: ctx.vault_ata.info,
+            from: ctx.market_ata.info,
             to: ctx.user_ata.info,
             authority: ctx.market_account.info,
             amount,
@@ -60,7 +60,7 @@ pub fn withdraw_from_vault(ctx: &DepositWithdrawContext, amount: u64) -> Program
     } else {
         let decimals = ctx.mint.get_mint_decimals()?;
         pinocchio_token::instructions::TransferChecked {
-            from: ctx.vault_ata.info,
+            from: ctx.market_ata.info,
             to: ctx.user_ata.info,
             authority: ctx.market_account.info,
             amount,

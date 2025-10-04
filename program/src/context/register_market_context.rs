@@ -8,12 +8,12 @@ use crate::validation::{
 
 #[derive(Clone)]
 pub struct RegisterMarketContext<'a> {
-    pub registrant: &'a AccountInfo,
+    pub user: &'a AccountInfo,
     pub market_account: UninitializedAccountInfo<'a>,
     pub base_mint: &'a AccountInfo,
     pub quote_mint: &'a AccountInfo,
-    pub vault_base_ata: UninitializedAccountInfo<'a>,
-    pub vault_quote_ata: UninitializedAccountInfo<'a>,
+    pub base_market_ata: UninitializedAccountInfo<'a>,
+    pub quote_market_ata: UninitializedAccountInfo<'a>,
     pub base_token_program: TokenProgramInfo<'a>,
     pub quote_token_program: TokenProgramInfo<'a>,
     pub system_program: SystemProgramInfo<'a>,
@@ -21,7 +21,7 @@ pub struct RegisterMarketContext<'a> {
 
 impl<'a> RegisterMarketContext<'a> {
     pub fn load(accounts: &'a [AccountInfo]) -> Result<RegisterMarketContext<'a>, DropsetError> {
-        let [registrant, market_account, base_mint, quote_mint, vault_base_ata, vault_quote_ata, base_token_program, quote_token_program, system_program] =
+        let [user, market_account, base_mint, quote_mint, base_market_ata, quote_market_ata, base_token_program, quote_token_program, system_program] =
             accounts
         else {
             return Err(DropsetError::NotEnoughAccountKeys);
@@ -32,8 +32,8 @@ impl<'a> RegisterMarketContext<'a> {
         // the non-idempotent ATA creation instruction would fail on the second invocation.
         // Thus there is no need to check ownership, address derivations, or account data here.
         let market_account = UninitializedAccountInfo::new(market_account)?;
-        let vault_base_ata = UninitializedAccountInfo::new_unchecked(vault_base_ata);
-        let vault_quote_ata = UninitializedAccountInfo::new_unchecked(vault_quote_ata);
+        let base_market_ata = UninitializedAccountInfo::new_unchecked(base_market_ata);
+        let quote_market_ata = UninitializedAccountInfo::new_unchecked(quote_market_ata);
         // Also unchecked because the system program is checked and used in the token programs.
         let system_program = SystemProgramInfo::new_unchecked(system_program);
 
@@ -42,12 +42,12 @@ impl<'a> RegisterMarketContext<'a> {
         let quote_token_program = TokenProgramInfo::new(quote_token_program)?;
 
         Ok(Self {
-            registrant,
+            user,
             market_account,
             base_mint,
             quote_mint,
-            vault_base_ata,
-            vault_quote_ata,
+            base_market_ata,
+            quote_market_ata,
             base_token_program,
             quote_token_program,
             system_program,
