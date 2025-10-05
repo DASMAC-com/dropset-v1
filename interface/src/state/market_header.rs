@@ -22,6 +22,8 @@ pub struct MarketHeader {
     discriminant: [u8; 8],
     /// The total number of fully initialized seats, a u32 stored as little-endian bytes.
     num_seats: [u8; U32_SIZE],
+    /// The total number of sectors in the free stack.
+    num_free_sectors: [u8; U32_SIZE],
     /// The sector index of the top (first) node in the stack of free nodes.
     free_stack_top: LeSectorIndex,
     /// The sector index of the head (first) node in the doubly linked list of seat nodes.
@@ -35,7 +37,7 @@ pub struct MarketHeader {
     /// The bump for the market PDA.
     pub market_bump: u8,
     // Ensure alignment 8 for the data that comes after header.
-    _padding: [u8; 7],
+    _padding: [u8; 3],
 }
 
 unsafe impl Transmutable for MarketHeader {
@@ -47,13 +49,14 @@ impl MarketHeader {
         MarketHeader {
             discriminant: MARKET_ACCOUNT_DISCRIMINANT.to_le_bytes(),
             num_seats: [0; U32_SIZE],
+            num_free_sectors: [0; U32_SIZE],
             free_stack_top: NIL_LE,
             seat_dll_head: NIL_LE,
             seat_dll_tail: NIL_LE,
             base_mint: *base_mint,
             quote_mint: *quote_mint,
             market_bump,
-            _padding: [0; 7],
+            _padding: [0; 3],
         }
     }
 
@@ -76,11 +79,6 @@ impl MarketHeader {
     }
 
     #[inline(always)]
-    pub fn set_num_seats(&mut self, amount: u32) {
-        self.num_seats = amount.to_le_bytes();
-    }
-
-    #[inline(always)]
     pub fn increment_num_seats(&mut self) {
         self.num_seats = self.num_seats().saturating_add(1).to_le_bytes();
     }
@@ -88,6 +86,16 @@ impl MarketHeader {
     #[inline(always)]
     pub fn decrement_num_seats(&mut self) {
         self.num_seats = self.num_seats().saturating_sub(1).to_le_bytes();
+    }
+
+    #[inline(always)]
+    pub fn num_free_sectors(&self) -> u32 {
+        u32::from_le_bytes(self.num_free_sectors)
+    }
+
+    #[inline(always)]
+    pub fn num_free_sectors_mut_ref(&mut self) -> &mut [u8; U32_SIZE] {
+        &mut self.num_free_sectors
     }
 
     #[inline(always)]

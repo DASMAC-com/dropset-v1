@@ -2,7 +2,7 @@ use crate::{
     error::DropsetError,
     state::{
         free_stack::Stack,
-        linked_list::LinkedList,
+        linked_list::{LinkedList, LinkedListIter},
         market_header::{MarketHeader, MARKET_HEADER_SIZE},
         sector::SECTOR_SIZE,
         transmutable::{load_unchecked, load_unchecked_mut},
@@ -32,13 +32,7 @@ impl AsMut<MarketHeader> for &mut MarketHeader {
 impl<'a> MarketRef<'a> {
     /// Returns immutable references to a Market's header and sectors slice.
     ///
-    /// Checks:
-    /// - The data passed in is long enough to represent a Market.
-    /// - The discriminant in the header matches the expected one written during initialization.
-    ///
-    /// Implicit expectations:
-    /// - `data` is well-formed, initialized market data.
-    /// - if `data` is on-chain account data, the account is owned by the dropset program.
+    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes(data: &'a [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_checked(MARKET_HEADER_SIZE)
@@ -55,12 +49,7 @@ impl<'a> MarketRef<'a> {
     /// Returns immutable references to a Market's header and sectors slice without checking the
     /// account discriminant in the header.
     ///
-    /// Checks:
-    /// - The data passed in is long enough to represent a Market.
-    ///
-    /// Implicit expectations:
-    /// - `data` is well-formed, initialized market data.
-    /// - if `data` is on-chain account data, the account is owned by the dropset program.
+    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_unchecked(data: &'a [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_checked(MARKET_HEADER_SIZE)
@@ -77,13 +66,7 @@ impl<'a> MarketRef<'a> {
 impl<'a> MarketRefMut<'a> {
     /// Returns mutable references to a Market's header and sectors slice.
     ///
-    /// Checks:
-    /// - The data passed in is long enough to represent a Market.
-    /// - The discriminant in the header matches the expected one written during initialization.
-    ///
-    /// Implicit expectations:
-    /// - `data` is well-formed, initialized market data.
-    /// - if `data` is on-chain account data, the account is owned by the dropset program.
+    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_mut(data: &'a mut [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_mut_checked(MARKET_HEADER_SIZE)
@@ -100,9 +83,7 @@ impl<'a> MarketRefMut<'a> {
 
     /// Returns mutable references to a Market's header and sectors slice without checking the data.
     ///
-    /// Implicit expectations:
-    /// - `data` is well-formed, initialized market data.
-    /// - if `data` is on-chain account data, the account is owned by the dropset program.
+    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_mut_unchecked(data: &'a mut [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_mut_checked(MARKET_HEADER_SIZE)
@@ -118,11 +99,26 @@ impl<'a> MarketRefMut<'a> {
 
     #[inline(always)]
     pub fn free_stack(&mut self) -> Stack<'_> {
-        Stack::new_from_parts(self.header.as_mut().free_stack_top_mut_ref(), self.sectors)
+        Stack::new_from_parts(self.header, self.sectors)
     }
 
     #[inline(always)]
     pub fn seat_list(&mut self) -> LinkedList<'_> {
         LinkedList::new_from_parts(self.header, self.sectors)
+    }
+}
+
+impl<H: AsRef<MarketHeader>, S: AsRef<[u8]>> Market<H, S> {
+    #[inline(always)]
+    pub fn iter_seats(&self) -> LinkedListIter {
+        LinkedListIter {
+            curr: self.header.as_ref().seat_dll_head(),
+            sectors: self.sectors.as_ref(),
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_capacity(&self) -> u32 {
+        (self.sectors.as_ref().len() / SECTOR_SIZE) as u32
     }
 }

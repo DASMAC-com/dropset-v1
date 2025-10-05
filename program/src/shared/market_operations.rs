@@ -3,14 +3,20 @@ use dropset_interface::{
     pack::Pack,
     state::{
         linked_list::LinkedList,
-        market::{Market, MarketRefMut},
+        market::{Market, MarketRef, MarketRefMut},
         market_header::{MarketHeader, MARKET_HEADER_SIZE},
         market_seat::MarketSeat,
         node::Node,
         sector::{NonNilSectorIndex, SectorIndex, NIL, SECTOR_SIZE},
     },
 };
-use pinocchio::pubkey::{pubkey_eq, Pubkey};
+use pinocchio::{
+    account_info::AccountInfo,
+    pubkey::{pubkey_eq, Pubkey},
+    ProgramResult,
+};
+
+use crate::validation::market_account_info::MarketAccountInfo;
 
 pub fn insert_market_seat(
     list: &mut LinkedList,
@@ -27,23 +33,6 @@ pub fn insert_market_seat(
     }
 }
 
-/// Find a node given an index hint.
-///
-/// Returns an Err if the hint provided is invalid.
-pub fn find_node_with_hint<'a>(
-    list: &'a mut LinkedList,
-    hint: NonNilSectorIndex,
-    user: &Pubkey,
-) -> Result<&'a mut Node, DropsetError> {
-    let node = Node::from_non_nil_sector_index_mut(list.sectors, hint)?;
-    let seat = node.load_payload_mut::<MarketSeat>();
-    if pubkey_eq(user, &seat.user) {
-        Ok(node)
-    } else {
-        Err(DropsetError::InvalidIndexHint)
-    }
-}
-
 /// Returns the index a node should be inserted before.
 ///
 /// ### NOTE: This function does not check for duplicates.
@@ -53,7 +42,7 @@ pub fn find_node_with_hint<'a>(
 /// - `0` => Insert at the front of the list
 /// - `1..n` => Insert at `n - 1`, where `n` is an in-bounds index
 /// - `NIL` => Insert at the end of the list
-pub fn find_insert_index(list: &LinkedList, user: &Pubkey) -> SectorIndex {
+fn find_insert_index(list: &LinkedList, user: &Pubkey) -> SectorIndex {
     for (index, node) in list.iter() {
         let seat = node.load_payload::<MarketSeat>();
         // A user that already exists in the seat list should never be passed.
@@ -65,6 +54,23 @@ pub fn find_insert_index(list: &LinkedList, user: &Pubkey) -> SectorIndex {
     }
     // Insert at back.
     NIL
+}
+
+/// Find a market seat given an index hint.
+///
+/// Returns an Err if the hint provided is invalid.
+pub fn find_seat_with_hint<'a>(
+    market: MarketRef<'a>,
+    hint: NonNilSectorIndex,
+    user: &Pubkey,
+) -> Result<&'a Node, DropsetError> {
+    let node = Node::from_non_nil_sector_index(market.sectors, hint)?;
+    let seat = node.load_payload::<MarketSeat>();
+    if pubkey_eq(user, &seat.user) {
+        Ok(node)
+    } else {
+        Err(DropsetError::InvalidIndexHint)
+    }
 }
 
 pub fn initialize_market_account_data<'a>(
@@ -92,9 +98,7 @@ pub fn initialize_market_account_data<'a>(
     // Initialize all sectors by adding them to the free stack.
     let stack = &mut market.free_stack();
     let num_sectors = sector_bytes / SECTOR_SIZE;
-    for s in (0..num_sectors).rev() {
-        stack.push_free_node(SectorIndex(s as u32))?;
-    }
+    unsafe { stack.push_free_nodes(0, num_sectors as u32) }?;
 
     Ok(market)
 }

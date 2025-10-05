@@ -3,7 +3,7 @@ use crate::{error::DropsetError, state::U32_SIZE};
 pub const SECTOR_SIZE: usize = 72;
 
 #[repr(transparent)]
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// A stride-based index into an array of sectors.
 ///
 /// Index `i` maps to byte offset `i × SECTOR_SIZE` for a raw `sectors: &[u8]` slice.
@@ -29,6 +29,7 @@ impl NonNilSectorIndex {
 
     /// Caller should ensure that the index passed to this function is non-NIL.
     pub fn new_unchecked(index: SectorIndex) -> Self {
+        debug_assert_ne!(index, NIL);
         Self(index)
     }
 }

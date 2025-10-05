@@ -25,6 +25,7 @@ pub enum DropsetError {
     NotEnoughAccountKeys,
     InvalidMarketAccountOwner,
     InvalidMintAccount,
+    InvalidNonZeroInteger,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -59,6 +60,7 @@ impl From<DropsetError> for &'static str {
             DropsetError::NotEnoughAccountKeys => "Not enough account keys were provided",
             DropsetError::InvalidMarketAccountOwner => "Invalid market account owner",
             DropsetError::InvalidMintAccount => "Invalid mint account",
+            DropsetError::InvalidNonZeroInteger => "Value passed must be greater than zero",
         }
     }
 }

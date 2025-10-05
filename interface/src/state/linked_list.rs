@@ -2,6 +2,7 @@ use crate::{
     error::DropsetError,
     state::{
         free_stack::Stack,
+        market::{MarketRef, MarketRefMut},
         market_header::MarketHeader,
         node::{Node, NODE_PAYLOAD_SIZE},
         sector::{NonNilSectorIndex, SectorIndex, NIL},
@@ -22,8 +23,7 @@ impl<'a> LinkedList<'a> {
 
     /// Helper method to pop a node from the free stack. Returns the node's sector index.
     fn acquire_free_node(&mut self) -> Result<NonNilSectorIndex, DropsetError> {
-        let mut free_stack =
-            Stack::new_from_parts(self.header.free_stack_top_mut_ref(), self.sectors);
+        let mut free_stack = Stack::new_from_parts(self.header, self.sectors);
         free_stack.remove_free_node()
     }
 
@@ -131,8 +131,8 @@ impl<'a> LinkedList<'a> {
 }
 
 pub struct LinkedListIter<'a> {
-    curr: SectorIndex,
-    sectors: &'a [u8],
+    pub curr: SectorIndex,
+    pub sectors: &'a [u8],
 }
 
 impl<'a> Iterator for LinkedListIter<'a> {
@@ -148,5 +148,21 @@ impl<'a> Iterator for LinkedListIter<'a> {
 
         self.curr = node.next();
         Some((curr_non_nil, node))
+    }
+}
+
+impl<'a> LinkedListIter<'a> {
+    pub fn from_market(market: MarketRef<'a>) -> Self {
+        LinkedListIter {
+            curr: market.header.seat_dll_head(),
+            sectors: market.sectors,
+        }
+    }
+
+    pub fn from_market_mut(market: MarketRefMut<'a>) -> Self {
+        LinkedListIter {
+            curr: market.header.seat_dll_head(),
+            sectors: market.sectors,
+        }
     }
 }
