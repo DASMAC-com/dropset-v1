@@ -2,11 +2,9 @@
 
 use pinocchio::{no_allocator, nostd_panic_handler, program_entrypoint};
 
-mod context;
 mod entrypoint;
 mod instructions;
 mod shared;
-mod validation;
 
 program_entrypoint!(entrypoint::process_instruction);
 no_allocator!();
