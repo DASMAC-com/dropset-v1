@@ -18,7 +18,7 @@ pub struct SectorIndex(pub u32);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub struct NonNilSectorIndex(SectorIndex);
+pub struct NonNilSectorIndex(pub SectorIndex);
 
 impl NonNilSectorIndex {
     /// Checks that the index is not NIL.

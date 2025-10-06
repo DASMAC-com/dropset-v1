@@ -3,7 +3,7 @@ use static_assertions::const_assert_eq;
 use crate::{
     pack::{write_bytes, Pack},
     state::{
-        sector::{NonNilSectorIndex, SectorIndex},
+        sector::{NonNilSectorIndex, NIL},
         transmutable::Transmutable,
         U32_SIZE, U64_SIZE,
     },
@@ -21,11 +21,10 @@ pub struct AmountInstructionData {
 }
 
 impl AmountInstructionData {
-    /// NIL as the sector index hint is the semantic equivalent of None here.
-    pub fn new(amount: u64, sector_index_hint: SectorIndex) -> Self {
+    pub fn new(amount: u64, sector_index_hint: Option<NonNilSectorIndex>) -> Self {
         AmountInstructionData {
             amount: amount.to_le_bytes(),
-            sector_index_hint: sector_index_hint.into(),
+            sector_index_hint: sector_index_hint.map_or(NIL, |v| v.0).into(),
         }
     }
 
