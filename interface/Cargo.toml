@@ -1,0 +1,17 @@
+[package]
+name = "dropset-interface"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+pinocchio.workspace = true
+pinocchio-pubkey.workspace = true
+pinocchio-token-interface.workspace = true
+static_assertions.workspace = true
+
+[dev-dependencies]
+strum.workspace = true
+strum_macros.workspace = true
+
+[lints]
+workspace = true

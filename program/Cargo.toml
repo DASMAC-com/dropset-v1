@@ -1,0 +1,25 @@
+[package]
+name = "dropset"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+bytemuck.workspace = true
+dropset-interface = { path = "../interface" }
+pinocchio.workspace = true
+pinocchio-associated-token-account.workspace = true
+pinocchio-pubkey.workspace = true
+pinocchio-system.workspace = true
+pinocchio-token.workspace = true
+pinocchio-token-interface.workspace = true
+pinocchio-token-2022.workspace = true
+static_assertions.workspace = true
+
+[dev-dependencies]
+solana-pubkey.workspace = true
+
+[lints]
+workspace = true
