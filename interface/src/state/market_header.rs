@@ -13,8 +13,6 @@ use crate::{
 pub const MARKET_HEADER_SIZE: usize = 96;
 pub const MARKET_ACCOUNT_DISCRIMINANT: u64 = 0xd00d00b00b00f00du64;
 
-const_assert_eq!(MARKET_HEADER_SIZE, size_of::<MarketHeader>());
-
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct MarketHeader {
@@ -43,6 +41,9 @@ pub struct MarketHeader {
 unsafe impl Transmutable for MarketHeader {
     const LEN: usize = MARKET_HEADER_SIZE;
 }
+
+const_assert_eq!(MARKET_HEADER_SIZE, size_of::<MarketHeader>());
+const_assert_eq!(align_of::<MarketHeader>(), 1);
 
 impl MarketHeader {
     pub fn init(market_bump: u8, base_mint: &Pubkey, quote_mint: &Pubkey) -> Self {

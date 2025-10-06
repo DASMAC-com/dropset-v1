@@ -3,6 +3,7 @@ use pinocchio::program_error::ProgramError;
 use crate::error::DropsetError;
 
 pub mod amount;
+pub mod close;
 pub mod num_sectors;
 
 #[repr(u8)]
@@ -12,6 +13,7 @@ pub enum InstructionTag {
     RegisterMarket,
     Deposit,
     Withdraw,
+    Close,
     FlushEvents,
 }
 
@@ -22,7 +24,7 @@ impl TryFrom<u8> for InstructionTag {
         match value {
             // SAFETY: A valid enum variant is guaranteed with the match pattern.
             // All variants are checked in the exhaustive instruction tag test.
-            0..4 => Ok(unsafe { core::mem::transmute::<u8, Self>(value) }),
+            0..5 => Ok(unsafe { core::mem::transmute::<u8, Self>(value) }),
             _ => Err(DropsetError::InvalidInstructionTag.into()),
         }
     }

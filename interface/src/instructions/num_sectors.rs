@@ -1,3 +1,5 @@
+use static_assertions::const_assert_eq;
+
 use crate::{
     pack::{write_bytes, Pack},
     state::{transmutable::Transmutable, U16_SIZE},
@@ -31,3 +33,8 @@ impl Pack<2> for NumSectorsInstructionData {
 unsafe impl Transmutable for NumSectorsInstructionData {
     const LEN: usize = 2;
 }
+
+const_assert_eq!(
+    NumSectorsInstructionData::LEN,
+    size_of::<NumSectorsInstructionData>()
+);

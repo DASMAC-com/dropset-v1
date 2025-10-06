@@ -34,10 +34,8 @@ unsafe impl Transmutable for Node {
     const LEN: usize = SECTOR_SIZE;
 }
 
-// This check guarantees raw pointer dereferences to `Node` are always aligned.
-const_assert_eq!(align_of::<Node>(), 1);
-
 const_assert_eq!(core::mem::size_of::<Node>(), Node::LEN);
+const_assert_eq!(align_of::<Node>(), 1);
 
 impl Node {
     #[inline(always)]
