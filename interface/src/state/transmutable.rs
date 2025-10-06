@@ -6,22 +6,22 @@ use crate::error::DropsetError;
 /// Marker trait for a zero-copy view of bytes as `&Self` via an unchecked cast, aka a transmute.
 ///
 /// # Safety
-/// **Implementor guarantees:**
-/// - Use a stable layout (`#[repr(C)]` or `#[repr(transparent)]`) and ensure any
-/// - `LEN` bytes form a valid `Self`. Prefer `[u8; N]` and/or transparent byte wrappers.
+///
+/// Implementor guarantees:
+/// - `Self` has a stable layout; i.e. `#[repr(C)]` or `#[repr(transparent)]`
 /// - `size_of::<Self> == LEN`
 /// - `align_of::<Self> == 1`
-///
-/// **Caller guarantees:**
-/// - The bytes represent a valid `Self`.
 pub unsafe trait Transmutable: Sized {
     /// The cumulative size in bytes of all fields in the struct.
     const LEN: usize;
 
-    /// Returns a reference to a `T: Transmutable` from the given bytes after checking the byte length.
+    /// Returns a reference to `Self` from the given bytes after checking the byte length.
     ///
     /// # Safety
-    /// - Caller must guarantee `bytes` is a valid representation of `T`.
+    ///
+    /// Caller guarantees either:
+    /// - All bit patterns are valid for `Self`, *or*
+    /// - `bytes` is a valid representation of `Self`; e.g. enum variants have been validated.
     #[inline(always)]
     unsafe fn load(bytes: &[u8]) -> Result<&Self, DropsetError> {
         if bytes.len() != Self::LEN {
@@ -30,21 +30,28 @@ pub unsafe trait Transmutable: Sized {
         Ok(&*(bytes.as_ptr() as *const Self))
     }
 
-    /// Returns a reference to a `T: Transmutable` from the given bytes.
+    /// Returns a reference to `Self` from the given bytes.
     ///
     /// # Safety
-    /// - Caller must guarantee `bytes` is a valid representation of `T`.
-    /// - Caller must guarantee `bytes.len()` is equal to `T::LEN`.
+    ///
+    /// Caller guarantees either:
+    /// - All bit patterns are valid for `Self`, *or*
+    /// - `bytes` is a valid representation of `Self`; e.g. enum variants have been validated.
+    ///
+    /// And:
+    /// - `bytes.len()` is equal to `Self::LEN`.
     #[inline(always)]
     unsafe fn load_unchecked(bytes: &[u8]) -> &Self {
         &*(bytes.as_ptr() as *const Self)
     }
 
-    /// Returns a mutable reference to a `T: Transmutable` from the given bytes after checking the byte
-    /// length.
+    /// Returns a mutable reference to `Self` from the given bytes after checking the byte length.
     ///
     /// # Safety
-    /// - Caller must guarantee `bytes` is a valid representation of `T`.
+    ///
+    /// Caller guarantees either:
+    /// - All bit patterns are valid for `Self`, *or*
+    /// - `bytes` is a valid representation of `Self`; e.g. enum variants have been validated.
     #[inline(always)]
     unsafe fn load_mut(bytes: &mut [u8]) -> Result<&mut Self, DropsetError> {
         if bytes.len() != Self::LEN {
@@ -53,11 +60,16 @@ pub unsafe trait Transmutable: Sized {
         Ok(&mut *(bytes.as_ptr() as *mut Self))
     }
 
-    /// Returns a mutable reference to a `T: Transmutable` from the given bytes.
+    /// Returns a mutable reference to `Self` from the given bytes.
     ///
     /// # Safety
-    /// - Caller must guarantee `bytes` is a valid representation of `T`.
-    /// - Caller must guarantee `bytes.len()` is equal to `T::LEN`.
+    ///
+    /// Caller guarantees either:
+    /// - All bit patterns are valid for `Self`, *or*
+    /// - `bytes` is a valid representation of `Self`; e.g. enum variants have been validated.
+    ///
+    /// And:
+    /// - `bytes.len()` is equal to `Self::LEN`.
     #[inline(always)]
     unsafe fn load_unchecked_mut(bytes: &mut [u8]) -> &mut Self {
         &mut *(bytes.as_ptr() as *mut Self)
