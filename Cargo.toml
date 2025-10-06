@@ -30,5 +30,5 @@ tokio = "1.47.1"
 level = "warn"
 check-cfg = [
     'cfg(target_os, values("solana"))',
-    'cfg(feature, values("custom-alloc", "custom-panic", "frozen-abi", "no-entrypoint"))',
+    'cfg(feature, values("no-entrypoint"))',
 ]
