@@ -37,8 +37,7 @@ impl AmountInstructionData {
     #[inline(always)]
     pub fn sector_index_hint(&self) -> Option<NonNilSectorIndex> {
         let hint = self.sector_index_hint.get();
-        hint.is_nil()
-            .then_some(NonNilSectorIndex::new_unchecked(hint))
+        NonNilSectorIndex::new(hint).ok()
     }
 }
 

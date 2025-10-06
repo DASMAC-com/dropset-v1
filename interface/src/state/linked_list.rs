@@ -1,5 +1,5 @@
 use crate::{
-    error::DropsetError,
+    error::{DropsetError, DropsetResult},
     state::{
         free_stack::Stack,
         market::{MarketRef, MarketRefMut},
@@ -120,6 +120,46 @@ impl<'a> LinkedList<'a> {
         self.header.increment_num_seats();
 
         Ok(new_index)
+    }
+
+    /// Removes the node at the non-NIL sector `index` without checking the index validity.
+    ///
+    /// # Safety
+    ///
+    /// Caller guarantees:
+    /// - `index` is non-NIL.
+    /// - `index` is in-bounds of the `sectors` bytes.
+    pub unsafe fn remove_at(&mut self, index: NonNilSectorIndex) -> DropsetResult {
+        let (prev_index, next_index) = {
+            // Safety: Caller guarantees `index` is non-NIL and in-bounds.
+            let node = unsafe { Node::from_sector_index_mut_unchecked(self.sectors, index.get()) };
+            (node.prev(), node.next())
+        };
+
+        match prev_index {
+            NIL => self.header.set_seat_dll_head(next_index),
+            // Safety: `prev_index` matched against non-NIL and came from a node directly.
+            prev_index => unsafe {
+                Node::from_sector_index_mut_unchecked(self.sectors, prev_index)
+                    .set_next(next_index);
+            },
+        }
+
+        match next_index {
+            NIL => self.header.set_seat_dll_tail(prev_index),
+            // Safety: `next_index` matched against non-NIL and came from a node directly.
+            next_index => unsafe {
+                Node::from_sector_index_mut_unchecked(self.sectors, next_index)
+                    .set_prev(prev_index);
+            },
+        }
+
+        self.header.decrement_num_seats();
+
+        let mut free_stack = Stack::new_from_parts(self.header, self.sectors);
+        free_stack.push_free_node(index);
+
+        Ok(())
     }
 
     pub fn iter(&self) -> LinkedListIter<'_> {

@@ -1,9 +1,10 @@
 use static_assertions::const_assert_eq;
 
 use crate::{
+    error::DropsetError,
     pack::{write_bytes, Pack},
     state::{
-        sector::{LeSectorIndex, NonNilSectorIndex, SectorIndex},
+        sector::{LeSectorIndex, NonNilSectorIndex},
         transmutable::Transmutable,
     },
 };
@@ -12,24 +13,20 @@ use core::mem::MaybeUninit;
 #[repr(C)]
 pub struct CloseInstructionData {
     /// A hint as to which sector index the calling user is located in the sectors array.
-    /// The getter for this field exposes it as an Option<NonNilSectorIndex>, where `NIL` as the
-    /// hint is equivalent to None.
     sector_index_hint: LeSectorIndex,
 }
 
 impl CloseInstructionData {
-    /// NIL as the sector index hint is the semantic equivalent of None here.
-    pub fn new(sector_index_hint: SectorIndex) -> Self {
+    pub fn new(sector_index_hint: NonNilSectorIndex) -> Self {
         CloseInstructionData {
-            sector_index_hint: LeSectorIndex(sector_index_hint.0.to_le_bytes()),
+            sector_index_hint: LeSectorIndex(sector_index_hint.get().0.to_le_bytes()),
         }
     }
 
     #[inline(always)]
-    pub fn sector_index_hint(&self) -> Option<NonNilSectorIndex> {
+    pub fn try_sector_index_hint(&self) -> Result<NonNilSectorIndex, DropsetError> {
         let hint = self.sector_index_hint.get();
-        hint.is_nil()
-            .then_some(NonNilSectorIndex::new_unchecked(hint))
+        NonNilSectorIndex::new(hint)
     }
 }
 

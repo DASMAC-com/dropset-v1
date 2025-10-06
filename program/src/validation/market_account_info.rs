@@ -83,7 +83,9 @@ impl<'a> MarketAccountInfo<'a> {
 
         // Safety: Account data just zero-initialized new account space, and both indices are in
         // bounds and non-NIL.
-        unsafe { stack.push_free_nodes(curr_n_sectors as u32, new_n_sectors as u32) }?;
+        unsafe {
+            stack.convert_zeroed_bytes_to_free_nodes(curr_n_sectors as u32, new_n_sectors as u32)
+        }?;
 
         Ok(())
     }

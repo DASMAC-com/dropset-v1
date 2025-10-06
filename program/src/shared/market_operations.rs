@@ -84,8 +84,12 @@ pub fn find_mut_seat_with_hint<'a>(
     }
 }
 
+/// Initializes a freshly created market account. This function skips checks based on the assumption
+/// that the market has just been created on-chain.
+///
+/// This function should *only* be called atomically in the same instruction that the market account
+/// is created or in tests.
 pub fn initialize_market_account_data<'a>(
-    // This data should only have been initialized with zeroes, nothing else.
     zeroed_market_account_data: &'a mut [u8],
     base_mint: &Pubkey,
     quote_mint: &Pubkey,
@@ -104,12 +108,17 @@ pub fn initialize_market_account_data<'a>(
 
     // Initialize the market header.
     let mut market = Market::from_bytes_mut_unchecked(zeroed_market_account_data)?;
+
     *market.header = MarketHeader::init(market_bump, base_mint, quote_mint);
 
     // Initialize all sectors by adding them to the free stack.
     let stack = &mut market.free_stack();
     let num_sectors = sector_bytes / SECTOR_SIZE;
-    unsafe { stack.push_free_nodes(0, num_sectors as u32) }?;
+
+    // Safety
+    // Both indices are in-bounds, `start` < `end`, and the caller guarantees that the
+    // account was just created, meaning it's entirely zeroed out bytes.
+    unsafe { stack.convert_zeroed_bytes_to_free_nodes(0, num_sectors as u32) }?;
 
     Ok(market)
 }

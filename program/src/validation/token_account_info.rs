@@ -20,6 +20,8 @@ impl<'a> TokenAccountInfo<'a> {
         expected_mint: &Pubkey,
         expected_owner: &Pubkey,
     ) -> Result<TokenAccountInfo<'a>, ProgramError> {
+        // NOTE: This check is most likely unnecessary since the token program checks this and fails
+        // transfers if the check fails.
         if !owned_by(info, &pinocchio_token::ID) && !owned_by(info, &pinocchio_token_2022::ID) {
             return Err(DropsetError::OwnerNotTokenProgram.into());
         }

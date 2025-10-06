@@ -33,16 +33,37 @@ impl<'a> Stack<'a> {
         Stack { header, sectors }
     }
 
+    /// Push a node at the sector index onto the stack as a free node by zeroing out its data,
+    /// setting its `next` to the current `top`, and updating the stack `top`.
+    ///
+    /// # Safety
+    ///
+    /// Caller guarantees `index` is in-bounds of the sector bytes.
+    pub fn push_free_node(&mut self, index: NonNilSectorIndex) {
+        let curr_top = self.top();
+
+        // Safety: caller guarantees the safety contract for this method.
+        let node = unsafe { Node::from_sector_index_mut_unchecked(self.sectors, index.get()) };
+        node.zero_out_payload();
+
+        node.set_next(curr_top);
+        self.set_top(index.get());
+    }
+
     /// Initialize zeroed out bytes as free stack nodes. This method avoids costly operations by
     /// making several assumptions mentioned in the safety contract below.
     ///
     /// # Safety
     /// Caller guarantees:
-    /// - Account data from sector index `start` to `end` consists entirely of zeroed out bytes.
+    /// - Account data from sector index `start` to `end` is already zeroed out bytes.
     /// - `start < end`
     /// - `end` is in-bounds of the account's data.
     /// - `start` and `end` are both non-NIL.
-    pub unsafe fn push_free_nodes(&mut self, start: u32, end: u32) -> DropsetResult {
+    pub unsafe fn convert_zeroed_bytes_to_free_nodes(
+        &mut self,
+        start: u32,
+        end: u32,
+    ) -> DropsetResult {
         debug_assert!(start < end);
 
         for i in (start..end).rev().map(SectorIndex) {

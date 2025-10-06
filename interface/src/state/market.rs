@@ -3,7 +3,7 @@ use crate::{
     state::{
         free_stack::Stack,
         linked_list::{LinkedList, LinkedListIter},
-        market_header::{MarketHeader, MARKET_HEADER_SIZE},
+        market_header::{MarketHeader, MARKET_ACCOUNT_DISCRIMINANT, MARKET_HEADER_SIZE},
         sector::SECTOR_SIZE,
         transmutable::{load_unchecked, load_unchecked_mut},
     },
@@ -31,8 +31,6 @@ impl AsMut<MarketHeader> for &mut MarketHeader {
 
 impl<'a> MarketRef<'a> {
     /// Returns immutable references to a Market's header and sectors slice.
-    ///
-    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes(data: &'a [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_checked(MARKET_HEADER_SIZE)
@@ -48,8 +46,6 @@ impl<'a> MarketRef<'a> {
 
     /// Returns immutable references to a Market's header and sectors slice without checking the
     /// account discriminant in the header.
-    ///
-    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_unchecked(data: &'a [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_checked(MARKET_HEADER_SIZE)
@@ -65,8 +61,6 @@ impl<'a> MarketRef<'a> {
 
 impl<'a> MarketRefMut<'a> {
     /// Returns mutable references to a Market's header and sectors slice.
-    ///
-    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_mut(data: &'a mut [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_mut_checked(MARKET_HEADER_SIZE)
@@ -82,8 +76,6 @@ impl<'a> MarketRefMut<'a> {
     }
 
     /// Returns mutable references to a Market's header and sectors slice without checking the data.
-    ///
-    /// `data` should be well-formed, initialized market data.
     pub fn from_bytes_mut_unchecked(data: &'a mut [u8]) -> Result<Self, DropsetError> {
         let (header_bytes, sectors) = data
             .split_at_mut_checked(MARKET_HEADER_SIZE)
@@ -120,5 +112,10 @@ impl<H: AsRef<MarketHeader>, S: AsRef<[u8]>> Market<H, S> {
     #[inline(always)]
     pub fn get_capacity(&self) -> u32 {
         (self.sectors.as_ref().len() / SECTOR_SIZE) as u32
+    }
+
+    #[inline(always)]
+    pub fn is_initialized(&self) -> bool {
+        self.header.as_ref().discriminant() == MARKET_ACCOUNT_DISCRIMINANT
     }
 }
