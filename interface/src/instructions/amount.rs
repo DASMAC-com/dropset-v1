@@ -1,7 +1,10 @@
+use static_assertions::const_assert_eq;
+
 use crate::{
     pack::{write_bytes, Pack},
     state::{
         sector::{NonNilSectorIndex, NIL},
+        transmutable::Transmutable,
         U32_SIZE, U64_SIZE,
     },
 };
@@ -42,3 +45,18 @@ impl Pack<12> for AmountInstructionData {
         write_bytes(&mut dst[8..12], &self.sector_index_hint);
     }
 }
+
+unsafe impl Transmutable for AmountInstructionData {
+    const LEN: usize = 12;
+
+    #[inline(always)]
+    fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
+        // All bit patterns are valid: no enums, bools, or other types with invalid states.
+        Ok(())
+    }
+}
+
+const_assert_eq!(
+    AmountInstructionData::LEN,
+    size_of::<AmountInstructionData>()
+);
