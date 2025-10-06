@@ -15,7 +15,7 @@ use crate::{
     market_signer,
     shared::{
         market_operations::initialize_market_account_data,
-        token_utils::market_token_accounts::{self},
+        token_utils::create_token_accounts::{self},
     },
 };
 
@@ -48,7 +48,7 @@ pub fn process_register_market(accounts: &[AccountInfo], instruction_data: &[u8]
     .invoke_signed(&[market_signer!(base_mint, quote_mint, market_bump)])?;
 
     // Create the market's base and quote associated token accounts.
-    market_token_accounts::create_atas(&ctx)?;
+    create_token_accounts::create_atas(&ctx)?;
 
     initialize_market_account_data(
         // Safety: Single mutable borrow of the market account data for the init call.
