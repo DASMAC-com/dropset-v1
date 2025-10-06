@@ -30,6 +30,11 @@ impl Pack<2> for NumSectorsInstructionData {
     }
 }
 
+// Safety:
+//
+// - Stable layout with `#[repr(C)]`.
+// - `size_of` and `align_of` are checked below.
+// - All bit patterns are valid.
 unsafe impl Transmutable for NumSectorsInstructionData {
     const LEN: usize = 2;
 
@@ -44,3 +49,4 @@ const_assert_eq!(
     NumSectorsInstructionData::LEN,
     size_of::<NumSectorsInstructionData>()
 );
+const_assert_eq!(1, align_of::<NumSectorsInstructionData>());

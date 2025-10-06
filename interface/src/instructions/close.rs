@@ -32,6 +32,11 @@ impl Pack<8> for CloseInstructionData {
     }
 }
 
+// Safety:
+//
+// - Stable layout with `#[repr(C)]`.
+// - `size_of` and `align_of` are checked below.
+// - All bit patterns are valid.
 unsafe impl Transmutable for CloseInstructionData {
     const LEN: usize = 4;
 
@@ -43,3 +48,4 @@ unsafe impl Transmutable for CloseInstructionData {
 }
 
 const_assert_eq!(CloseInstructionData::LEN, size_of::<CloseInstructionData>());
+const_assert_eq!(1, align_of::<CloseInstructionData>());

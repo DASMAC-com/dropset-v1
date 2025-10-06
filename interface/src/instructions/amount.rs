@@ -46,6 +46,11 @@ impl Pack<12> for AmountInstructionData {
     }
 }
 
+// Safety:
+//
+// - Stable layout with `#[repr(C)]`.
+// - `size_of` and `align_of` are checked below.
+// - All bit patterns are valid.
 unsafe impl Transmutable for AmountInstructionData {
     const LEN: usize = 12;
 
@@ -60,3 +65,4 @@ const_assert_eq!(
     AmountInstructionData::LEN,
     size_of::<AmountInstructionData>()
 );
+const_assert_eq!(1, align_of::<AmountInstructionData>());
