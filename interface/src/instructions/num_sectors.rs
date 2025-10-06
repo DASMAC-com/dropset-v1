@@ -32,6 +32,12 @@ impl Pack<2> for NumSectorsInstructionData {
 
 unsafe impl Transmutable for NumSectorsInstructionData {
     const LEN: usize = 2;
+
+    #[inline(always)]
+    fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
+        // All bit patterns are valid: no enums, bools, or other types with invalid states.
+        Ok(())
+    }
 }
 
 const_assert_eq!(

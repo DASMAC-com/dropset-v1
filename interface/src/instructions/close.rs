@@ -34,6 +34,12 @@ impl Pack<8> for CloseInstructionData {
 
 unsafe impl Transmutable for CloseInstructionData {
     const LEN: usize = 4;
+
+    #[inline(always)]
+    fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
+        // All bit patterns are valid: no enums, bools, or other types with invalid states.
+        Ok(())
+    }
 }
 
 const_assert_eq!(CloseInstructionData::LEN, size_of::<CloseInstructionData>());

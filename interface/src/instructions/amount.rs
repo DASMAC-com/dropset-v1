@@ -48,6 +48,12 @@ impl Pack<12> for AmountInstructionData {
 
 unsafe impl Transmutable for AmountInstructionData {
     const LEN: usize = 12;
+
+    #[inline(always)]
+    fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
+        // All bit patterns are valid: no enums, bools, or other types with invalid states.
+        Ok(())
+    }
 }
 
 const_assert_eq!(
