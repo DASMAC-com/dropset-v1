@@ -9,6 +9,9 @@ pub enum DropsetError {
     NoFreeNodesLeft,
     InvalidAccountDiscriminant,
     IndexOutOfBounds,
+    InvalidIndexHint,
+    UnalignedData,
+    UnallocatedAccountData,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -27,6 +30,9 @@ impl From<DropsetError> for &'static str {
             DropsetError::NoFreeNodesLeft => "There are no free stack nodes left",
             DropsetError::InvalidAccountDiscriminant => "Invalid account discriminant",
             DropsetError::IndexOutOfBounds => "Index is out of bounds",
+            DropsetError::InvalidIndexHint => "Index hint is invalid",
+            DropsetError::UnalignedData => "Account data is unaligned",
+            DropsetError::UnallocatedAccountData => "Account data hasn't been properly allocated",
         }
     }
 }
