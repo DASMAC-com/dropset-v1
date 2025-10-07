@@ -109,7 +109,9 @@ impl<'a> Stack<'a> {
         Ok(())
     }
 
-    /// Removes a free node and returns the non-NIL sector index it's located at.
+    /// Tries to remove a free node and if successful, returns its sector index.
+    ///
+    /// The sector index returned is always in-bounds and non-NIL.
     pub fn remove_free_node(&mut self) -> Result<SectorIndex, DropsetError> {
         if self.top().is_nil() {
             return Err(DropsetError::NoFreeNodesLeft);
