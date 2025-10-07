@@ -1,10 +1,9 @@
 use static_assertions::const_assert_eq;
 
 use crate::{
-    error::DropsetError,
     pack::{write_bytes, Pack},
     state::{
-        sector::{NonNilSectorIndex, LeSectorIndex},
+        sector::{LeSectorIndex, SectorIndex},
         transmutable::Transmutable,
     },
 };
@@ -17,15 +16,15 @@ pub struct CloseInstructionData {
 }
 
 impl CloseInstructionData {
-    pub fn new(sector_index_hint: NonNilSectorIndex) -> Self {
+    pub fn new(sector_index_hint: SectorIndex) -> Self {
         CloseInstructionData {
             sector_index_hint: sector_index_hint.into(),
         }
     }
 
     #[inline(always)]
-    pub fn try_sector_index_hint(&self) -> Result<NonNilSectorIndex, DropsetError> {
-        NonNilSectorIndex::new(self.sector_index_hint.into())
+    pub fn sector_index_hint(&self) -> SectorIndex {
+        self.sector_index_hint.into()
     }
 }
 

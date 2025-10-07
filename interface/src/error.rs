@@ -6,6 +6,9 @@ pub enum DropsetError {
     InvalidInstructionTag,
     InsufficientByteLength,
     InvalidSectorIndex,
+    NoFreeNodesLeft,
+    InvalidAccountDiscriminant,
+    IndexOutOfBounds,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -21,6 +24,9 @@ impl From<DropsetError> for &'static str {
             DropsetError::InvalidInstructionTag => "Invalid instruction tag",
             DropsetError::InsufficientByteLength => "Not enough bytes passed",
             DropsetError::InvalidSectorIndex => "Invalid sector index passed",
+            DropsetError::NoFreeNodesLeft => "There are no free stack nodes left",
+            DropsetError::InvalidAccountDiscriminant => "Invalid account discriminant",
+            DropsetError::IndexOutOfBounds => "Index is out of bounds",
         }
     }
 }
