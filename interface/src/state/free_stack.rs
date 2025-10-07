@@ -12,8 +12,8 @@ use crate::{
 
 pub struct Stack<'a> {
     header: &'a mut MarketHeader,
-    /// The slab of bytes where a Stack of FreeNodePayload exists, where sectors are untagged unions
-    /// of (any possible Market account data type | FreeNodePayload).
+    /// The slab of bytes where all sector data exists, where each sector is an untagged union
+    /// of (any possible sector type | FreeNodePayload).
     sectors: &'a mut [u8],
 }
 
