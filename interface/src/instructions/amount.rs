@@ -3,7 +3,7 @@ use static_assertions::const_assert_eq;
 use crate::{
     pack::{write_bytes, Pack},
     state::{
-        sector::{LeSectorIndex, NonNilSectorIndex, NIL},
+        sector::{LeSectorIndex, SectorIndex, NIL},
         transmutable::Transmutable,
         LeU64,
     },
@@ -15,16 +15,15 @@ pub struct AmountInstructionData {
     /// The amount to deposit or withdraw.
     amount: LeU64,
     /// A hint as to which sector index the calling user is located in the sectors array.
-    /// The getter for this field exposes it as an Option<NonNilSectorIndex>, where `NIL` as the
-    /// hint is equivalent to None.
+    /// If `NIL`, it's treated as no hint. This avoids the need for a custom COption type.
     sector_index_hint: LeSectorIndex,
 }
 
 impl AmountInstructionData {
-    pub fn new(amount: u64, sector_index_hint: Option<NonNilSectorIndex>) -> Self {
+    pub fn new(amount: u64, sector_index_hint: Option<SectorIndex>) -> Self {
         AmountInstructionData {
             amount: amount.to_le_bytes(),
-            sector_index_hint: sector_index_hint.map_or(NIL, |v| v.0).into(),
+            sector_index_hint: sector_index_hint.unwrap_or(NIL).into(),
         }
     }
 
@@ -34,8 +33,12 @@ impl AmountInstructionData {
     }
 
     #[inline(always)]
-    pub fn sector_index_hint(&self) -> Option<NonNilSectorIndex> {
-        NonNilSectorIndex::new(self.sector_index_hint.into()).ok()
+    pub fn sector_index_hint(&self) -> Option<SectorIndex> {
+        let index: SectorIndex = self.sector_index_hint.into();
+        let not_nil = !index.is_nil();
+
+        // If the sector index hint bytes are equal to `NIL`, return None, otherwise Some(index).
+        not_nil.then_some(index)
     }
 }
 

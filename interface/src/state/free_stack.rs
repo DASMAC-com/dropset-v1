@@ -5,7 +5,7 @@ use crate::{
     state::{
         market_header::MarketHeader,
         node::{Node, NodePayload, NODE_PAYLOAD_SIZE},
-        sector::{NonNilSectorIndex, SectorIndex},
+        sector::SectorIndex,
         transmutable::Transmutable,
     },
 };
@@ -57,15 +57,15 @@ impl<'a> Stack<'a> {
     /// # Safety
     ///
     /// Caller guarantees `index` is in-bounds of the sector bytes.
-    pub unsafe fn push_free_node(&mut self, index: NonNilSectorIndex) {
+    pub unsafe fn push_free_node(&mut self, index: SectorIndex) {
         let curr_top = self.top();
 
         // Safety: caller guarantees the safety contract for this method.
-        let node = unsafe { Node::from_sector_index_mut_unchecked(self.sectors, index.0) };
+        let node = unsafe { Node::from_sector_index_mut_unchecked(self.sectors, index) };
         node.zero_out_payload();
 
         node.set_next(curr_top);
-        self.set_top(index.0);
+        self.set_top(index);
     }
 
     /// Initialize zeroed out bytes as free stack nodes.
@@ -106,7 +106,8 @@ impl<'a> Stack<'a> {
         Ok(())
     }
 
-    pub fn remove_free_node(&mut self) -> Result<NonNilSectorIndex, DropsetError> {
+    /// Removes a free node and returns the non-NIL sector index it's located at.
+    pub fn remove_free_node(&mut self) -> Result<SectorIndex, DropsetError> {
         if self.top().is_nil() {
             return Err(DropsetError::NoFreeNodesLeft);
         }
@@ -128,11 +129,8 @@ impl<'a> Stack<'a> {
         self.set_top(new_top);
         self.header.decrement_num_free_sectors();
 
-        // Safety: This method returned early if the freed index (the top node) was NIL.
-        let as_non_nil = unsafe { NonNilSectorIndex::new_unchecked(free_index) };
-
         // Now return the index of the freed node.
-        Ok(as_non_nil)
+        Ok(free_index)
     }
 
     #[inline(always)]

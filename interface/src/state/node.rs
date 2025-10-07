@@ -3,7 +3,7 @@ use static_assertions::const_assert_eq;
 use crate::{
     error::{DropsetError, DropsetResult},
     state::{
-        sector::{LeSectorIndex, NonNilSectorIndex, SectorIndex, SECTOR_SIZE},
+        sector::{LeSectorIndex, SectorIndex, SECTOR_SIZE},
         transmutable::Transmutable,
     },
 };
