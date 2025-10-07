@@ -57,7 +57,7 @@ impl<'a> Stack<'a> {
     /// # Safety
     ///
     /// Caller guarantees `index` is in-bounds of the sector bytes.
-    pub fn push_free_node(&mut self, index: NonNilSectorIndex) {
+    pub unsafe fn push_free_node(&mut self, index: NonNilSectorIndex) {
         let curr_top = self.top();
 
         // Safety: caller guarantees the safety contract for this method.
