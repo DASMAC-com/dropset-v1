@@ -2,13 +2,13 @@ use static_assertions::const_assert_eq;
 
 use crate::{
     pack::{write_bytes, Pack},
-    state::{transmutable::Transmutable, U16_SIZE},
+    state::{transmutable::Transmutable, LeU16},
 };
 use core::mem::MaybeUninit;
 
 #[repr(C)]
 pub struct NumSectorsInstructionData {
-    num_sectors: [u8; U16_SIZE],
+    num_sectors: LeU16,
 }
 
 impl NumSectorsInstructionData {

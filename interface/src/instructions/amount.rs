@@ -3,9 +3,9 @@ use static_assertions::const_assert_eq;
 use crate::{
     pack::{write_bytes, Pack},
     state::{
-        sector::{NonNilSectorIndex, NIL},
+        sector::{LeSectorIndex, NonNilSectorIndex, NIL},
         transmutable::Transmutable,
-        U32_SIZE, U64_SIZE,
+        LeU64,
     },
 };
 use core::mem::MaybeUninit;
@@ -13,11 +13,11 @@ use core::mem::MaybeUninit;
 #[repr(C)]
 pub struct AmountInstructionData {
     /// The amount to deposit or withdraw.
-    amount: [u8; U64_SIZE],
+    amount: LeU64,
     /// A hint as to which sector index the calling user is located in the sectors array.
     /// The getter for this field exposes it as an Option<NonNilSectorIndex>, where `NIL` as the
     /// hint is equivalent to None.
-    sector_index_hint: [u8; U32_SIZE],
+    sector_index_hint: LeSectorIndex,
 }
 
 impl AmountInstructionData {

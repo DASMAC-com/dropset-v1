@@ -23,6 +23,9 @@ pub unsafe trait Transmutable: Sized {
 
     /// Validates that `bytes` represents a valid `Self`.
     ///
+    /// Note that this does *not* check for initialized data, only that casting `bytes` to `Self`
+    /// will not result in undefined behavior (invalid enum variants, bools from u8 bytes, etc).
+    ///
     /// Called after length checks, so implementors may assume `bytes.len() == Self::LEN`.
     /// Should be marked `#[inline(always)]` in implementations for optimal performance.
     fn validate_bit_patterns(bytes: &[u8]) -> DropsetResult;

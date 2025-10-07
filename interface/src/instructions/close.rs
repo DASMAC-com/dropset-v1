@@ -3,14 +3,17 @@ use static_assertions::const_assert_eq;
 use crate::{
     error::DropsetError,
     pack::{write_bytes, Pack},
-    state::{sector::NonNilSectorIndex, transmutable::Transmutable, U32_SIZE},
+    state::{
+        sector::{NonNilSectorIndex, LeSectorIndex},
+        transmutable::Transmutable,
+    },
 };
 use core::mem::MaybeUninit;
 
 #[repr(C)]
 pub struct CloseInstructionData {
     /// A hint as to which sector index the calling user is located in the sectors array.
-    sector_index_hint: [u8; U32_SIZE],
+    sector_index_hint: LeSectorIndex,
 }
 
 impl CloseInstructionData {

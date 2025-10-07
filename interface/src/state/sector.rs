@@ -9,6 +9,9 @@ pub const SECTOR_SIZE: usize = 72;
 /// of 10 megabytes would mean the max sector index (~10.5 million) is still far less than u32::MAX.
 pub const NIL: SectorIndex = SectorIndex(u32::MAX);
 
+// An alias type for readability.
+pub type LeSectorIndex = [u8; U32_SIZE];
+
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// A stride-based index into an array of sectors.
