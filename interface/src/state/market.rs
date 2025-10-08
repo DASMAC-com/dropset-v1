@@ -36,7 +36,6 @@ impl<'a> MarketRef<'a> {
     ///
     /// Caller guarantees that `MARKET_HEADER_SIZE <= data.len()`.
     pub unsafe fn from_bytes(data: &'a [u8]) -> Self {
-        // Safety: Caller guarantees `MARKET_HEADER_SIZE <= data.len()`.
         let (header_bytes, sectors) = data.split_at_unchecked(MarketHeader::LEN);
         // Safety: MarketHeaders are valid for all bit patterns.
         let header = unsafe { MarketHeader::load_unchecked(header_bytes) };
@@ -55,7 +54,6 @@ impl<'a> MarketRefMut<'a> {
     ///
     /// Caller guarantees that `MARKET_HEADER_SIZE <= data.len()`.
     pub unsafe fn from_bytes_mut(data: &'a mut [u8]) -> Self {
-        // Safety: Caller guarantees `MARKET_HEADER_SIZE <= data.len()`.
         let (header_bytes, sectors) = data.split_at_mut_unchecked(MarketHeader::LEN);
         // Safety: MarketHeaders are valid (no undefined behavior) for all bit patterns.
         let header = unsafe { MarketHeader::load_unchecked_mut(header_bytes) };
