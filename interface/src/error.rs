@@ -13,6 +13,11 @@ pub enum DropsetError {
     UnalignedData,
     UnallocatedAccountData,
     UserAlreadyExists,
+    NotEnoughAccountKeys,
+    InvalidTokenProgram,
+    AlreadyInitializedAccount,
+    NotOwnedBySystemProgram,
+    AddressDerivationFailed,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -35,6 +40,11 @@ impl From<DropsetError> for &'static str {
             DropsetError::UnalignedData => "Account data is unaligned",
             DropsetError::UnallocatedAccountData => "Account data hasn't been properly allocated",
             DropsetError::UserAlreadyExists => "User already has an existing seat",
+            DropsetError::NotEnoughAccountKeys => "Not enough account keys were provided",
+            DropsetError::InvalidTokenProgram => "Invalid token program ID",
+            DropsetError::AlreadyInitializedAccount => "Account has already been initialized",
+            DropsetError::NotOwnedBySystemProgram => "Account is not owned by the system program",
+            DropsetError::AddressDerivationFailed => "PDA derivation failed",
         }
     }
 }
