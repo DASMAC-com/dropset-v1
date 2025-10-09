@@ -3,10 +3,12 @@ use pinocchio::{program_error::ProgramError, ProgramResult};
 
 use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_signer};
 
-/// Transfers `amount` of token `ctx.mint` from the user to the market account.
+/// Deposits `amount` of token `ctx.mint` from the user to the market account. This does not track
+/// or update seat balances.
 ///
-/// # NOTE
-/// This does *not* update tracked balances, it merely transfers from user => market.
+/// # Safety
+///
+/// Caller guarantees the market token account is not currently borrowed.
 pub fn deposit_to_market(ctx: &DepositWithdrawContext, amount: u64) -> Result<u64, ProgramError> {
     if ctx.token_program.is_spl_token {
         pinocchio_token::instructions::Transfer {
@@ -48,24 +50,28 @@ pub fn deposit_to_market(ctx: &DepositWithdrawContext, amount: u64) -> Result<u6
     }
 }
 
-/// Transfers `amount` of token `ctx.mint` from the market account to the user.
+/// Withdraws `amount` of token `ctx.mint` from the market account to the user. This does not track
+/// or update seat balances.
 ///
-/// # NOTE
-/// This does *not* update tracked balances, it merely transfers from market => user.
+/// # Safety
+///
+/// Caller guarantees the market account is not currently borrowed.
 pub fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) -> ProgramResult {
     let (base_mint, quote_mint, market_bump) = {
-        // Safety: Single immutable borrow to the market account data.
-        let data = unsafe { ctx.market_account.info.borrow_data_unchecked() };
-        let market = MarketRef::from_bytes_unchecked(data)?;
-        let header = market.header;
-        (header.base_mint, header.quote_mint, header.market_bump)
+        // Safety: Scoped immutable borrow to copy the signer seeds necessary.
+        let market = unsafe { ctx.market_account.load_unchecked() };
+        (
+            market.header.base_mint,
+            market.header.quote_mint,
+            market.header.market_bump,
+        )
     };
 
     if ctx.token_program.is_spl_token {
         pinocchio_token::instructions::Transfer {
             from: ctx.market_ata.info,
             to: ctx.user_ata.info,
-            authority: ctx.market_account.info,
+            authority: ctx.market_account.info(),
             amount,
         }
         .invoke_signed(&[market_signer!(base_mint, quote_mint, market_bump)])
@@ -74,7 +80,7 @@ pub fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) -> Progra
         pinocchio_token::instructions::TransferChecked {
             from: ctx.market_ata.info,
             to: ctx.user_ata.info,
-            authority: ctx.market_account.info,
+            authority: ctx.market_account.info(),
             amount,
             mint: ctx.mint.info,
             decimals,
