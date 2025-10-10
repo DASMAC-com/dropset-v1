@@ -47,9 +47,8 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
 
     let hint = args.sector_index_hint();
 
+    // 1) Update an existing seat.
     if let Some(index) = hint {
-        // 1) Update an existing seat.
-
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };
         Node::check_in_bounds(market.sectors, index)?;
@@ -81,7 +80,6 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
         }
     } else {
         // 2) Register a new seat.
-
         // Safety: Scoped immutable borrow of the market account, checks the number of free sectors.
         let needs_resize = unsafe { ctx.market_account.load_unchecked() }
             .header
