@@ -91,7 +91,7 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
             unsafe { ctx.market_account.resize(ctx.user, 1) }?;
         }
 
-        // Safety: Scoped mutable borrow of market account data to insert the new seat.jj
+        // Safety: Scoped mutable borrow of market account data to insert the new seat.
         let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
 
         let seat = if ctx.mint.is_base_mint {
