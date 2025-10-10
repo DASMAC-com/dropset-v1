@@ -47,17 +47,17 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
         (market_bump, seat.base_available(), seat.quote_available())
     };
 
-    // Safety: Scoped mutable borrow of market account data to remove the seat.
+    // Remove the seat, push it to the free stack, and zero it out.
     unsafe {
-        // Remove the seat, push it to the free stack, and zero it out.
         ctx.market_account
+            // Safety: Scoped mutable borrow of market account data to remove the seat.
             .load_unchecked_mut()
             .seat_list()
             // Safety: The index hint was verified as in-bounds.
             .remove_at(hint)
     };
 
-    // Now withdraw the tokens from the user's token accounts.
+    // If the user had any `base_available`, transfer that amount from market account => user.
     if base_available > 0 {
         if ctx.base_token_program.is_spl_token {
             pinocchio_token::instructions::Transfer {
@@ -90,6 +90,7 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
         }
     }
 
+    // If the user had any `quote_available`, transfer that amount from market account => user.
     if quote_available > 0 {
         if ctx.quote_token_program.is_spl_token {
             pinocchio_token::instructions::Transfer {
