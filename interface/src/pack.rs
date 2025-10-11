@@ -1,6 +1,6 @@
 use core::mem::MaybeUninit;
 
-use crate::{instructions::InstructionTag, state::transmutable::Transmutable};
+use crate::state::transmutable::Transmutable;
 
 pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::uninit();
 
@@ -90,20 +90,4 @@ pub fn write_bytes(dst: &mut [MaybeUninit<u8>], src: &[u8]) {
     for (d, s) in dst.iter_mut().zip(src.iter()) {
         d.write(*s);
     }
-}
-
-#[macro_export]
-macro_rules! pack_with_tag {
-    ($data:expr, $tag:expr, $len:expr) => {{
-        let mut tagged_instruction_data = [UNINIT_BYTE; $len + 1];
-        tagged_instruction_data[0].write($tag as u8);
-        let payload = unsafe {
-            &mut *tagged_instruction_data
-                .as_mut_ptr()
-                .add(1)
-                .cast::<[MaybeUninit<u8>; $len]>()
-        };
-        $data.pack_into_slice(payload);
-        unsafe { *(tagged_instruction_data.as_ptr() as *const [u8; $len + 1]) }
-    }};
 }

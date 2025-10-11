@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn test_instruction_tag_from_u8_exhaustive() {
         for variant in InstructionTag::iter() {
-            let variant_u8 = variant.clone() as u8;
+            let variant_u8 = variant as u8;
             assert_eq!(
                 InstructionTag::from_repr(variant_u8).unwrap(),
                 InstructionTag::try_from(variant_u8).unwrap(),
