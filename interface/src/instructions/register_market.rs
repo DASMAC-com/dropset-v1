@@ -21,10 +21,10 @@ use pinocchio::{
 /// ### Accounts
 ///  0. `[WRITE]` User account
 ///  1. `[WRITE]` Market account
-///  2. `[READ]` Base mint
-///  3. `[READ]` Quote mint
-///  4. `[WRITE]` Base market associated token account
-///  5. `[WRITE]` Quote market associated token account
+///  2. `[WRITE]` Base market associated token account
+///  3. `[WRITE]` Quote market associated token account
+///  4. `[READ]` Base mint
+///  5. `[READ]` Quote mint
 ///  6. `[READ]` Base token program
 ///  7. `[READ]` Quote token program
 ///  8. `[READ]` System program
@@ -33,14 +33,14 @@ pub struct RegisterMarket<'a> {
     pub user: &'a AccountInfo,
     /// The market account PDA.
     pub market_account: &'a AccountInfo,
-    /// The base mint account.
-    pub base_mint: &'a AccountInfo,
-    /// The quote mint account.
-    pub quote_mint: &'a AccountInfo,
     /// The market's associated token account for the base mint.
     pub base_market_ata: &'a AccountInfo,
     /// The market's associated token account for the quote mint.
     pub quote_market_ata: &'a AccountInfo,
+    /// The base mint account.
+    pub base_mint: &'a AccountInfo,
+    /// The quote mint account.
+    pub quote_mint: &'a AccountInfo,
     /// The base mint's token program.
     pub base_token_program: &'a AccountInfo,
     /// The quote mint's token program.
@@ -68,10 +68,10 @@ impl RegisterMarket<'_> {
             &[
                 self.user,
                 self.market_account,
-                self.base_mint,
-                self.quote_mint,
                 self.base_market_ata,
                 self.quote_market_ata,
+                self.base_mint,
+                self.quote_mint,
                 self.base_token_program,
                 self.quote_token_program,
                 self.system_program,
@@ -89,9 +89,9 @@ impl RegisterMarket<'_> {
             AccountMeta::writable(self.quote_market_ata.key()),
             AccountMeta::readonly(self.base_mint.key()),
             AccountMeta::readonly(self.quote_mint.key()),
-            AccountMeta::readonly(self.system_program.key()),
             AccountMeta::readonly(self.base_token_program.key()),
             AccountMeta::readonly(self.quote_token_program.key()),
+            AccountMeta::readonly(self.system_program.key()),
         ]
     }
 

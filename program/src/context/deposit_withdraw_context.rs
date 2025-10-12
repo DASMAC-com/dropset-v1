@@ -59,9 +59,9 @@ impl<'a> DepositWithdrawContext<'a> {
         Ok(Self {
             user,
             market_account,
-            mint,
             user_ata,
             market_ata,
+            mint,
         })
     }
 }

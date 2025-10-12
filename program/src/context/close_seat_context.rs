@@ -62,12 +62,12 @@ impl<'a> CloseSeatContext<'a> {
         Ok(Self {
             user,
             market_account,
-            base_mint,
-            quote_mint,
             user_base_ata,
             user_quote_ata,
             market_base_ata,
             market_quote_ata,
+            base_mint,
+            quote_mint,
         })
     }
 }
