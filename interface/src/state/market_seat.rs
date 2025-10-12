@@ -74,7 +74,7 @@ impl MarketSeat {
     }
 
     #[inline(always)]
-    pub fn as_bytes(&self) -> &[u8; MarketSeat::LEN] {
+    pub fn as_array(&self) -> &[u8; MarketSeat::LEN] {
         // Safety:
         // - `MarketSeat` is always `LEN` bytes; size and alignment are checked with const asserts.
         // - All fields are byte-safe, `Copy`, non-pointer/reference u8 arrays.
