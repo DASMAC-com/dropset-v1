@@ -2,49 +2,10 @@ use core::mem::MaybeUninit;
 
 use crate::{
     error::DropsetError,
-    state::{sector::SectorIndex, transmutable::Transmutable, U16_SIZE, U32_SIZE, U64_SIZE},
+    state::{sector::SectorIndex, U16_SIZE, U32_SIZE, U64_SIZE},
 };
 
 pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::uninit();
-
-/// # Safety
-///
-/// Implementor must guarantee `pack_into_slice` packs `LEN` bytes.
-pub unsafe trait Pack<const LEN: usize>: Sized {
-    /// Pack into a buffer of size LEN without zero initializing the buffer, then return the buffer.
-    fn pack(&self) -> [u8; LEN] {
-        let mut dst = [UNINIT_BYTE; LEN];
-        self.pack_into_slice(&mut dst);
-
-        // Safety: All LEN bytes were initialized in `pack_into_slice`.
-        unsafe { *(dst.as_ptr() as *const [u8; LEN]) }
-    }
-
-    #[doc(hidden)]
-    /// Pack into a destination slice of maybe uninitialized bytes of LEN length.
-    fn pack_into_slice(&self, dst: &mut [MaybeUninit<u8>; LEN]);
-}
-
-/// # Safety
-///
-/// Implementor guarantees:
-/// - `size_of::<Self>() == LEN`
-/// - `#[repr(C)]` or `#[repr(transparent)]`
-/// - No padding between fields
-/// - No invalid bit patterns for `Self`
-pub unsafe trait AsSlice<const LEN: usize>: Sized {
-    /// Returns `Self` as a referenced slice.
-    #[inline(always)]
-    fn as_slice(&self) -> &[u8; LEN] {
-        unsafe { &*(self as *const Self as *const [u8; LEN]) }
-    }
-}
-
-/// Safety: `Pack<LEN>` guarantees a length of `LEN`, and `Transmutable` guarantees a stable layout
-/// with no padding or invalid bit patterns, so it's safe to provide a blanket implementation of
-/// AsSlice for any type that implements both traits.
-/// The `LEN` in pack should always match the `Transmutable::LEN`.
-unsafe impl<T, const LEN: usize> AsSlice<LEN> for T where T: Pack<LEN> + Transmutable {}
 
 /// Writes bytes from a source slice into an uninitialized destination buffer.
 ///
@@ -95,6 +56,7 @@ pub fn write_bytes(dst: &mut [MaybeUninit<u8>], src: &[u8]) {
     }
 }
 
+/// Safely unpacks a u16 from a slice of unknown length.
 pub fn unpack_u16(instruction_data: &[u8]) -> Result<u16, DropsetError> {
     if instruction_data.len() >= U16_SIZE {
         // Safety: The instruction data is at least U16_SIZE bytes.
@@ -104,6 +66,7 @@ pub fn unpack_u16(instruction_data: &[u8]) -> Result<u16, DropsetError> {
     }
 }
 
+/// Safely unpacks a u32 from a slice of unknown length.
 pub fn unpack_u32(instruction_data: &[u8]) -> Result<u32, DropsetError> {
     if instruction_data.len() >= U32_SIZE {
         // Safety: The instruction data is at least U32_SIZE bytes.
@@ -113,6 +76,7 @@ pub fn unpack_u32(instruction_data: &[u8]) -> Result<u32, DropsetError> {
     }
 }
 
+/// Safely unpacks a u64 from a slice of unknown length.
 pub fn unpack_u64(instruction_data: &[u8]) -> Result<u64, DropsetError> {
     if instruction_data.len() >= U64_SIZE {
         // Safety: The instruction data is at least U64_SIZE bytes.
@@ -122,7 +86,7 @@ pub fn unpack_u64(instruction_data: &[u8]) -> Result<u64, DropsetError> {
     }
 }
 
-/// Unpacks a u64 and an optional sector index.
+/// Safely unpacks a u64 and an optional sector index.
 ///
 /// /// Sector indices passed by a caller can sometimes be optional, in which case `NIL` is used as
 /// a `None`-like value. This function safely unpacks the u32 bytes into an Option<SectorIndex>.
@@ -147,7 +111,9 @@ pub fn unpack_amount_and_optional_sector_index(
     }
 }
 
-/// Unpacks a u64 and a sector index. Note that the sector index returned could == `NIL`.
+/// Safely unpacks a u64 and a sector index.
+///
+/// Note that the sector index returned could == `NIL`.
 pub fn unpack_amount_and_sector_index(
     instruction_data: &[u8],
 ) -> Result<(u64, SectorIndex), DropsetError> {
