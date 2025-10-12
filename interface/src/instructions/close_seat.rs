@@ -76,7 +76,7 @@ impl CloseSeat<'_> {
     }
 
     #[inline(always)]
-    fn create_account_metas(&self) -> [AccountMeta; 8] {
+    pub fn create_account_metas(&self) -> [AccountMeta; 8] {
         [
             AccountMeta::readonly_signer(self.user.key()),
             AccountMeta::writable(self.market_account.key()),
@@ -90,7 +90,7 @@ impl CloseSeat<'_> {
     }
 
     #[inline(always)]
-    fn pack_instruction_data(&self) -> [u8; 9] {
+    pub fn pack_instruction_data(&self) -> [u8; 9] {
         let mut data = [UNINIT_BYTE; 9];
         data[0].write(InstructionTag::CloseSeat as u8);
         write_bytes(&mut data[1..9], &self.sector_index_hint.0.to_le_bytes());

@@ -66,7 +66,7 @@ impl Withdraw<'_> {
     }
 
     #[inline(always)]
-    fn create_account_metas(&self) -> [AccountMeta; 5] {
+    pub fn create_account_metas(&self) -> [AccountMeta; 5] {
         [
             AccountMeta::readonly_signer(self.user.key()),
             AccountMeta::writable(self.market_account.key()),
@@ -77,7 +77,7 @@ impl Withdraw<'_> {
     }
 
     #[inline(always)]
-    fn pack_instruction_data(&self) -> [u8; 13] {
+    pub fn pack_instruction_data(&self) -> [u8; 13] {
         let mut data = [UNINIT_BYTE; 13];
         data[0].write(InstructionTag::Withdraw as u8);
         write_bytes(&mut data[1..9], &self.amount.to_le_bytes());

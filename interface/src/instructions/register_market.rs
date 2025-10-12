@@ -81,7 +81,7 @@ impl RegisterMarket<'_> {
     }
 
     #[inline(always)]
-    fn create_account_metas(&self) -> [AccountMeta; 9] {
+    pub fn create_account_metas(&self) -> [AccountMeta; 9] {
         [
             AccountMeta::writable_signer(self.user.key()),
             AccountMeta::writable(self.market_account.key()),
@@ -96,7 +96,7 @@ impl RegisterMarket<'_> {
     }
 
     #[inline(always)]
-    fn pack_instruction_data(&self) -> [u8; 3] {
+    pub fn pack_instruction_data(&self) -> [u8; 3] {
         let mut data = [UNINIT_BYTE; 3];
         data[0].write(InstructionTag::RegisterMarket as u8);
         write_bytes(&mut data[1..3], &self.num_sectors.to_le_bytes());
