@@ -1,4 +1,4 @@
-use dropset_interface::error::DropsetError;
+use dropset_interface::{error::DropsetError, utils::is_owned_by_spl_token};
 use pinocchio::{program_error::ProgramError, ProgramResult};
 
 use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_signer};
@@ -23,7 +23,7 @@ pub unsafe fn deposit_non_zero_to_market(
     ctx: &DepositWithdrawContext,
     amount: u64,
 ) -> Result<u64, ProgramError> {
-    let amount_deposited = if ctx.token_program.is_spl_token {
+    let amount_deposited = if is_owned_by_spl_token(ctx.mint.info) {
         pinocchio_token::instructions::Transfer {
             from: ctx.user_ata.info, // WRITE
             to: ctx.market_ata.info, // WRITE
@@ -48,7 +48,7 @@ pub unsafe fn deposit_non_zero_to_market(
             authority: ctx.user,     // READ
             decimals,
             amount,
-            token_program: ctx.token_program.info.key(),
+            token_program: &pinocchio_token_2022::ID,
         }
         .invoke()?;
 
@@ -103,7 +103,7 @@ pub unsafe fn withdraw_non_zero_from_market(
         )
     };
 
-    if ctx.token_program.is_spl_token {
+    if is_owned_by_spl_token(ctx.mint.info) {
         pinocchio_token::instructions::Transfer {
             from: ctx.market_ata.info,            // WRITE
             to: ctx.user_ata.info,                // WRITE
@@ -122,7 +122,7 @@ pub unsafe fn withdraw_non_zero_from_market(
             authority: ctx.market_account.info(), // READ
             amount,
             decimals,
-            token_program: ctx.token_program.info.key(),
+            token_program: &pinocchio_token_2022::ID,
         }
         .invoke_signed(&[market_signer!(base_mint, quote_mint, market_bump)])
     }

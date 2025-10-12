@@ -135,6 +135,7 @@ version = "0.1.0"
 dependencies = [
  "pinocchio",
  "pinocchio-pubkey",
+ "pinocchio-token",
  "pinocchio-token-interface",
  "static_assertions",
  "strum",
