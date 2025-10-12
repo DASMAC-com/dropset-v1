@@ -19,7 +19,7 @@ pub fn process_instruction(
             InstructionTag::RegisterMarket => process_register_market(accounts, remaining),
             InstructionTag::Deposit => process_deposit(accounts, remaining),
             InstructionTag::Withdraw => process_withdraw(accounts, remaining),
-            InstructionTag::Close => process_close_seat(accounts, remaining),
+            InstructionTag::CloseSeat => process_close_seat(accounts, remaining),
             InstructionTag::FlushEvents => process_flush_events(accounts, remaining),
         }
     }

@@ -37,7 +37,8 @@ pub struct Deposit<'a> {
     /// The amount to deposit.
     pub amount: u64,
     /// A hint indicating which sector index the user's seat is at in the sectors array.
-    /// If `NIL`, it's treated as no hint. This avoids the need for a custom COption type.
+    /// If `NIL`, it's treated as no hint (and thus the user is registering).
+    /// This avoids the need for a custom COption type.
     pub sector_index_hint: SectorIndex,
 }
 
@@ -83,6 +84,7 @@ impl Deposit<'_> {
         data[0].write(InstructionTag::Deposit as u8);
         write_bytes(&mut data[1..9], &self.amount.to_le_bytes());
         write_bytes(&mut data[9..13], &self.sector_index_hint.0.to_le_bytes());
+        // Safety: All 13 bytes were written to.
         unsafe { *(data.as_ptr() as *const _) }
     }
 }

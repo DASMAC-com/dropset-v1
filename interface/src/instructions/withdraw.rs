@@ -37,7 +37,6 @@ pub struct Withdraw<'a> {
     /// The amount to withdraw.
     pub amount: u64,
     /// A hint indicating which sector index the user's seat is at in the sectors array.
-    /// Validated as non-NIL at invocation time.
     pub sector_index_hint: SectorIndex,
 }
 
@@ -83,6 +82,7 @@ impl Withdraw<'_> {
         data[0].write(InstructionTag::Withdraw as u8);
         write_bytes(&mut data[1..9], &self.amount.to_le_bytes());
         write_bytes(&mut data[9..13], &self.sector_index_hint.0.to_le_bytes());
+        // Safety: All 13 bytes were written to.
         unsafe { *(data.as_ptr() as *const _) }
     }
 }

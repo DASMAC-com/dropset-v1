@@ -6,7 +6,6 @@ pub mod close_seat;
 pub mod deposit;
 pub mod flush_events;
 pub mod register_market;
-pub mod shared;
 pub mod withdraw;
 
 #[repr(u8)]
@@ -16,7 +15,7 @@ pub enum InstructionTag {
     RegisterMarket,
     Deposit,
     Withdraw,
-    Close,
+    CloseSeat,
     FlushEvents,
 }
 

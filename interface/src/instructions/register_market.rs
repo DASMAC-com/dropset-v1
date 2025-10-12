@@ -100,6 +100,7 @@ impl RegisterMarket<'_> {
         let mut data = [UNINIT_BYTE; 3];
         data[0].write(InstructionTag::RegisterMarket as u8);
         write_bytes(&mut data[1..3], &self.num_sectors.to_le_bytes());
+        // Safety: All 3 bytes were written to.
         unsafe { *(data.as_ptr() as *const _) }
     }
 }

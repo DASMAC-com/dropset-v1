@@ -3,38 +3,24 @@ use pinocchio::{account_info::AccountInfo, program_error::ProgramError};
 
 use crate::validation::{
     market_account_info::MarketAccountInfo, mint_info::MintInfo,
-    token_account_info::TokenAccountInfo, token_program_info::TokenProgramInfo,
+    token_account_info::TokenAccountInfo,
 };
 
 #[derive(Clone)]
 pub struct CloseSeatContext<'a> {
     pub user: &'a AccountInfo,
     pub market_account: MarketAccountInfo<'a>,
-    pub base_mint: MintInfo<'a>,
-    pub quote_mint: MintInfo<'a>,
     pub user_base_ata: TokenAccountInfo<'a>,
     pub user_quote_ata: TokenAccountInfo<'a>,
     pub market_base_ata: TokenAccountInfo<'a>,
     pub market_quote_ata: TokenAccountInfo<'a>,
-    pub base_token_program: TokenProgramInfo<'a>,
-    pub quote_token_program: TokenProgramInfo<'a>,
+    pub base_mint: MintInfo<'a>,
+    pub quote_mint: MintInfo<'a>,
 }
 
 impl<'a> CloseSeatContext<'a> {
-    /// # Safety
-    ///
-    /// Caller guarantees:
-    /// - WRITE accounts are not currently borrowed in *any* capacity.
-    /// - READ accounts are not currently mutably borrowed.
-    ///
-    /// ### Accounts
-    ///   0. `[READ]` Market account
-    ///   1. `[READ]` User base token account
-    ///   2. `[READ]` User quote token account
-    ///   3. `[READ]` Market base token account
-    ///   4. `[READ]` Market quote token account
     pub unsafe fn load(accounts: &'a [AccountInfo]) -> Result<CloseSeatContext<'a>, ProgramError> {
-        let [user, market_account, base_mint, quote_mint, user_base_ata, user_quote_ata, market_base_ata, market_quote_ata, base_token_program, quote_token_program] =
+        let [user, market_account, base_mint, quote_mint, user_base_ata, user_quote_ata, market_base_ata, market_quote_ata] =
             accounts
         else {
             return Err(DropsetError::NotEnoughAccountKeys.into());
@@ -44,6 +30,7 @@ impl<'a> CloseSeatContext<'a> {
         let (market_account, base_mint, quote_mint) = unsafe {
             let market_account = MarketAccountInfo::new(market_account)?;
             let market = market_account.load_unchecked();
+            // Check the base and quote mints against the mints in the market header.
             let (base_mint, quote_mint) =
                 MintInfo::new_base_and_quote(base_mint, quote_mint, market)?;
             (market_account, base_mint, quote_mint)
@@ -64,9 +51,6 @@ impl<'a> CloseSeatContext<'a> {
             market_account.info().key(),
         )?;
 
-        let base_token_program = TokenProgramInfo::new(base_token_program)?;
-        let quote_token_program = TokenProgramInfo::new(quote_token_program)?;
-
         Ok(Self {
             user,
             market_account,
@@ -76,8 +60,6 @@ impl<'a> CloseSeatContext<'a> {
             user_quote_ata,
             market_base_ata,
             market_quote_ata,
-            base_token_program,
-            quote_token_program,
         })
     }
 }
