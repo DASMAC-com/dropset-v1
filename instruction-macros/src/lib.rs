@@ -4,6 +4,12 @@ use syn::{
     Lit, LitInt, Meta, Result, Token,
 };
 
+const ACCOUNT_IDENTIFIER: &str = "account";
+const ACCOUNT_NAME: &str = "name";
+const ACCOUNT_DESCRIPTION: &str = "desc";
+const ACCOUNT_WRITABLE: &str = "writable";
+const ACCOUNT_SIGNER: &str = "signer";
+
 #[proc_macro_derive(ProgramInstructions, attributes(account))]
 pub fn instruction_accounts(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -25,7 +31,7 @@ fn impl_instruction_accounts(input: DeriveInput) -> syn::Result<proc_macro2::Tok
         let instruction_accounts = variant
             .attrs
             .iter()
-            .filter(|attr| attr.path().is_ident("account"))
+            .filter(|attr| attr.path().is_ident(ACCOUNT_IDENTIFIER))
             .enumerate()
             .map(InstructionAccount::try_from)
             .collect::<Result<Vec<InstructionAccount>>>()?;
@@ -159,17 +165,17 @@ fn build_instruction_account(input: ParseStream) -> Result<InstructionAccountInC
                         meta_input.to_string(),
                     )
                     .into_err(meta_input.span())))?;
-                if m.path().is_ident("signer") {
+                if m.path().is_ident(ACCOUNT_SIGNER) {
                     is_signer = true;
-                } else if m.path().is_ident("writable") {
+                } else if m.path().is_ident(ACCOUNT_WRITABLE) {
                     is_writable = true;
-                } else if m.path().is_ident("name") {
+                } else if m.path().is_ident(ACCOUNT_NAME) {
                     let name_str = parse_name_value(&m)?;
                     if let Some(old) = name {
                         return Err(ParsingError::TooManyNames(old, name_str).into_err(m.span()));
                     }
                     name.replace(name_str);
-                } else if m.path().is_ident("desc") {
+                } else if m.path().is_ident(ACCOUNT_DESCRIPTION) {
                     let new_description = parse_name_value(&m)?;
                     if description.is_some() {
                         return Err(ParsingError::TooManyDescriptions.into_err(m.span()));
