@@ -1,5 +1,7 @@
 use dropset_interface::{
-    error::DropsetError, pack::unpack_amount_and_sector_index, state::node::Node,
+    error::DropsetError,
+    instructions::WithdrawInstructionData,
+    state::{node::Node, sector::SectorIndex},
 };
 use pinocchio::{account_info::AccountInfo, ProgramResult};
 
@@ -17,7 +19,11 @@ use crate::{
 ///
 /// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::withdraw::Withdraw`]
 pub unsafe fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
-    let (amount, hint) = unpack_amount_and_sector_index(instruction_data)?;
+    let WithdrawInstructionData {
+        amount,
+        sector_index_hint,
+    } = WithdrawInstructionData::unpack(instruction_data)?;
+    let hint = SectorIndex(sector_index_hint);
 
     // Safety: Scoped immutable borrow of market, user token, and market token accounts to validate.
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;

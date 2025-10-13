@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "instruction-macros",
   "interface",
   "program",
 ]
@@ -52,4 +53,7 @@ check-cfg = [
     'cfg(target_os, values("solana"))',
     'cfg(feature, values("no-entrypoint"))',
     'cfg(feature, values("std"))',
+    'cfg(feature, values("pinocchio-invoke"))',
+    'cfg(feature, values("solana-sdk-invoke"))',
+    'cfg(feature, values("client"))',
 ]
