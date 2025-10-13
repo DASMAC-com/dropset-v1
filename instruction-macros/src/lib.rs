@@ -18,20 +18,16 @@ fn impl_instruction_accounts(input: DeriveInput) -> syn::Result<proc_macro2::Tok
     };
 
     enum_item.variants.into_iter().try_for_each(|variant| {
-        // ident here is the name of the enum variant
-        // filter by attr: account
-        let account_attrs = variant
+        // `ident` here is the name of the enum variant
+        let _variant_name = &variant.ident;
+
+        // Filter by attrs matching `#[account(...)]`, then try converting to `InstructionAccount`s.
+        let instruction_accounts = variant
             .attrs
             .iter()
             .filter(|attr| attr.path().is_ident("account"))
-            .collect::<Vec<&Attribute>>();
-
-        let instruction_accounts = account_attrs
-            .into_iter()
             .enumerate()
-            .map(|(i, attr)| -> Result<InstructionAccount> {
-                InstructionAccount::try_from((i, attr.meta.clone()))
-            })
+            .map(InstructionAccount::try_from)
             .collect::<Result<Vec<InstructionAccount>>>()?;
 
         eprintln!("{:#?}", instruction_accounts);
@@ -99,12 +95,13 @@ impl ParsingError {
     }
 }
 
-impl TryFrom<(usize, Meta)> for InstructionAccount {
+impl TryFrom<(usize, &Attribute)> for InstructionAccount {
     type Error = Error;
 
-    fn try_from(position_and_meta: (usize, Meta)) -> std::result::Result<Self, Self::Error> {
-        let (position, meta) = position_and_meta;
-        let list = meta.require_list()?;
+    fn try_from(pos_and_attr: (usize, &Attribute)) -> std::result::Result<Self, Self::Error> {
+        let (position, attribute) = pos_and_attr;
+        let span = attribute.meta.span();
+        let list = &attribute.meta.require_list()?;
 
         let (index, is_writable, is_signer, name, description) =
             list.parse_args_with(build_instruction_account)?;
@@ -112,11 +109,11 @@ impl TryFrom<(usize, Meta)> for InstructionAccount {
         // Ensure the index and name were set.
         let (index, name) = match (index, name) {
             (Some(index), Some(name)) => Ok((index, name)),
-            _ => Err(ParsingError::AccountNeedsIndexAndName.into_err(meta.span())),
+            _ => Err(ParsingError::AccountNeedsIndexAndName.into_err(span)),
         }?;
 
         if position != index as usize {
-            return Err(ParsingError::IndexOutOfOrder(index, position).into_err(meta.span()));
+            return Err(ParsingError::IndexOutOfOrder(index, position).into_err(span));
         }
 
         Ok(InstructionAccount {
@@ -224,19 +221,10 @@ fn validate_and_sort_accounts(
         return Err(ParsingError::ZeroAccounts.into_err(span));
     }
 
-    // accs.sort_by_key(|acc| acc.index);
-
     // Ensure there is at least one signer.
     if !accs.iter().any(|acc| acc.is_signer) {
         return Err(ParsingError::MissingSigner.into_err(span));
     }
-
-    accs.iter().enumerate().try_for_each(|(i, acc)| {
-        if i != acc.index as usize {
-            return Err(ParsingError::IndexOutOfOrder(acc.index, i).into_err(span));
-        }
-        Ok(())
-    })?;
 
     // Ensure there are no duplicate account names.
     let mut names: Vec<String> = accs.iter().map(|acc| acc.name.clone()).collect();
