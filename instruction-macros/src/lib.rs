@@ -1,7 +1,12 @@
+use std::str::FromStr;
+
+use itertools::Itertools;
 use quote::ToTokens;
 use syn::{
-    parse::ParseStream, parse_macro_input, spanned::Spanned, Attribute, DeriveInput, Error, Expr,
-    Lit, LitInt, Meta, Result, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    spanned::Spanned,
+    Attribute, DeriveInput, Error, Expr, Ident, Lit, LitInt, Meta, Result, Token, Type,
 };
 
 const ACCOUNT_IDENTIFIER: &str = "account";
@@ -9,23 +14,26 @@ const ACCOUNT_NAME: &str = "name";
 const ACCOUNT_DESCRIPTION: &str = "desc";
 const ACCOUNT_WRITABLE: &str = "writable";
 const ACCOUNT_SIGNER: &str = "signer";
+const ARGUMENT_IDENTIFIER: &str = "args";
 
-#[proc_macro_derive(ProgramInstructions, attributes(account))]
-pub fn instruction_accounts(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(ProgramInstructions, attributes(account, args))]
+pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let out = impl_instruction_accounts(input).unwrap_or_else(|e| e.to_compile_error());
+    let out = impl_instruction(input).unwrap_or_else(|e| e.to_compile_error());
     out.into()
 }
 
-fn impl_instruction_accounts(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
+fn impl_instruction(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let enum_item = match input.data {
         syn::Data::Enum(e) => e,
         _ => return Err(ParsingError::NotAnEnum.into_err(input.span())),
     };
 
+    // For each enum variant, check all attrs.
     enum_item.variants.into_iter().try_for_each(|variant| {
         // `ident` here is the name of the enum variant
-        let _variant_name = &variant.ident;
+        let variant_name = &variant.ident;
+        eprintln!("{variant_name}");
 
         // Filter by attrs matching `#[account(...)]`, then try converting to `InstructionAccount`s.
         let instruction_accounts = variant
@@ -36,14 +44,109 @@ fn impl_instruction_accounts(input: DeriveInput) -> syn::Result<proc_macro2::Tok
             .map(InstructionAccount::try_from)
             .collect::<Result<Vec<InstructionAccount>>>()?;
 
+        // Filter by attrs matching `#[args(...)]`, then try converting to `InstructionArgument`s.
+        let instruction_arguments = variant
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident(ARGUMENT_IDENTIFIER))
+            .map(InstructionArgument::try_from)
+            .collect::<Result<Vec<InstructionArgument>>>()?;
+
+        instruction_arguments.iter().for_each(|arg| {
+            eprintln!("{:?}", arg);
+        });
+
         eprintln!("{:#?}", instruction_accounts);
 
-        validate_and_sort_accounts(instruction_accounts, variant.span())?;
+        validate_accounts(instruction_accounts, variant.span())?;
+        validate_args(instruction_arguments, variant.span())?;
 
         Ok::<(), Error>(())
     })?;
 
     Ok(proc_macro2::TokenStream::new())
+}
+
+#[derive(Debug, Clone, strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString)]
+#[strum(serialize_all = "lowercase")]
+enum PrimitiveArg {
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+}
+
+impl TryFrom<Ident> for PrimitiveArg {
+    type Error = Error;
+
+    fn try_from(value: Ident) -> std::result::Result<Self, Self::Error> {
+        PrimitiveArg::from_str(value.to_string().as_str()).or(Err(
+            ParsingError::InvalidPrimitiveType.into_err(value.span()),
+        ))
+    }
+}
+
+impl TryFrom<&Type> for PrimitiveArg {
+    type Error = Error;
+
+    fn try_from(ty: &Type) -> std::result::Result<Self, Self::Error> {
+        let err = ParsingError::InvalidPrimitiveType.into_err(ty.span());
+        if let Type::Path(type_path) = ty {
+            // No qualified paths, only primitives.
+            if type_path.qself.is_some() {
+                return Err(err);
+            }
+            // Only one segment, no `::` anywhere.
+            if type_path.path.segments.len() != 1 {
+                return Err(err);
+            }
+            // No generics allowed.
+            let segment = &type_path.path.segments[0];
+            if !segment.arguments.is_empty() {
+                return Err(err);
+            }
+
+            PrimitiveArg::from_str(segment.ident.to_string().as_str()).or(Err(err))
+        } else {
+            Err(err)
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct InstructionArgument {
+    name: String,
+    ty: PrimitiveArg,
+}
+
+/// An argument pair of the exact form (ident: type) e.g. (foo: u64).
+struct ArgPair {
+    ident: Ident,
+    _colon: Token![:],
+    ty: Type,
+}
+
+impl Parse for ArgPair {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            ident: input.parse()?,
+            _colon: input.parse()?,
+            ty: input.parse()?,
+        })
+    }
+}
+
+impl TryFrom<&Attribute> for InstructionArgument {
+    type Error = Error;
+
+    fn try_from(attr: &Attribute) -> std::result::Result<Self, Self::Error> {
+        let tokens: ArgPair = attr.parse_args()?;
+        Ok(InstructionArgument {
+            name: tokens.ident.to_string(),
+            ty: PrimitiveArg::try_from(&tokens.ty)?,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -59,7 +162,7 @@ enum ParsingError {
     NotAnEnum,
     ZeroAccounts,
     MissingSigner,
-    DuplicateName(String),
+    DuplicateName(String, String),
     AccountNeedsIndexAndName,
     UnexpectedAttribute(String),
     InvalidIndexU8(String),
@@ -68,16 +171,22 @@ enum ParsingError {
     TooManyDescriptions,
     ExpectedNameValueLiteral(String),
     IndexOutOfOrder(u8, usize),
+    TooManyArgumentAttributes,
+    InvalidPrimitiveType,
 }
 
 impl From<ParsingError> for String {
     #[inline]
     fn from(value: ParsingError) -> Self {
+        use strum::IntoEnumIterator;
+
         match value {
             ParsingError::NotAnEnum => "Derive macro only works on enums".into(),
             ParsingError::ZeroAccounts => "Instruction has no accounts".into(),
             ParsingError::MissingSigner => "Instruction must have at least one signer".into(),
-            ParsingError::DuplicateName(name) => format!("Duplicate account name: {name}"),
+            ParsingError::DuplicateName(dupe_type, name) => {
+                format!("Duplicate {dupe_type} name: {name}")
+            }
             ParsingError::AccountNeedsIndexAndName => "Accounts need an index and a name".into(),
             ParsingError::UnexpectedAttribute(attr) => format!("Unexpected attribute: {attr}"),
             ParsingError::InvalidIndexU8(index) => format!("Invalid u8 index: {index}"),
@@ -90,6 +199,13 @@ impl From<ParsingError> for String {
             ParsingError::IndexOutOfOrder(idx, pos) => {
                 format!("Account index {idx} doesn't match position {pos}")
             }
+            ParsingError::TooManyArgumentAttributes => {
+                "Too many argument attributes, expected only one".into()
+            }
+            ParsingError::InvalidPrimitiveType => format!(
+                "Invalid argument type, valid types include: {}",
+                PrimitiveArg::iter().join(", ")
+            ),
         }
     }
 }
@@ -219,32 +335,42 @@ fn parse_name_value(meta: &Meta) -> std::result::Result<String, Error> {
 }
 
 /// Validate the vector of instruction accounts to ensure no duplicate names, indices, etc.
-fn validate_and_sort_accounts(
-    accs: Vec<InstructionAccount>,
-    span: proc_macro2::Span,
-) -> Result<()> {
+fn validate_accounts(accs: Vec<InstructionAccount>, span: proc_macro2::Span) -> Result<()> {
     if accs.is_empty() {
         return Err(ParsingError::ZeroAccounts.into_err(span));
     }
 
-    // Ensure there is at least one signer.
     if !accs.iter().any(|acc| acc.is_signer) {
         return Err(ParsingError::MissingSigner.into_err(span));
     }
 
-    // Ensure there are no duplicate account names.
-    let mut names: Vec<String> = accs.iter().map(|acc| acc.name.clone()).collect();
+    let names: Vec<String> = accs.iter().map(|acc| acc.name.clone()).collect();
+    check_duplicate_names(names, span, "account")?;
+
+    Ok(())
+}
+
+/// Validate the vector of instruction arguments to ensure no duplicate names.
+fn validate_args(args: Vec<InstructionArgument>, span: proc_macro2::Span) -> Result<()> {
+    let names: Vec<String> = args.iter().map(|arg| arg.name.clone()).collect();
+    check_duplicate_names(names, span, "argument")
+}
+
+fn check_duplicate_names(
+    mut names: Vec<String>,
+    span: proc_macro2::Span,
+    dupe_type: &str,
+) -> Result<()> {
     names.sort();
     names
         .windows(2)
         .map(|window| <&[String; 2]>::try_from(window).expect("Should have 2"))
         .try_for_each(|[prev_name, curr_name]| {
             if prev_name == curr_name {
-                Err(ParsingError::DuplicateName(curr_name.clone()).into_err(span))
+                let e = ParsingError::DuplicateName(dupe_type.to_string(), curr_name.clone());
+                Err(e.into_err(span))
             } else {
                 Ok(())
             }
-        })?;
-
-    Ok(())
+        })
 }

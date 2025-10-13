@@ -16,7 +16,7 @@ use pinocchio::instruction::AccountMeta;
 
 #[derive(ProgramInstructions)]
 #[rustfmt::skip]
-pub enum DropsetInstructions {
+pub enum DropsetInstruction {
     #[account(0, writable, signer, name = "my_account", desc = "The user closing their seat")]
     #[account(1, name = "acc2")]
     #[account(2, name = "acc1")]
@@ -28,6 +28,7 @@ pub enum DropsetInstructions {
     #[account(2, signer, name = "acc3")]
     #[account(3, signer, name = "acc2")]
     #[account(4, signer, name = "acc4")]
+    #[args(my_first_arg: u64)]
     Deposit,
 }
 
