@@ -1,6 +1,6 @@
 use dropset_interface::{
     error::DropsetError,
-    pack::unpack_u16,
+    instructions::RegisterMarketInstructionData,
     state::{
         market_header::MarketHeader,
         sector::SECTOR_SIZE,
@@ -31,7 +31,7 @@ pub unsafe fn process_register_market(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let num_sectors = unpack_u16(instruction_data)?;
+    let num_sectors = RegisterMarketInstructionData::unpack(instruction_data)?.num_sectors;
     let ctx = RegisterMarketContext::load(accounts)?;
 
     // It's not necessary to check the returned PDA here because `CreateAccount` will fail if the

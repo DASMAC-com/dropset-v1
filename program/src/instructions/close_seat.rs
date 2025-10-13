@@ -1,5 +1,5 @@
 use dropset_interface::{
-    pack::unpack_u32,
+    instructions::CloseSeatInstructionData,
     state::node::Node,
     utils::is_owned_by_spl_token,
 };
@@ -21,7 +21,7 @@ use crate::{
 /// Caller guarantees the safety contract detailed in
 /// [`dropset_interface::instructions::close_seat::CloseSeat`]
 pub fn process_close_seat(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
-    let hint = unpack_u32(instruction_data)?;
+    let hint = CloseSeatInstructionData::unpack(instruction_data)?.sector_index_hint;
     let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;
 
     // Get the market bump and the base and quote amounts available for the user.

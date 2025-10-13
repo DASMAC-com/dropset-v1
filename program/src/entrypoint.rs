@@ -1,6 +1,6 @@
 use dropset_interface::{
     error::DropsetError,
-    instructions::InstructionTag,
+    instructions::DropsetInstruction,
 };
 use pinocchio::{
     account_info::AccountInfo,
@@ -30,12 +30,13 @@ pub fn process_instruction(
     // Safety: No account data is currently borrowed. CPIs to this program must ensure they do not
     // hold references to the account data used in each instruction.
     unsafe {
-        match InstructionTag::try_from(*tag)? {
-            InstructionTag::RegisterMarket => process_register_market(accounts, remaining),
-            InstructionTag::Deposit => process_deposit(accounts, remaining),
-            InstructionTag::Withdraw => process_withdraw(accounts, remaining),
-            InstructionTag::CloseSeat => process_close_seat(accounts, remaining),
-            InstructionTag::FlushEvents => process_flush_events(accounts, remaining),
+        match DropsetInstruction::try_from(*tag)? {
+            DropsetInstruction::RegisterMarket => process_register_market(accounts, remaining),
+            DropsetInstruction::Deposit => process_deposit(accounts, remaining),
+            DropsetInstruction::Withdraw => process_withdraw(accounts, remaining),
+            DropsetInstruction::CloseSeat => process_close_seat(accounts, remaining),
+            DropsetInstruction::FlushEvents => process_flush_events(accounts, remaining),
+            DropsetInstruction::Batch => todo!(),
         }
     }
 }

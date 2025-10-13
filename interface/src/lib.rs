@@ -3,9 +3,17 @@
 #[cfg(feature = "std")]
 extern crate std;
 
+#[cfg(all(feature = "pinocchio-invoke", feature = "solana-sdk-invoke"))]
+compile_error!("pinocchio-invoke and solana-sdk-invoke are mutually exclusive features");
+
+#[cfg(all(feature = "pinocchio-invoke", feature = "client"))]
+compile_error!("pinocchio-invoke and client are mutually exclusive features");
+
+#[cfg(all(feature = "solana-sdk-invoke", feature = "client"))]
+compile_error!("solana-sdk-invoke and client are mutually exclusive features");
+
 pub mod error;
 pub mod instructions;
-pub mod pack;
 pub mod state;
 pub mod utils;
 

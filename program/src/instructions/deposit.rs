@@ -1,8 +1,9 @@
 use dropset_interface::{
-    pack::unpack_amount_and_optional_sector_index,
+    instructions::DepositInstructionData,
     state::{
         market_seat::MarketSeat,
         node::Node,
+        sector::SectorIndex,
     },
 };
 use pinocchio::{
@@ -38,13 +39,18 @@ use crate::{
 /// Caller guarantees the safety contract detailed in
 /// [`dropset_interface::instructions::deposit::Deposit`]
 pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
-    let (amount, hint) = unpack_amount_and_optional_sector_index(instruction_data)?;
+    let DepositInstructionData {
+        amount,
+        sector_index_hint,
+    } = DepositInstructionData::unpack(instruction_data)?;
+    let hint = SectorIndex(sector_index_hint);
 
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;
     let amount_deposited = unsafe { deposit_non_zero_to_market(&ctx, amount) }?;
 
     // 1) Update an existing seat.
-    if let Some(index) = hint {
+    if !hint.is_nil() {
+        let index = hint;
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };
         Node::check_in_bounds(market.sectors, index)?;
