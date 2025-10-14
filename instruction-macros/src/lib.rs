@@ -1,15 +1,15 @@
 use std::str::FromStr;
 
 use itertools::Itertools;
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     spanned::Spanned,
     token::Comma,
-    Attribute, DeriveInput, Error, Expr, ExprLit, Ident, Lit, LitInt, Meta, PatLit, Result, Token,
-    Type, Variant,
+    Attribute, DataEnum, DeriveInput, Error, Expr, ExprLit, Ident, Lit, LitInt, Meta, PatLit,
+    Result, Token, Type, Variant,
 };
 
 use crate::output::create_instruction_tags;
@@ -17,26 +17,64 @@ use crate::output::create_instruction_tags;
 mod output;
 
 const ACCOUNT_IDENTIFIER: &str = "account";
+const INSTRUCTION_TAG: &str = "instruction_tag";
 const ACCOUNT_NAME: &str = "name";
 const ACCOUNT_WRITABLE: &str = "writable";
 const ACCOUNT_SIGNER: &str = "signer";
 const ARGUMENT_IDENTIFIER: &str = "args";
 const DESCRIPTION: &str = "desc";
 
-#[proc_macro_derive(ProgramInstructions, attributes(account, args))]
+#[proc_macro_derive(ProgramInstructions, attributes(account, args, instruction_tag))]
 pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let out = impl_instruction(input).unwrap_or_else(|e| e.to_compile_error());
-    out.into()
-}
-
-fn impl_instruction(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let enum_item = match input.data {
         syn::Data::Enum(e) => e,
-        _ => return Err(ParsingError::NotAnEnum.into_err(input.span())),
+        _ => {
+            return ParsingError::NotAnEnum
+                .into_err(input.span())
+                .to_compile_error()
+                .into();
+        }
     };
 
-    // For each enum variant, check all attrs.
+    let tag_output = if let Some(tag_config) = parse_instruction_tag_attr(&input.attrs) {
+        impl_instruction_tag(input.ident, enum_item.clone(), tag_config)
+            .unwrap_or_else(|e| e.to_compile_error())
+    } else {
+        quote! {}
+    };
+
+    let acc_and_args_output =
+        impl_accounts_and_args(enum_item).unwrap_or_else(|e| e.to_compile_error());
+
+    acc_and_args_output.into()
+}
+
+struct InstructionTagConfig {
+    name: Ident,
+    error: Option<Expr>,
+}
+
+fn parse_instruction_tag_attr(attrs: &[Attribute]) -> Option<InstructionTagConfig> {
+    attrs
+        .iter()
+        .find(|attr| attr.path().is_ident(INSTRUCTION_TAG))
+        .map(|attr| args.parse_args::<InstructionTagConfig>())
+}
+
+fn impl_instruction_tag(
+    enum_ident: Ident,
+    enum_item: DataEnum,
+    tag_config: InstructionTagConfig,
+) -> syn::Result<proc_macro2::TokenStream> {
+    let instruction_tags = InstructionTags::try_from(enum_item.variants)?;
+    let tag_tokens = create_instruction_tags(enum_ident, instruction_tags);
+    eprintln!("{tag_tokens}");
+
+    Ok(tag_tokens)
+}
+
+fn impl_accounts_and_args(enum_item: DataEnum) -> syn::Result<proc_macro2::TokenStream> {
     enum_item.variants.iter().try_for_each(|variant| {
         // Filter by attrs matching `#[account(...)]`, then try converting to `InstructionAccount`s.
         let instruction_accounts = variant
@@ -59,20 +97,13 @@ fn impl_instruction(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream>
             eprintln!("{:?}", arg);
         });
 
-        eprintln!("{:#?}", instruction_accounts);
-
         validate_accounts(instruction_accounts, variant.span())?;
         validate_args(instruction_arguments, variant.span())?;
 
         Ok::<(), Error>(())
     })?;
 
-    let instruction_tags = InstructionTags::try_from(enum_item.variants)?;
-
-    let tag_tokens = create_instruction_tags(input.ident, instruction_tags);
-    eprintln!("{tag_tokens}");
-
-    Ok(tag_tokens)
+    Ok(quote! {})
 }
 
 #[derive(Clone)]
