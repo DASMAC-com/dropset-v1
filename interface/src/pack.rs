@@ -1,33 +1,11 @@
 use core::mem::MaybeUninit;
 
+use crate::{
+    error::DropsetError,
+    state::{sector::SectorIndex, U16_SIZE, U32_SIZE, U64_SIZE},
+};
+
 pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::uninit();
-
-pub trait Pack<const LEN: usize>: Sized {
-    /// Pack into a buffer of size LEN without zero initializing the buffer, then return the buffer.
-    fn pack(&self) -> [u8; LEN] {
-        let mut dst = [UNINIT_BYTE; LEN];
-        self.pack_into_slice(&mut dst);
-
-        // Safety: All LEN bytes were initialized in `pack_into_slice`.
-        unsafe { *(dst.as_ptr() as *const [u8; LEN]) }
-    }
-
-    /// Returns `Self` as a referenced slice.
-    ///
-    /// # Safety
-    /// Caller must ensure `Self` satisfies:
-    /// - `size_of::<Self>() == LEN`
-    /// - `#[repr(C)]` or `#[repr(transparent)]`
-    /// - No padding between fields
-    /// - All bit patterns are valid for `Self`
-    unsafe fn as_slice(&self) -> &[u8; LEN] {
-        unsafe { &*(self as *const Self as *const [u8; LEN]) }
-    }
-
-    #[doc(hidden)]
-    /// Pack into a destination slice of maybe uninitialized bytes of LEN length.
-    fn pack_into_slice(&self, dst: &mut [MaybeUninit<u8>; LEN]);
-}
 
 /// Writes bytes from a source slice into an uninitialized destination buffer.
 ///
@@ -75,5 +53,78 @@ pub fn write_bytes(dst: &mut [MaybeUninit<u8>], src: &[u8]) {
     );
     for (d, s) in dst.iter_mut().zip(src.iter()) {
         d.write(*s);
+    }
+}
+
+/// Safely unpacks a u16 from a slice of unknown length.
+pub fn unpack_u16(instruction_data: &[u8]) -> Result<u16, DropsetError> {
+    if instruction_data.len() >= U16_SIZE {
+        // Safety: The instruction data is at least U16_SIZE bytes.
+        Ok(unsafe { u16::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U16_SIZE])) })
+    } else {
+        Err(DropsetError::InvalidInstructionData)
+    }
+}
+
+/// Safely unpacks a u32 from a slice of unknown length.
+pub fn unpack_u32(instruction_data: &[u8]) -> Result<u32, DropsetError> {
+    if instruction_data.len() >= U32_SIZE {
+        // Safety: The instruction data is at least U32_SIZE bytes.
+        Ok(unsafe { u32::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U32_SIZE])) })
+    } else {
+        Err(DropsetError::InvalidInstructionData)
+    }
+}
+
+/// Safely unpacks a u64 from a slice of unknown length.
+pub fn unpack_u64(instruction_data: &[u8]) -> Result<u64, DropsetError> {
+    if instruction_data.len() >= U64_SIZE {
+        // Safety: The instruction data is at least U64_SIZE bytes.
+        Ok(unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U64_SIZE])) })
+    } else {
+        Err(DropsetError::InvalidInstructionData)
+    }
+}
+
+/// Safely unpacks a u64 and an optional sector index.
+///
+/// /// Sector indices passed by a caller can sometimes be optional, in which case `NIL` is used as
+/// a `None`-like value. This function safely unpacks the u32 bytes into an Option<SectorIndex>.
+///
+/// This is useful because it means there's no need to use a COption type.
+pub fn unpack_amount_and_optional_sector_index(
+    instruction_data: &[u8],
+) -> Result<(u64, Option<SectorIndex>), DropsetError> {
+    if instruction_data.len() >= U64_SIZE + U32_SIZE {
+        // Safety: The instruction data is at least U64_SIZE + U32_SIZE bytes.
+        let (amount, index) = unsafe {
+            let amount = u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U64_SIZE]));
+            let index_bytes = *(instruction_data.as_ptr().add(U64_SIZE) as *const [u8; U32_SIZE]);
+            (amount, SectorIndex::from(index_bytes))
+        };
+        let not_nil = !index.is_nil();
+        let optional_index = not_nil.then_some(index);
+
+        Ok((amount, optional_index))
+    } else {
+        Err(DropsetError::InvalidInstructionData)
+    }
+}
+
+/// Safely unpacks a u64 and a sector index.
+///
+/// Note that the sector index returned could == `NIL`.
+pub fn unpack_amount_and_sector_index(
+    instruction_data: &[u8],
+) -> Result<(u64, SectorIndex), DropsetError> {
+    if instruction_data.len() >= U64_SIZE + U32_SIZE {
+        // Safety: The instruction data is at least U64_SIZE + U32_SIZE bytes.
+        Ok(unsafe {
+            let amount = u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U64_SIZE]));
+            let index_bytes = *(instruction_data.as_ptr().add(U64_SIZE) as *const [u8; U32_SIZE]);
+            (amount, SectorIndex::from(index_bytes))
+        })
+    } else {
+        Err(DropsetError::InvalidInstructionData)
     }
 }

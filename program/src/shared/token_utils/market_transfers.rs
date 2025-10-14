@@ -1,9 +1,12 @@
+use dropset_interface::{error::DropsetError, utils::is_owned_by_spl_token};
 use pinocchio::{program_error::ProgramError, ProgramResult};
 
 use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_signer};
 
 /// Deposits `amount` of token `ctx.mint` from the user to the market account. This does not track
 /// or update seat balances.
+///
+/// Returns an error if the amount deposited is zero.
 ///
 /// # Safety
 ///
@@ -16,11 +19,11 @@ use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_si
 ///   1. `[WRITE]` Market token account (destination)
 ///   2. `[READ]` User account (authority)
 ///   3. `[READ]` Mint account
-pub unsafe fn deposit_to_market(
+pub unsafe fn deposit_non_zero_to_market(
     ctx: &DepositWithdrawContext,
     amount: u64,
 ) -> Result<u64, ProgramError> {
-    if ctx.token_program.is_spl_token {
+    let amount_deposited = if is_owned_by_spl_token(ctx.mint.info) {
         pinocchio_token::instructions::Transfer {
             from: ctx.user_ata.info, // WRITE
             to: ctx.market_ata.info, // WRITE
@@ -30,7 +33,7 @@ pub unsafe fn deposit_to_market(
         .invoke()?;
 
         // `spl_token` always transfers the exact amount passed in.
-        Ok(amount)
+        amount
     } else {
         // Safety: Scoped immutable borrow to read the mint account's mint decimals.
         let decimals = unsafe { ctx.mint.get_mint_decimals() }?;
@@ -45,7 +48,7 @@ pub unsafe fn deposit_to_market(
             authority: ctx.user,     // READ
             decimals,
             amount,
-            token_program: ctx.token_program.info.key(),
+            token_program: &pinocchio_token_2022::ID,
         }
         .invoke()?;
 
@@ -54,15 +57,22 @@ pub unsafe fn deposit_to_market(
 
         // `spl_token_2022` amount deposited must be checked due to transfer hooks, fees, and other
         // extensions that may intercept a simple transfer and alter the amount transferred.
-        let deposited = balance_after
+        balance_after
             .checked_sub(balance_before)
-            .ok_or(ProgramError::InvalidArgument)?;
-        Ok(deposited)
+            .ok_or(ProgramError::InvalidArgument)?
+    };
+
+    if amount_deposited > 0 {
+        Ok(amount_deposited)
+    } else {
+        Err(DropsetError::AmountCannotBeZero.into())
     }
 }
 
 /// Withdraws `amount` of token `ctx.mint` from the market account to the user. This does not track
 /// or update seat balances.
+///
+/// Returns an error if the amount withdrawn is zero.
 ///
 /// # Safety
 ///
@@ -75,7 +85,14 @@ pub unsafe fn deposit_to_market(
 ///   1. `[WRITE]` Market token account (source)
 ///   2. `[READ]`  Market account (authority)
 ///   3. `[READ]`  Mint account
-pub unsafe fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) -> ProgramResult {
+pub unsafe fn withdraw_non_zero_from_market(
+    ctx: &DepositWithdrawContext,
+    amount: u64,
+) -> ProgramResult {
+    if amount == 0 {
+        return Err(DropsetError::AmountCannotBeZero.into());
+    }
+
     let (base_mint, quote_mint, market_bump) = {
         // Safety: Scoped immutable borrow of the market account.
         let market = unsafe { ctx.market_account.load_unchecked() };
@@ -86,7 +103,7 @@ pub unsafe fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) ->
         )
     };
 
-    if ctx.token_program.is_spl_token {
+    if is_owned_by_spl_token(ctx.mint.info) {
         pinocchio_token::instructions::Transfer {
             from: ctx.market_ata.info,            // WRITE
             to: ctx.user_ata.info,                // WRITE
@@ -105,7 +122,7 @@ pub unsafe fn withdraw_from_market(ctx: &DepositWithdrawContext, amount: u64) ->
             authority: ctx.market_account.info(), // READ
             amount,
             decimals,
-            token_program: ctx.token_program.info.key(),
+            token_program: &pinocchio_token_2022::ID,
         }
         .invoke_signed(&[market_signer!(base_mint, quote_mint, market_bump)])
     }

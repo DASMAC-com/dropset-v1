@@ -1,11 +1,12 @@
 use dropset_interface::{
-    instructions::close::CloseInstructionData,
-    state::{node::Node, transmutable::Transmutable},
+    pack::unpack_u32,
+    state::{node::Node, sector::SectorIndex},
+    utils::is_owned_by_spl_token,
 };
 use pinocchio::{account_info::AccountInfo, ProgramResult};
 
 use crate::{
-    context::close_context::CloseContext, market_signer,
+    context::close_seat_context::CloseSeatContext, market_signer,
     shared::market_operations::find_seat_with_hint,
 };
 
@@ -13,23 +14,10 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees:
-/// - WRITE accounts are not currently borrowed in *any* capacity.
-/// - READ accounts are not currently mutably borrowed.
-///
-/// ### Accounts
-///   0. `[WRITE]` Market account
-///   1. `[WRITE]` Market base mint token account
-///   2. `[WRITE]` Market quote mint token account
-///   3. `[WRITE]` User base mint token account
-///   4. `[WRITE]` User quote mint token account
-///   5. `[READ]` Base mint
-///   6. `[READ]` Quote mint
-pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
-    let mut ctx = unsafe { CloseContext::load(accounts) }?;
-
-    let args = CloseInstructionData::load(instruction_data)?;
-    let hint = args.sector_index_hint();
+/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::close_seat::CloseSeat`]
+pub fn process_close_seat(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    let hint = SectorIndex(unpack_u32(instruction_data)?);
+    let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;
 
     // Get the market bump and the base and quote amounts available for the user.
     let (market_bump, base_available, quote_available) = unsafe {
@@ -58,10 +46,10 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
 
     // If the user had any `base_available`, transfer that amount from market account => user.
     if base_available > 0 {
-        if ctx.base_token_program.is_spl_token {
+        if is_owned_by_spl_token(ctx.base_mint.info) {
             pinocchio_token::instructions::Transfer {
-                from: ctx.market_base_ata.info,       // WRITE
-                to: ctx.user_base_ata.info,           // WRITE
+                from: ctx.base_market_ata.info,       // WRITE
+                to: ctx.base_user_ata.info,           // WRITE
                 authority: ctx.market_account.info(), // READ
                 amount: base_available,
             }
@@ -73,13 +61,14 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
         } else {
             // Safety: Scoped immutable borrow of mint account data to get mint decimals.
             let decimals = unsafe { ctx.base_mint.get_mint_decimals() }?;
-            pinocchio_token::instructions::TransferChecked {
-                from: ctx.market_base_ata.info,       // WRITE
-                to: ctx.user_base_ata.info,           // WRITE
+            pinocchio_token_2022::instructions::TransferChecked {
+                from: ctx.base_market_ata.info,       // WRITE
+                to: ctx.base_user_ata.info,           // WRITE
                 authority: ctx.market_account.info(), // READ
                 mint: ctx.base_mint.info,             // READ
                 amount: base_available,
                 decimals,
+                token_program: &pinocchio_token_2022::ID,
             }
             .invoke_signed(&[market_signer!(
                 ctx.base_mint.info.key(),
@@ -91,10 +80,10 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
 
     // If the user had any `quote_available`, transfer that amount from market account => user.
     if quote_available > 0 {
-        if ctx.quote_token_program.is_spl_token {
+        if is_owned_by_spl_token(ctx.quote_mint.info) {
             pinocchio_token::instructions::Transfer {
-                from: ctx.market_quote_ata.info,      // WRITE
-                to: ctx.user_quote_ata.info,          // WRITE
+                from: ctx.quote_market_ata.info,      // WRITE
+                to: ctx.quote_user_ata.info,          // WRITE
                 authority: ctx.market_account.info(), // READ
                 amount: quote_available,
             }
@@ -106,13 +95,14 @@ pub fn process_close(accounts: &[AccountInfo], instruction_data: &[u8]) -> Progr
         } else {
             // Safety: Scoped immutable borrow of mint account data to get mint decimals.
             let decimals = unsafe { ctx.quote_mint.get_mint_decimals() }?;
-            pinocchio_token::instructions::TransferChecked {
-                from: ctx.market_quote_ata.info,      // WRITE
-                to: ctx.user_quote_ata.info,          // WRITE
+            pinocchio_token_2022::instructions::TransferChecked {
+                from: ctx.quote_market_ata.info,      // WRITE
+                to: ctx.quote_user_ata.info,          // WRITE
                 authority: ctx.market_account.info(), // READ
                 mint: ctx.quote_mint.info,            // READ
                 amount: quote_available,
                 decimals,
+                token_program: &pinocchio_token_2022::ID,
             }
             .invoke_signed(&[market_signer!(
                 ctx.base_mint.info.key(),

@@ -1,6 +1,6 @@
 use dropset_interface::{
     error::DropsetError,
-    instructions::num_sectors::NumSectorsInstructionData,
+    pack::unpack_u16,
     state::{market_header::MarketHeader, sector::SECTOR_SIZE, transmutable::Transmutable},
 };
 use pinocchio::{
@@ -17,24 +17,12 @@ use crate::{
 
 /// # Safety
 ///
-/// Caller guarantees:
-/// - WRITE accounts are not currently borrowed in *any* capacity.
-/// - READ accounts are not currently mutably borrowed.
-///
-/// ### Accounts
-///   0. `[WRITE]` User account
-///   1. `[WRITE]` Market account
-///   2. `[WRITE]` Market base mint token account
-///   3. `[WRITE]` Market quote mint token account
-///   4. `[READ]` Base mint
-///   5. `[READ]` Quote mint
-///   6. `[READ]` System program
-///   7. `[READ]` Token program
+/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::register_market::RegisterMarket`]
 pub unsafe fn process_register_market(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let num_sectors = NumSectorsInstructionData::load(instruction_data)?.num_sectors();
+    let num_sectors = unpack_u16(instruction_data)?;
     let ctx = RegisterMarketContext::load(accounts)?;
 
     // It's not necessary to check the returned PDA here because `CreateAccount` will fail if the
@@ -62,24 +50,24 @@ pub unsafe fn process_register_market(
     )])?;
 
     // Create the market's base and quote mint associated token accounts with the non-idempotent
-    // Create instruction to ensure that passing duplicate mint accounts fails.
+    // creation instruction to ensure that passing duplicate mint accounts fails.
     pinocchio_associated_token_account::instructions::Create {
-        funding_account: ctx.user,                  // WRITE
-        account: ctx.base_market_ata,               // WRITE
-        wallet: ctx.market_account.info,            // READ
-        mint: ctx.base_mint,                        // READ
-        system_program: ctx.system_program,         // READ
-        token_program: ctx.base_token_program.info, // READ
+        funding_account: ctx.user,             // WRITE
+        account: ctx.base_market_ata,          // WRITE
+        wallet: ctx.market_account.info,       // READ
+        mint: ctx.base_mint,                   // READ
+        system_program: ctx.system_program,    // READ
+        token_program: ctx.base_token_program, // READ
     }
     .invoke()?;
 
     pinocchio_associated_token_account::instructions::Create {
-        funding_account: ctx.user,                   // WRITE
-        account: ctx.quote_market_ata,               // WRITE
-        wallet: ctx.market_account.info,             // READ
-        mint: ctx.quote_mint,                        // READ
-        system_program: ctx.system_program,          // READ
-        token_program: ctx.quote_token_program.info, // READ
+        funding_account: ctx.user,              // WRITE
+        account: ctx.quote_market_ata,          // WRITE
+        wallet: ctx.market_account.info,        // READ
+        mint: ctx.quote_mint,                   // READ
+        system_program: ctx.system_program,     // READ
+        token_program: ctx.quote_token_program, // READ
     }
     .invoke()?;
 

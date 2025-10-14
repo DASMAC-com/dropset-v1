@@ -2,7 +2,6 @@ pub mod market {
     pub const MARKET_SEED_STR: &[u8] = b"market";
 }
 
-#[macro_export]
 /// # Example
 ///
 /// ```
@@ -12,6 +11,7 @@ pub mod market {
 /// let bump: u8 = 0x10;
 /// let signer: Signer = crate::market_signer!(base_mint, quote_mint, bump);
 /// ```
+#[macro_export]
 macro_rules! market_signer {
     ( $base_mint:expr, $quote_mint:expr, $bump:expr ) => {
         pinocchio::instruction::Signer::from(&pinocchio::seeds!(

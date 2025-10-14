@@ -28,6 +28,7 @@ pub enum DropsetError {
     InvalidMarketAccountOwner,
     MissingIndexHint,
     InvalidNonZeroInteger,
+    InvalidInstructionData,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -65,6 +66,7 @@ impl From<DropsetError> for &'static str {
             DropsetError::InvalidMarketAccountOwner => "Invalid market account owner",
             DropsetError::MissingIndexHint => "Instruction data must include an index hint",
             DropsetError::InvalidNonZeroInteger => "Value passed must be greater than zero",
+            DropsetError::InvalidInstructionData => "Instruction data is invalid",
         }
     }
 }

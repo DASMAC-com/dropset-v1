@@ -1,4 +1,4 @@
-use dropset_interface::{error::DropsetError, utils::owned_by};
+use dropset_interface::error::DropsetError;
 use pinocchio::{
     account_info::AccountInfo,
     program_error::ProgramError,
@@ -28,13 +28,9 @@ impl<'a> TokenAccountInfo<'a> {
         expected_mint: &Pubkey,
         expected_owner: &Pubkey,
     ) -> Result<TokenAccountInfo<'a>, ProgramError> {
-        // NOTE: This check is most likely unnecessary since the token program checks this and fails
-        // transfers if the check fails.
-        if !owned_by(token_account, &pinocchio_token::ID)
-            && !owned_by(token_account, &pinocchio_token_2022::ID)
-        {
-            return Err(DropsetError::OwnerNotTokenProgram.into());
-        }
+        // NOTE: It's not necessary to check the token account owners here because if the token
+        // accounts passed in aren't owned by one of the programs, the transfer instructions
+        // won't be able to write to their account data and will fail.
 
         // Safety: Immutable borrow of token account data to check the expected mint/owner, dropped
         // before the function returns.

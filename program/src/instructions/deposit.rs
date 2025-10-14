@@ -1,7 +1,6 @@
 use dropset_interface::{
-    error::DropsetError,
-    instructions::amount::AmountInstructionData,
-    state::{market_seat::MarketSeat, node::Node, transmutable::Transmutable},
+    pack::unpack_amount_and_optional_sector_index,
+    state::{market_seat::MarketSeat, node::Node},
 };
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, ProgramResult};
 
@@ -9,7 +8,7 @@ use crate::{
     context::deposit_withdraw_context::DepositWithdrawContext,
     shared::{
         market_operations::{find_mut_seat_with_hint, insert_market_seat},
-        token_utils::market_transfers::deposit_to_market,
+        token_utils::market_transfers::deposit_non_zero_to_market,
     },
 };
 
@@ -26,26 +25,12 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees:
-/// - WRITE accounts are not currently borrowed in *any* capacity.
-/// - READ accounts are not currently mutably borrowed.
-///
-/// ### Accounts
-///   0. `[WRITE]` Market account
-///   1. `[WRITE]` User token account (source)
-///   2. `[WRITE]` Market token account (destination)
-///   3. `[READ]` User account (authority)
-///   4. `[READ]` Mint account
+/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::deposit::Deposit`]
 pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    let (amount, hint) = unpack_amount_and_optional_sector_index(instruction_data)?;
+
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;
-    let args = AmountInstructionData::load(instruction_data)?;
-    let amount_deposited = unsafe { deposit_to_market(&ctx, args.amount()) }?;
-
-    if amount_deposited == 0 {
-        return Err(DropsetError::AmountCannotBeZero.into());
-    }
-
-    let hint = args.sector_index_hint();
+    let amount_deposited = unsafe { deposit_non_zero_to_market(&ctx, amount) }?;
 
     // 1) Update an existing seat.
     if let Some(index) = hint {
