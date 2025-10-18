@@ -1,5 +1,8 @@
 #![no_std]
 
+#[cfg(feature = "std")]
+extern crate std;
+
 use pinocchio::{no_allocator, nostd_panic_handler, program_entrypoint};
 
 mod context;
