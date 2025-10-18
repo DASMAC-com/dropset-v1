@@ -19,7 +19,7 @@ pinocchio-system = { version = "0.3.0" }
 pinocchio-token = { version = "0.4.0" }
 pinocchio-token-2022 = { version = "0.1.0" }
 solana-address = "1.0.0"
-solana-client = "3.0.6"
+solana-client = "3.0.7"
 solana-cpi = "3.0.0"
 solana-compute-budget-interface = "3.0.0"
 solana-instruction = { version = "3.0.0" }
