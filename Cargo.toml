@@ -43,7 +43,5 @@ level = "warn"
 check-cfg = [
     'cfg(target_os, values("solana"))',
     'cfg(feature, values("no-entrypoint"))',
-    'cfg(feature, values("pinocchio-cpi"))',
-    'cfg(feature, values("solana-cpi"))',
-    'cfg(feature, values("client"))',
+    'cfg(feature, values("std"))',
 ]

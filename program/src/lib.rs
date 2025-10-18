@@ -3,16 +3,13 @@
 #[cfg(feature = "std")]
 extern crate std;
 
-use pinocchio::{no_allocator, nostd_panic_handler, program_entrypoint};
-
 mod context;
-mod entrypoint;
 mod instructions;
 mod shared;
 mod validation;
 
-program_entrypoint!(entrypoint::process_instruction);
-no_allocator!();
-nostd_panic_handler!();
+pub use shared::seeds::market::MARKET_SEED_STR;
+#[cfg(not(feature = "no-entrypoint"))]
+mod entrypoint;
 
 pinocchio_pubkey::declare_id!("TESTnXwv2eHoftsSd5NEdpH4zEu7XRC8jviuoNPdB2Q");

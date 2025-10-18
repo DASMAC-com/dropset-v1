@@ -1,5 +1,8 @@
 #![no_std]
 
+#[cfg(feature = "std")]
+extern crate std;
+
 pub mod error;
 pub mod instructions;
 pub mod pack;
