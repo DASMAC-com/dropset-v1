@@ -55,22 +55,22 @@ const_assert_eq!(align_of::<Node>(), 1);
 impl Node {
     #[inline(always)]
     pub fn prev(&self) -> SectorIndex {
-        self.prev.into()
+        u32::from_le_bytes(self.prev)
     }
 
     #[inline(always)]
     pub fn set_prev(&mut self, index: SectorIndex) {
-        self.prev = index.into();
+        self.prev = index.to_le_bytes();
     }
 
     #[inline(always)]
     pub fn next(&self) -> SectorIndex {
-        self.next.into()
+        u32::from_le_bytes(self.next)
     }
 
     #[inline(always)]
     pub fn set_next(&mut self, index: SectorIndex) {
-        self.next = index.into();
+        self.next = index.to_le_bytes();
     }
 
     #[inline(always)]
@@ -125,7 +125,7 @@ impl Node {
     #[inline(always)]
     pub fn check_in_bounds(sectors: &[u8], index: SectorIndex) -> DropsetResult {
         let max_num_sectors = (sectors.len() / Self::LEN) as u32;
-        if index.0 >= max_num_sectors {
+        if index >= max_num_sectors {
             return Err(DropsetError::IndexOutOfBounds);
         };
 
@@ -139,7 +139,7 @@ impl Node {
     /// Caller guarantees `index * Self::LEN` is within the bounds of `sectors` bytes.
     #[inline(always)]
     pub unsafe fn from_sector_index(sectors: &[u8], index: SectorIndex) -> &Self {
-        let byte_offset = index.0 as usize * Self::LEN;
+        let byte_offset = index as usize * Self::LEN;
         unsafe { &*(sectors.as_ptr().add(byte_offset) as *const Node) }
     }
 
@@ -150,7 +150,7 @@ impl Node {
     /// Caller guarantees `index * Self::LEN` is within the bounds of `sectors` bytes.
     #[inline(always)]
     pub unsafe fn from_sector_index_mut(sectors: &mut [u8], index: SectorIndex) -> &mut Self {
-        let byte_offset = index.0 as usize * Self::LEN;
+        let byte_offset = index as usize * Self::LEN;
         unsafe { &mut *(sectors.as_mut_ptr().add(byte_offset) as *mut Node) }
     }
 }

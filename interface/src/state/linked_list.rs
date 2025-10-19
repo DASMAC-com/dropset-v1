@@ -43,7 +43,7 @@ impl<'a> LinkedList<'a> {
         new_node.set_prev(NIL);
         new_node.set_next(head_index);
 
-        if head_index.is_nil() {
+        if head_index == NIL {
             // If the head is NIL, the new node is the only node and is thus also the tail.
             self.header.set_seat_dll_tail(new_index);
         } else {
@@ -75,7 +75,7 @@ impl<'a> LinkedList<'a> {
         new_node.set_prev(tail_index);
         new_node.set_next(NIL);
 
-        if tail_index.is_nil() {
+        if tail_index == NIL {
             // If the tail is NIL, the new node is the only node and is thus also the head.
             self.header.set_seat_dll_head(new_index);
         } else {
@@ -118,7 +118,7 @@ impl<'a> LinkedList<'a> {
         new_node.set_next(next_index);
         new_node.set_payload(payload);
 
-        if prev_index.is_nil() {
+        if prev_index == NIL {
             // If `prev_index` is NIL, that means `next_index` was the head prior to this insertion,
             // so the `head` needs to be updated to the new node's index.
             self.header.set_seat_dll_head(new_index);
@@ -186,7 +186,7 @@ impl<'a> Iterator for LinkedListIter<'a> {
 
     /// Returns the next node if it's non-NIL, otherwise, returns `None`.
     fn next(&mut self) -> Option<(SectorIndex, &'a Node)> {
-        if self.curr.is_nil() {
+        if self.curr == NIL {
             return None;
         }
 

@@ -2,7 +2,10 @@ use core::mem::MaybeUninit;
 
 use crate::{
     error::DropsetError,
-    state::{sector::SectorIndex, U16_SIZE, U32_SIZE, U64_SIZE},
+    state::{
+        sector::{SectorIndex, NIL},
+        U16_SIZE, U32_SIZE, U64_SIZE,
+    },
 };
 
 pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::uninit();
@@ -100,9 +103,9 @@ pub fn unpack_amount_and_optional_sector_index(
         let (amount, index) = unsafe {
             let amount = u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U64_SIZE]));
             let index_bytes = *(instruction_data.as_ptr().add(U64_SIZE) as *const [u8; U32_SIZE]);
-            (amount, SectorIndex::from(index_bytes))
+            (amount, u32::from_le_bytes(index_bytes))
         };
-        let not_nil = !index.is_nil();
+        let not_nil = index != NIL;
         let optional_index = not_nil.then_some(index);
 
         Ok((amount, optional_index))
@@ -122,7 +125,7 @@ pub fn unpack_amount_and_sector_index(
         Ok(unsafe {
             let amount = u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; U64_SIZE]));
             let index_bytes = *(instruction_data.as_ptr().add(U64_SIZE) as *const [u8; U32_SIZE]);
-            (amount, SectorIndex::from(index_bytes))
+            (amount, u32::from_le_bytes(index_bytes))
         })
     } else {
         Err(DropsetError::InvalidInstructionData)

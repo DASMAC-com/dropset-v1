@@ -98,7 +98,7 @@ impl CloseSeat<'_> {
         let mut data = [UNINIT_BYTE; 5];
 
         data[0].write(InstructionTag::CloseSeat as u8);
-        write_bytes(&mut data[1..5], &self.sector_index_hint.0.to_le_bytes());
+        write_bytes(&mut data[1..5], &self.sector_index_hint.to_le_bytes());
 
         // Safety: All 5 bytes were written to.
         unsafe { *(data.as_ptr() as *const _) }

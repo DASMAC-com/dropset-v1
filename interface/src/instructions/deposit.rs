@@ -89,7 +89,7 @@ impl Deposit<'_> {
 
         data[0].write(InstructionTag::Deposit as u8);
         write_bytes(&mut data[1..9], &self.amount.to_le_bytes());
-        write_bytes(&mut data[9..13], &self.sector_index_hint.0.to_le_bytes());
+        write_bytes(&mut data[9..13], &self.sector_index_hint.to_le_bytes());
 
         // Safety: All 13 bytes were written to.
         unsafe { *(data.as_ptr() as *const _) }

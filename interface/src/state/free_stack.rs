@@ -5,7 +5,7 @@ use crate::{
     state::{
         market_header::MarketHeader,
         node::{Node, NodePayload, NODE_PAYLOAD_SIZE},
-        sector::SectorIndex,
+        sector::{SectorIndex, NIL},
         transmutable::Transmutable,
     },
 };
@@ -87,15 +87,14 @@ impl<'a> Stack<'a> {
         // Debug check that the node has been zeroed out.
         debug_assert!(
             start < end
-                && (start..end).map(SectorIndex).all(|i| {
+                && (start..end).all(|i| {
                     // Safety: The safety contract guarantees the index is always in-bounds.
                     let node = unsafe { Node::from_sector_index_mut(self.sectors, i) };
                     node.load_payload::<FreeNodePayload>().0 == [0; NODE_PAYLOAD_SIZE]
                 })
         );
 
-        for i in (start..end).rev() {
-            let index = SectorIndex(i);
+        for index in (start..end).rev() {
             let curr_top = self.top();
 
             // Safety: The safety contract guarantees the index is always in-bounds.
@@ -113,7 +112,7 @@ impl<'a> Stack<'a> {
     ///
     /// The sector index returned is always in-bounds and non-NIL.
     pub fn remove_free_node(&mut self) -> Result<SectorIndex, DropsetError> {
-        if self.top().is_nil() {
+        if self.top() == NIL {
             return Err(DropsetError::NoFreeNodesLeft);
         }
 
@@ -126,7 +125,7 @@ impl<'a> Stack<'a> {
 
         // Zero out the rest of the node by setting `next` to 0. The payload and `prev` were zeroed
         // out when adding to the free list.
-        node_being_freed.set_next(SectorIndex(0));
+        node_being_freed.set_next(0);
 
         // Set the new `top` to the current top's `next`.
         let new_top = node_being_freed.next();

@@ -75,9 +75,9 @@ impl MarketHeader {
             discriminant: MARKET_ACCOUNT_DISCRIMINANT.to_le_bytes(),
             num_seats: [0; U32_SIZE],
             num_free_sectors: [0; U32_SIZE],
-            free_stack_top: NIL.into(),
-            seat_dll_head: NIL.into(),
-            seat_dll_tail: NIL.into(),
+            free_stack_top: NIL.to_le_bytes(),
+            seat_dll_head: NIL.to_le_bytes(),
+            seat_dll_tail: NIL.to_le_bytes(),
             base_mint: *base_mint,
             quote_mint: *quote_mint,
             market_bump,
@@ -132,31 +132,31 @@ impl MarketHeader {
 
     #[inline(always)]
     pub fn free_stack_top(&self) -> SectorIndex {
-        self.free_stack_top.into()
+        u32::from_le_bytes(self.free_stack_top)
     }
 
     #[inline(always)]
     pub fn set_free_stack_top(&mut self, index: SectorIndex) {
-        self.free_stack_top = index.into();
+        self.free_stack_top = index.to_le_bytes();
     }
 
     #[inline(always)]
     pub fn seat_dll_head(&self) -> SectorIndex {
-        self.seat_dll_head.into()
+        u32::from_le_bytes(self.seat_dll_head)
     }
 
     #[inline(always)]
     pub fn set_seat_dll_head(&mut self, index: SectorIndex) {
-        self.seat_dll_head = index.into();
+        self.seat_dll_head = index.to_le_bytes();
     }
 
     #[inline(always)]
     pub fn seat_dll_tail(&self) -> SectorIndex {
-        self.seat_dll_tail.into()
+        u32::from_le_bytes(self.seat_dll_tail)
     }
 
     #[inline(always)]
     pub fn set_seat_dll_tail(&mut self, index: SectorIndex) {
-        self.seat_dll_tail = index.into();
+        self.seat_dll_tail = index.to_le_bytes();
     }
 }

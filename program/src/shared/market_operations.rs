@@ -20,7 +20,7 @@ pub fn insert_market_seat(
     let seat_bytes = seat.as_array();
 
     // Return an error early if the user already exists in the seat list at the previous index.
-    if !prev_index.is_nil() {
+    if prev_index != NIL {
         // Safety: `prev_index` is non-NIL and was returned by an iterator, so it must be in-bounds.
         let prev_node = unsafe { Node::from_sector_index(list.sectors, prev_index) };
         let prev_seat = prev_node.load_payload::<MarketSeat>();
