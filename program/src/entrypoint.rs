@@ -2,6 +2,12 @@ use crate::instructions::*;
 use dropset_interface::{error::DropsetError, instructions::InstructionTag};
 use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};
 
+use pinocchio::{no_allocator, nostd_panic_handler, program_entrypoint};
+
+program_entrypoint!(process_instruction);
+no_allocator!();
+nostd_panic_handler!();
+
 #[inline(always)]
 pub fn process_instruction(
     _program_id: &Pubkey,

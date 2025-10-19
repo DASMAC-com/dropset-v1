@@ -23,3 +23,8 @@ solana-pubkey.workspace = true
 
 [lints]
 workspace = true
+
+[features]
+default = []
+std = []
+no-entrypoint = []
