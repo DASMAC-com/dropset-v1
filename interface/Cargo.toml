@@ -17,6 +17,7 @@ strum_macros = { workspace = true, optional = true }
 
 [dev-dependencies]
 strum.workspace = true
+strum_macros.workspace = true
 
 [lints]
 workspace = true

@@ -1,4 +1,3 @@
-use quote::ToTokens;
 use syn::{
     spanned::Spanned,
     Attribute,
@@ -42,7 +41,6 @@ impl TryFrom<&Attribute> for Config {
 
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident(CONFIG_ERROR_ATTR) {
-                eprintln!("{}", meta.path.to_token_stream());
                 let invalid_err_type = || ParsingError::InvalidErrorType.into_err(meta.path.span());
                 let value = meta.value().map_err(|_| invalid_err_type())?;
                 let expr_path: ExprPath = value.parse().map_err(|_| invalid_err_type())?;
