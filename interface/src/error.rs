@@ -1,6 +1,7 @@
 use pinocchio::program_error::ProgramError;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "client", derive(strum_macros::FromRepr))]
 #[repr(u8)]
 pub enum DropsetError {
     InvalidInstructionTag,
@@ -13,7 +14,7 @@ pub enum DropsetError {
     UnalignedData,
     UnallocatedAccountData,
     UserAlreadyExists,
-    NotEnoughAccountKeys,
+    IncorrectNumberOfAccountInfos,
     InvalidTokenProgram,
     AlreadyInitializedAccount,
     AccountNotInitialized,
@@ -51,7 +52,9 @@ impl From<DropsetError> for &'static str {
             DropsetError::UnalignedData => "Account data is unaligned",
             DropsetError::UnallocatedAccountData => "Account data hasn't been properly allocated",
             DropsetError::UserAlreadyExists => "User already has an existing seat",
-            DropsetError::NotEnoughAccountKeys => "Not enough account keys were provided",
+            DropsetError::IncorrectNumberOfAccountInfos => {
+                "Number of account infos passed is incorrect"
+            }
             DropsetError::InvalidTokenProgram => "Invalid token program ID",
             DropsetError::AlreadyInitializedAccount => "Account has already been initialized",
             DropsetError::AccountNotInitialized => "Account hasn't been initialized",

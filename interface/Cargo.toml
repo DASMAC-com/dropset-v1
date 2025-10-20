@@ -13,17 +13,17 @@ solana-cpi = { workspace = true, optional = true}
 solana-instruction = { workspace = true, optional = true }
 solana-sdk = { workspace = true, optional = true}
 static_assertions.workspace = true
+strum_macros = { workspace = true, optional = true }
 
 [dev-dependencies]
 strum.workspace = true
-strum_macros.workspace = true
 
 [lints]
 workspace = true
 
 [features]
-default = ["solana-sdk-invoke"]
-client = ["std", "dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
+default = []
+client = ["std", "dep:strum_macros", "dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
 std = []
 pinocchio-invoke = []
 solana-sdk-invoke = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]

@@ -17,6 +17,7 @@ pub struct DepositWithdrawContext<'a> {
     pub user_ata: TokenAccountInfo<'a>,
     pub market_ata: TokenAccountInfo<'a>,
     pub mint: MintInfo<'a>,
+    pub _token_program: &'a AccountInfo,
 }
 
 impl<'a> DepositWithdrawContext<'a> {
@@ -40,8 +41,10 @@ impl<'a> DepositWithdrawContext<'a> {
             user_ata,
             market_ata,
             mint,
+            _token_program,
+
         ] = accounts else {
-            return Err(DropsetError::NotEnoughAccountKeys.into());
+            return Err(DropsetError::IncorrectNumberOfAccountInfos.into());
         };
 
         // Safety: Scoped borrow of market account data.
@@ -66,6 +69,7 @@ impl<'a> DepositWithdrawContext<'a> {
             user_ata,
             market_ata,
             mint,
+            _token_program,
         })
     }
 }

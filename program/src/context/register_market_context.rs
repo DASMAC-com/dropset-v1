@@ -13,6 +13,7 @@ pub struct RegisterMarketContext<'a> {
     pub quote_mint: &'a AccountInfo,
     pub base_token_program: &'a AccountInfo,
     pub quote_token_program: &'a AccountInfo,
+    pub _ata_program: &'a AccountInfo,
     pub system_program: &'a AccountInfo,
 }
 
@@ -28,9 +29,10 @@ impl<'a> RegisterMarketContext<'a> {
             quote_mint,
             base_token_program,
             quote_token_program,
+            _ata_program,
             system_program,
         ] = accounts else {
-            return Err(DropsetError::NotEnoughAccountKeys);
+            return Err(DropsetError::IncorrectNumberOfAccountInfos);
         };
 
         // Since the market PDA and both of its associated token accounts are created atomically
@@ -40,6 +42,7 @@ impl<'a> RegisterMarketContext<'a> {
         // Thus there is no need to check ownership, address derivations, or account data here, only
         // that the `market_account` is uninitialized.
         // The token programs are also validated in the ATA `Create` instruction.
+        // The associated token program is hard-coded as an address and never even used.
         let market_account = UninitializedAccountInfo::new(market_account)?;
 
         Ok(Self {
@@ -51,6 +54,7 @@ impl<'a> RegisterMarketContext<'a> {
             quote_mint,
             base_token_program,
             quote_token_program,
+            _ata_program,
             system_program,
         })
     }
