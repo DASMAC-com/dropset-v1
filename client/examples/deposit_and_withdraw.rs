@@ -11,7 +11,7 @@ use dropset_interface::{
         RegisterMarketInstructionData,
         WithdrawInstructionData,
     },
-    state::sector::NIL_U32,
+    state::sector::NIL,
 };
 use solana_client::rpc_client::RpcClient;
 use solana_commitment_config::CommitmentConfig;
@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
         payer.pubkey(),
         DepositInstructionData {
             amount: 1000,
-            sector_index_hint: NIL_U32,
+            sector_index_hint: NIL,
         },
     );
 
@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
         payer.pubkey(),
         WithdrawInstructionData {
             amount: 100,
-            sector_index_hint: user_seat.index.0,
+            sector_index_hint: user_seat.index,
         },
     );
 
