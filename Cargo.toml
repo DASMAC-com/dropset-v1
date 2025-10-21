@@ -53,7 +53,7 @@ check-cfg = [
     'cfg(target_os, values("solana"))',
     'cfg(feature, values("no-entrypoint"))',
     'cfg(feature, values("std"))',
-    'cfg(feature, values("pinocchio-invoke"))',
-    'cfg(feature, values("solana-sdk-invoke"))',
+    'cfg(feature, values("pinocchio"))',
+    'cfg(feature, values("solana-program"))',
     'cfg(feature, values("client"))',
 ]

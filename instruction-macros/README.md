@@ -8,10 +8,10 @@ instruction data struct with `pack` and `unpack` methods.
 There are three types of instruction invocation structs that can be generated,
 each enabled with a mutually exclusive feature flag:
 
-1. `#[cfg(feature = "pinocchio-invoke")]`
+1. `#[cfg(feature = "pinocchio")]`
   - Uses the `pinocchio` SDK to expose `invoke` and `invoke_signed` for
   extremely efficient CPIs.
-2. `#[cfg(feature = "solana-sdk-invoke")]`
+2. `#[cfg(feature = "solana-program")]`
   - Uses the standard `solana_sdk` to expose `invoke` and `invoke_signed` for
   CPIs.
 3. `#[cfg(feature = "client")]`
@@ -184,10 +184,10 @@ impl CloseSeatInstructionData {
 For the `CloseSeat` example above, there are three types of generated account
 info structs, each feature flagged.
 
-#### `#[cfg(feature = "pinocchio-invoke")]`
+#### `#[cfg(feature = "pinocchio")]`
 
 ```rust
-#[cfg(feature = "pinocchio-invoke")]
+#[cfg(feature = "pinocchio")]
 pub struct CloseSeat<'a> {
     /// The user closing their seat.
     pub user: &'a pinocchio::account_info::AccountInfo,
@@ -199,7 +199,7 @@ pub struct CloseSeat<'a> {
     pub base_mint: &'a pinocchio::account_info::AccountInfo,
 }
 
-#[cfg(feature = "pinocchio-invoke")]
+#[cfg(feature = "pinocchio")]
 impl CloseSeat<'_> {
     #[inline(always)]
     pub fn invoke(self, data: CloseSeatInstructionData) -> pinocchio::ProgramResult {
@@ -233,10 +233,10 @@ impl CloseSeat<'_> {
 }
 ```
 
-#### `#[cfg(feature = "solana-sdk-invoke")]`
+#### `#[cfg(feature = "solana-program")]`
 
 ```rust
-#[cfg(feature = "solana-sdk-invoke")]
+#[cfg(feature = "solana-program")]
 pub struct CloseSeat<'a> {
     /// The user closing their seat.
     pub user: solana_sdk::account_info::AccountInfo<'a>,
@@ -248,7 +248,7 @@ pub struct CloseSeat<'a> {
     pub base_mint: solana_sdk::account_info::AccountInfo<'a>,
 }
 
-#[cfg(feature = "solana-sdk-invoke")]
+#[cfg(feature = "solana-program")]
 impl CloseSeat<'_> {
     #[inline(always)]
     pub fn invoke(

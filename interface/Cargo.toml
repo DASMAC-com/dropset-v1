@@ -23,8 +23,8 @@ strum_macros.workspace = true
 workspace = true
 
 [features]
-default = []
+default = ["pinocchio"]
 client = ["std", "dep:strum_macros", "dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
 std = []
-pinocchio-invoke = []
-solana-sdk-invoke = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
+pinocchio = []
+solana-program = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]

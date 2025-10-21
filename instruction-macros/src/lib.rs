@@ -24,8 +24,8 @@ const ARGUMENT_IDENTIFIER: &str = "args";
 const DESCRIPTION: &str = "desc";
 const DEFAULT_TAG_ERROR_BASE: &str = "ProgramError";
 const DEFAULT_TAG_ERROR_TYPE: &str = "InvalidInstructionData";
-const FEATURE_SOLANA_SDK_INVOKE: &str = "solana-sdk-invoke";
-const FEATURE_PINOCCHIO_INVOKE: &str = "pinocchio-invoke";
+const FEATURE_SOLANA_SDK_INVOKE: &str = "solana-program";
+const FEATURE_PINOCCHIO_INVOKE: &str = "pinocchio";
 const FEATURE_CLIENT: &str = "client";
 
 #[proc_macro_derive(ProgramInstruction, attributes(account, args, program_instruction))]
