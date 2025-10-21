@@ -6,7 +6,7 @@ use syn::{
 
 use crate::{
     parse::{
-        config_attribute::Config,
+        config::from_attribute::Config,
         data_enum::parse_data_enum,
     },
     CONFIG_ATTR,

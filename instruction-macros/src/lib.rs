@@ -8,7 +8,7 @@ mod derive;
 mod parse;
 mod render;
 
-use parse::error::ParsingError;
+use parse::parsing_error::ParsingError;
 
 use crate::derive::{
     accounts::derive_accounts,
@@ -16,16 +16,14 @@ use crate::derive::{
 };
 
 const ACCOUNT_IDENTIFIER: &str = "account";
-const CONFIG_ATTR: &str = "program_instruction";
+const CONFIG_ATTR: &str = "sigil";
 const ACCOUNT_NAME: &str = "name";
 const ACCOUNT_WRITABLE: &str = "writable";
 const ACCOUNT_SIGNER: &str = "signer";
 const ARGUMENT_IDENTIFIER: &str = "args";
 const DESCRIPTION: &str = "desc";
-const DEFAULT_TAG_ERROR_BASE: &str = "ProgramError";
-const DEFAULT_TAG_ERROR_TYPE: &str = "InvalidInstructionData";
 
-#[proc_macro_derive(ProgramInstruction, attributes(account, args, program_instruction))]
+#[proc_macro_derive(ProgramInstruction, attributes(account, args, sigil))]
 pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 

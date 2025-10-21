@@ -1,6 +1,9 @@
 use itertools::Itertools;
 
-use crate::parse::primitive_arg::PrimitiveArg;
+use crate::parse::{
+    config::from_attribute::VALID_CONFIG_ATTRIBUTES,
+    primitive_arg::PrimitiveArg,
+};
 
 pub(crate) enum ParsingError {
     NotAnEnum,
@@ -21,6 +24,7 @@ pub(crate) enum ParsingError {
     InvalidLiteralU8,
     InvalidErrorType,
     ErrorNotFullyQualified,
+    InvalidConfigAttribute,
 }
 
 impl From<ParsingError> for String {
@@ -54,12 +58,11 @@ impl From<ParsingError> for String {
                 "Invalid argument type, valid types include: {}",
                 PrimitiveArg::iter().join(", ")
             ),
-            ParsingError::ExpectedArgumentDescription => {
-                "Expected a string literal for the argument description".into()
-            }
+            ParsingError::ExpectedArgumentDescription => "Expected a string literal for the argument description".into(),
             ParsingError::InvalidLiteralU8 => "Enum variant must be a literal u8".into(),
             ParsingError::InvalidErrorType => "Invalid error type, expected a raw path like: ProgramError::InvalidInstructionData".into(),
             ParsingError::ErrorNotFullyQualified => "Instruction tag error type must be minimally qualified; e.g. `ProgramError::InvalidInstructionData`".into(),
+            ParsingError::InvalidConfigAttribute => format!("Invalid config attribute, valid attributes include: {}", VALID_CONFIG_ATTRIBUTES.iter().join(",")),
         }
     }
 }

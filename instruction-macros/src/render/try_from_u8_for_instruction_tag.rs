@@ -15,8 +15,8 @@ pub fn render_try_from_u8_for_instruction_tag(
     instruction_tags: InstructionTags,
 ) -> TokenStream {
     let enum_ident = &parsed_enum.enum_ident;
-    let error_base = &parsed_enum.config.error_base;
-    let error_variant = &parsed_enum.config.error_variant;
+    let error_base = &parsed_enum.config.errors.invalid_tag.base;
+    let error_variant = &parsed_enum.config.errors.invalid_tag.variant;
 
     let mut cloned_variants = instruction_tags.0.clone().into_iter().collect_vec();
     cloned_variants.sort_by_key(|t| t.discriminant);

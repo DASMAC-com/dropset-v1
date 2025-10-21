@@ -7,10 +7,7 @@ use quote::{
     format_ident,
     quote,
 };
-use syn::{
-    Ident,
-    Type,
-};
+use syn::Ident;
 
 use crate::parse::{
     instruction_argument::InstructionArgument,
@@ -45,8 +42,7 @@ fn render_variant(
     let instruction_args = instruction_variant.arguments;
 
     let enum_ident = &parsed_enum.enum_ident;
-    let error_base = &parsed_enum.config.error_base;
-    let error_variant = &parsed_enum.config.error_variant;
+    let error_base = &parsed_enum.config.errors.invalid_tag.base;
 
     let struct_doc = build_struct_doc(enum_ident, tag_variant, &instruction_args);
     let (field_names, struct_fields, field_sizes) =
@@ -70,9 +66,8 @@ fn render_variant(
     let const_assertion = build_const_assertion(&instruction_args, &size_with_tag, &field_sizes);
 
     let unpack_body = render_unpack_body(
+        parsed_enum,
         &size_without_tag,
-        error_base,
-        error_variant,
         &unpack_assignments,
         &field_names,
     );
@@ -118,19 +113,20 @@ fn render_variant(
 }
 
 fn render_unpack_body(
+    parsed_enum: &ParsedEnum,
     size_without_tag: &Literal,
-    error_base: &Type,
-    error_variant: &Ident,
     unpack_assignments: &[TokenStream],
     field_names: &[&Ident],
 ) -> TokenStream {
+    let error = &parsed_enum.config.errors.invalid_instruction_data.full_path;
+
     if size_without_tag.to_string().as_str() == "0" {
         return quote! { Ok(Self {}) };
     }
 
     quote! {
         if instruction_data.len() < #size_without_tag {
-            return Err(#error_base::#error_variant);
+            return Err(#error);
         }
 
         // Safety: The length was just verified; all dereferences are valid.

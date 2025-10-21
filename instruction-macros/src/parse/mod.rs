@@ -1,11 +1,11 @@
-pub mod config_attribute;
+pub mod config;
 pub mod data_enum;
-pub mod error;
 pub mod instruction_account;
 pub mod instruction_argument;
 pub mod instruction_tags;
 pub mod instruction_variants;
 pub mod name_value;
 pub mod parsed_enum;
+pub mod parsing_error;
 pub mod primitive_arg;
 pub mod validation;
