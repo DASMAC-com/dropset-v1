@@ -477,6 +477,8 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
+ "borsh",
  "colored",
  "dropset",
  "dropset-interface",
@@ -493,6 +495,8 @@ dependencies = [
  "spl-associated-token-account-interface",
  "spl-token-2022-interface",
  "spl-token-interface",
+ "strum",
+ "strum_macros",
  "tokio",
 ]
 

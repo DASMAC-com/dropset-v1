@@ -5,6 +5,8 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+bincode.workspace = true
+borsh.workspace = true
 colored.workspace = true
 dropset = { path = "../program" }
 dropset-interface = { path = "../interface", features = ["client"], default-features = false }
@@ -14,13 +16,15 @@ solana-compute-budget-interface.workspace = true
 solana-instruction.workspace = true
 solana-instruction-error.workspace = true
 solana-sdk.workspace = true
-solana-system-interface.workspace = true
+solana-system-interface = { workspace = true, features = ["serde"] }
 solana-transaction-error.workspace = true
 solana-transaction-status.workspace = true
 solana-transaction-status-client-types.workspace = true
 spl-associated-token-account-interface.workspace = true
 spl-token-interface.workspace = true
 spl-token-2022-interface.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
 tokio.workspace = true
 
 [lints]

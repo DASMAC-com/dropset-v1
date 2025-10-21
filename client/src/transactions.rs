@@ -2,7 +2,6 @@ use anyhow::Context;
 use dropset_interface::{
     error::DropsetError,
     instructions::DropsetInstruction,
-    state::SYSTEM_PROGRAM_ID,
 };
 use solana_client::{
     client_error::{
@@ -19,7 +18,6 @@ use solana_sdk::{
         Instruction,
         Message,
     },
-    pubkey::Pubkey,
     signature::{
         Keypair,
         Signature,
@@ -34,15 +32,13 @@ use solana_transaction_status::{
 
 use crate::{
     logs::{
+        log_divider,
         log_error,
         log_info,
+        log_success,
     },
-    transaction_parser::{
-        ParsedInstruction,
-        ParsedTransaction,
-    },
-    SPL_TOKEN_2022_ID,
-    SPL_TOKEN_ID,
+    pretty::transaction::PrettyTransaction,
+    transaction_parser::ParsedTransaction,
 };
 
 pub async fn fund_account(rpc: &RpcClient, keypair: Option<Keypair>) -> anyhow::Result<Keypair> {
@@ -129,40 +125,13 @@ pub async fn send_transaction_with_config(
     match res {
         Ok(sig) => {
             if matches!(debug_logs, Some(true)) {
-                println!("---------------- SUCCESS ----------------");
-                instructions.iter().for_each(|ixn| {
-                    if ixn.program_id.as_ref() == dropset::ID {
-                        println!(
-                            "Dropset instruction: {}",
-                            ixn.data
-                                .first()
-                                .map(|v| format!(
-                                    "{:?}",
-                                    DropsetInstruction::try_from(*v).expect("Should be valid")
-                                ))
-                                .unwrap_or_default()
-                        );
-                    }
-                });
+                log_divider();
+                log_success("Signature", sig);
                 let encoded = get_transaction_json(rpc, sig).await?;
                 let parsed = ParsedTransaction::from_encoded_transaction(encoded);
-                if let Some(transaction) = parsed {
-                    println!("{:#?}", transaction);
-                    transaction
-                        .instructions
-                        .iter()
-                        .for_each(log_instruction_success);
-                    log_info(
-                        "inner instructions",
-                        format!(
-                            "\n{:#?}",
-                            transaction.inner_instructions.iter().for_each(|inner| {
-                                log_info("inner ixn parent index", inner.parent_index);
-                                log_instruction_success(&inner.inner_instruction);
-                            })
-                        ),
-                    );
-                }
+                parsed.inspect(|txn| {
+                    println!("{}", PrettyTransaction(txn));
+                });
             }
             Ok(sig)
         }
@@ -188,16 +157,6 @@ pub async fn get_transaction_json(
         },
     )
     .context("Should be able to fetch transaction with config")
-}
-
-fn log_instruction_success(instruction: &ParsedInstruction) {
-    match instruction.program_id.to_bytes() {
-        dropset::ID => println!("dropset"),
-        SPL_TOKEN_ID => println!("spl token"),
-        SPL_TOKEN_2022_ID => println!("spl token 2022"),
-        SYSTEM_PROGRAM_ID => println!("system program"),
-        p => println!("Unknown program: {}", Pubkey::from(p)),
-    }
 }
 
 pub fn log_instruction_error(error: &ClientError, instructions: &[Instruction]) {

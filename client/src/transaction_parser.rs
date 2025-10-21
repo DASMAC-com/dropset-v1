@@ -32,12 +32,17 @@ pub struct ParsedTransaction {
     pub fee: u64,
     pub pre_balances: Vec<u64>,
     pub post_balances: Vec<u64>,
-    pub instructions: Vec<ParsedInstruction>,
-    pub inner_instructions: Vec<ParsedInnerInstruction>,
+    pub instructions: Vec<ParsedOuterInstruction>,
     pub log_messages: Vec<String>,
     pub pre_token_balances: Vec<UiTransactionTokenBalance>,
     pub post_token_balances: Vec<UiTransactionTokenBalance>,
     pub raw_compute_usage: Option<u64>,
+}
+
+#[derive(Debug)]
+pub struct ParsedOuterInstruction {
+    pub outer_instruction: ParsedInstruction,
+    pub inner_instructions: Vec<ParsedInstruction>,
 }
 
 #[derive(Debug)]
@@ -74,7 +79,7 @@ impl ParsedTransaction {
             _ => vec![],
         };
 
-        let (instructions, program_ids) = match transaction.transaction {
+        let (outer_instructions, program_ids) = match transaction.transaction {
             EncodedTransaction::Json(UiTransaction {
                 signatures: _,
                 message,
@@ -84,6 +89,8 @@ impl ParsedTransaction {
                 parse_versioned_transaction(versioned, &addresses)
             }
         };
+
+        let inner_instructions = parse_inner_instructions(meta.inner_instructions, &program_ids);
 
         Some(Self {
             version: transaction.version.map(|v| match v {
@@ -96,8 +103,7 @@ impl ParsedTransaction {
             fee: meta.fee,
             pre_balances: meta.pre_balances,
             post_balances: meta.post_balances,
-            instructions,
-            inner_instructions: parse_inner_instructions(meta.inner_instructions, &program_ids),
+            instructions: Self::parse_outer_instructions(outer_instructions, inner_instructions),
             log_messages: meta.log_messages.unwrap_or(vec![]),
             pre_token_balances: meta.pre_token_balances.unwrap_or(vec![]),
             post_token_balances: meta.post_token_balances.unwrap_or(vec![]),
@@ -108,6 +114,29 @@ impl ParsedTransaction {
                 _ => None,
             },
         })
+    }
+
+    fn parse_outer_instructions(
+        outer_instructions: Vec<ParsedInstruction>,
+        inner_instructions: Vec<ParsedInnerInstruction>,
+    ) -> Vec<ParsedOuterInstruction> {
+        let mut outers = outer_instructions
+            .into_iter()
+            .map(|outer| ParsedOuterInstruction {
+                outer_instruction: outer,
+                inner_instructions: vec![],
+            })
+            .collect::<Vec<_>>();
+
+        for inner in inner_instructions {
+            outers
+                .get_mut(inner.parent_index as usize)
+                .expect("Parent index should exist")
+                .inner_instructions
+                .push(inner.inner_instruction);
+        }
+
+        outers
     }
 }
 
