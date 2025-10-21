@@ -1,12 +1,9 @@
 use dropset_interface::{
     instructions::{
-        CloseSeat,
+        generated_client::*,
         CloseSeatInstructionData,
-        Deposit,
         DepositInstructionData,
-        RegisterMarket,
         RegisterMarketInstructionData,
-        Withdraw,
         WithdrawInstructionData,
     },
     state::SYSTEM_PROGRAM_ID,

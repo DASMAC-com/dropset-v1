@@ -9,10 +9,11 @@ bincode.workspace = true
 borsh.workspace = true
 colored.workspace = true
 dropset = { path = "../program" }
-dropset-interface = { path = "../interface", features = ["client"], default-features = false }
+dropset-interface = { path = "../interface", features = ["client", "solana-program"], default-features = false }
 solana-client.workspace = true
 solana-commitment-config.workspace = true
 solana-compute-budget-interface.workspace = true
+solana-cpi.workspace = true
 solana-instruction.workspace = true
 solana-instruction-error.workspace = true
 solana-sdk.workspace = true

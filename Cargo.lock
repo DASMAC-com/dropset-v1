@@ -485,6 +485,7 @@ dependencies = [
  "solana-client",
  "solana-commitment-config",
  "solana-compute-budget-interface",
+ "solana-cpi",
  "solana-instruction",
  "solana-instruction-error",
  "solana-sdk",
