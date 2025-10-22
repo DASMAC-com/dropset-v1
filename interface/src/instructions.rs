@@ -59,13 +59,16 @@ pub enum DropsetInstruction {
 }
 
 #[cfg(test)]
-mod tests2 {
+mod test {
     use strum::IntoEnumIterator;
 
     extern crate std;
     use std::collections::HashSet;
 
     use super::*;
+    use crate::error::DropsetError;
+
+    pub const ERR: DropsetError = DropsetError::InvalidInstructionTag;
 
     #[test]
     fn test_ixn_tag_try_from_u8_happy_path() {
@@ -73,9 +76,12 @@ mod tests2 {
             let variant_u8 = variant as u8;
             assert_eq!(
                 DropsetInstruction::from_repr(variant_u8).unwrap(),
-                DropsetInstruction::try_from(variant_u8).unwrap(),
+                DropsetInstruction::try_from_u8(variant_u8, || ERR).unwrap(),
             );
-            assert_eq!(DropsetInstruction::try_from(variant_u8).unwrap(), variant);
+            assert_eq!(
+                DropsetInstruction::try_from_u8(variant_u8, || ERR).unwrap(),
+                variant
+            );
         }
     }
 
@@ -89,13 +95,13 @@ mod tests2 {
             if valids.contains(&v) {
                 assert_eq!(
                     DropsetInstruction::from_repr(v).unwrap(),
-                    DropsetInstruction::try_from(v).unwrap()
+                    DropsetInstruction::try_from_u8(v, || ERR).unwrap()
                 );
-                assert_eq!(DropsetInstruction::try_from(v).unwrap() as u8, v);
+                assert_eq!(DropsetInstruction::try_from_u8(v, || ERR).unwrap() as u8, v);
             } else {
                 assert_eq!(
                     DropsetInstruction::from_repr(v).is_none(),
-                    DropsetInstruction::try_from(v).is_err(),
+                    DropsetInstruction::try_from_u8(v, || ERR).is_err(),
                 );
             }
         }

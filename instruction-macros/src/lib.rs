@@ -15,7 +15,7 @@ use crate::{
         accounts::derive_accounts,
         instruction_data::derive_instruction_data,
     },
-    render::feature_namespace::merge_namespaced_token_streams,
+    render::*,
 };
 
 const ACCOUNT_IDENTIFIER: &str = "account";
@@ -29,7 +29,8 @@ const DESCRIPTION: &str = "desc";
 pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    let instruction_data_render = match derive_instruction_data(input.clone()) {
+    let (try_from_u8_render, instruction_data_render) = match derive_instruction_data(input.clone())
+    {
         Ok(tag) => tag,
         Err(e) => return e.to_compile_error().into(),
     };
@@ -56,5 +57,9 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         })
         .collect::<proc_macro2::TokenStream>();
 
-    namespaced_outputs.into()
+    quote! {
+        #try_from_u8_render
+        #namespaced_outputs
+    }
+    .into()
 }

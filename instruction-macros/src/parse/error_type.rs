@@ -1,10 +1,9 @@
 use crate::{
     parse::error_path::ErrorPath,
-    render::feature_namespace::Feature,
+    render::Feature,
 };
 
 pub enum ErrorType {
-    InvalidTag,
     IncorrectNumAccounts,
     InvalidInstructionData,
 }
@@ -19,7 +18,6 @@ impl ErrorType {
         match self {
             ErrorType::InvalidInstructionData => ErrorPath::new(base, "InvalidInstructionData"),
             ErrorType::IncorrectNumAccounts => ErrorPath::new(base, "NotEnoughAccountKeys"),
-            ErrorType::InvalidTag => ErrorPath::new(base, "InvalidInstructionData"),
         }
     }
 }

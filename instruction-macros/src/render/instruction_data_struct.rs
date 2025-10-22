@@ -13,17 +13,15 @@ use syn::Ident;
 use crate::{
     parse::{
         error_path::ErrorPath,
+        error_type::ErrorType,
         instruction_argument::InstructionArgument,
         instruction_variants::InstructionVariant,
         parsed_enum::ParsedEnum,
     },
-    render::{
-        error_type::ErrorType,
-        feature_namespace::{
-            Feature,
-            FeatureNamespace,
-            NamespacedTokenStream,
-        },
+    render::feature_namespace::{
+        Feature,
+        FeatureNamespace,
+        NamespacedTokenStream,
     },
 };
 
@@ -33,7 +31,7 @@ impl InstructionVariant {
     }
 }
 
-pub fn render_instruction_data_structs(
+pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variants: Vec<InstructionVariant>,
 ) -> Vec<NamespacedTokenStream> {
