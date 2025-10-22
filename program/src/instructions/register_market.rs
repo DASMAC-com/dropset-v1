@@ -25,7 +25,8 @@ use crate::{
 
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::register_market::RegisterMarket`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::register_market::RegisterMarket`]
 pub unsafe fn process_register_market(
     accounts: &[AccountInfo],
     instruction_data: &[u8],

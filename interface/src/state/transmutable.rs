@@ -1,5 +1,5 @@
-// Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39, Apache-2.0.
-// Substantial modifications by DASMAC, 2025:
+// Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39,
+// Apache-2.0. Substantial modifications by DASMAC, 2025:
 // - Removed `Initializable` trait
 // - Moved `load_*` functions to trait methods with validation contract
 // - Added validate_bit_patterns requirement

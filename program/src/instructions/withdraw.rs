@@ -20,7 +20,8 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::withdraw::Withdraw`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::withdraw::Withdraw`]
 pub unsafe fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let (amount, hint) = unpack_amount_and_sector_index(instruction_data)?;
 

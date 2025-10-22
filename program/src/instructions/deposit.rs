@@ -35,7 +35,8 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::deposit::Deposit`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::deposit::Deposit`]
 pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let (amount, hint) = unpack_amount_and_optional_sector_index(instruction_data)?;
 
