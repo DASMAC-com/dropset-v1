@@ -12,6 +12,8 @@ use syn::Ident;
 
 use crate::{
     parse::{
+        error_path::ErrorPath,
+        error_type::ErrorType,
         instruction_account::InstructionAccount,
         instruction_variants::InstructionVariant,
         parsed_enum::ParsedEnum,
@@ -52,7 +54,7 @@ impl Feature {
     /// Renders the `invoke_`, `invoke_signed` for pinocchio/solana-program and the create
     /// instruction method for the client.
     pub fn render_invoke_methods(&self, instruction_variant: &InstructionVariant) -> TokenStream {
-        let instruction_data_variant_type = instruction_variant.instruction_data_struct_ident();
+        let data_ident = instruction_variant.instruction_data_struct_ident();
         let accounts = &instruction_variant.accounts;
         let metas = accounts
             .iter()
@@ -67,18 +69,15 @@ impl Feature {
             })
             .collect_vec();
 
-        // e.g. `super::CloseSeatInstructionData`
-        let supered_type = quote! { super::#instruction_data_variant_type };
-
         match self {
-            Feature::Pinocchio => render_pinocchio_invoke(supered_type, metas, infos),
-            Feature::SolanaProgram => render_solana_program_invoke(supered_type, metas, infos),
-            Feature::Client => render_client_create_instruction(supered_type, metas),
+            Feature::Pinocchio => render_pinocchio_invoke(data_ident, metas, infos),
+            Feature::SolanaProgram => render_solana_program_invoke(data_ident, metas, infos),
+            Feature::Client => render_client_create_instruction(data_ident, metas),
         }
     }
 }
 
-pub fn render_account_struct_variants(
+pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variants: Vec<InstructionVariant>,
 ) -> Vec<NamespacedTokenStream> {
@@ -87,8 +86,9 @@ pub fn render_account_struct_variants(
         // Don't render anything for instructions that have no accounts/arguments.
         .filter(|instruction_variant| !instruction_variant.no_accounts_or_args)
         .flat_map(|instruction_variant| {
-            Feature::iter().map(move |account_struct| {
-                render_variant(parsed_enum, &instruction_variant, account_struct)
+            Feature::iter().map(move |feature| NamespacedTokenStream {
+                tokens: render_variant(parsed_enum, &instruction_variant, feature),
+                namespace: FeatureNamespace(feature),
             })
         })
         .collect()
@@ -98,7 +98,7 @@ fn render_variant(
     parsed_enum: &ParsedEnum,
     instruction_variant: &InstructionVariant,
     feature: Feature,
-) -> NamespacedTokenStream {
+) -> TokenStream {
     let enum_ident = &parsed_enum.enum_ident;
     let instruction_variant_name = &instruction_variant.variant_name;
     let struct_ident = format_ident!("{instruction_variant_name}");
@@ -134,7 +134,7 @@ fn render_variant(
     let invoke_methods = feature.render_invoke_methods(instruction_variant);
     let account_load_method = render_account_loader(feature, instruction_variant);
 
-    let tokens = quote! {
+    quote! {
         #[doc = #first_doc_line]
         ///
         /// # Caller Guarantees
@@ -153,11 +153,6 @@ fn render_variant(
             #invoke_methods
             #account_load_method
         }
-    };
-
-    NamespacedTokenStream {
-        tokens,
-        namespace: FeatureNamespace(feature),
     }
 }
 
@@ -234,7 +229,7 @@ impl InstructionAccount {
 }
 
 fn render_pinocchio_invoke(
-    instruction_data_type: TokenStream,
+    instruction_data_type: Ident,
     account_metas: Vec<TokenStream>,
     account_infos: Vec<TokenStream>,
 ) -> TokenStream {
@@ -267,7 +262,7 @@ fn render_pinocchio_invoke(
 }
 
 fn render_solana_program_invoke(
-    instruction_data_ident: TokenStream,
+    instruction_data_ident: Ident,
     account_metas: Vec<TokenStream>,
     account_infos: Vec<TokenStream>,
 ) -> TokenStream {
@@ -298,19 +293,11 @@ fn render_solana_program_invoke(
         }
     };
 
-    eprintln!("asdfhsakfhFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-    eprintln!(
-        "{}",
-        quote! { let Self {
-            #(#account_infos),*
-        } = self;}
-    );
-
     res
 }
 
 fn render_client_create_instruction(
-    instruction_data_ident: TokenStream,
+    instruction_data_ident: Ident,
     account_metas: Vec<TokenStream>,
 ) -> TokenStream {
     quote! {
@@ -348,15 +335,14 @@ fn render_account_loader(
         .map(|acc| format_ident!("{}", acc.name))
         .collect::<Vec<_>>();
 
-    let err_base = quote! { ProgramError };
-    let err_variant = quote! { NotEnoughAccountKeys };
+    let ErrorPath { base, variant } = ErrorType::IncorrectNumAccounts.to_path(feature);
 
     assert!(!lifetimed_ref.is_empty(), "Method must receive a slice.");
 
     quote! {
-        pub fn load_accounts(accounts: #lifetimed_ref [#account_field_type]) -> Result<Self, #err_base> {
+        pub fn load_accounts(accounts: #lifetimed_ref [#account_field_type]) -> Result<Self, #base> {
             let [ #(#accounts),* ] = accounts else {
-                return Err(#err_base::#err_variant);
+                return Err(#base::#variant);
             };
 
             Ok(Self {

@@ -7,15 +7,22 @@ use quote::{
     format_ident,
     quote,
 };
-use syn::{
-    Ident,
-    Type,
-};
+use strum::IntoEnumIterator;
+use syn::Ident;
 
-use crate::parse::{
-    instruction_argument::InstructionArgument,
-    instruction_variants::InstructionVariant,
-    parsed_enum::ParsedEnum,
+use crate::{
+    parse::{
+        error_path::ErrorPath,
+        error_type::ErrorType,
+        instruction_argument::InstructionArgument,
+        instruction_variants::InstructionVariant,
+        parsed_enum::ParsedEnum,
+    },
+    render::feature_namespace::{
+        Feature,
+        FeatureNamespace,
+        NamespacedTokenStream,
+    },
 };
 
 impl InstructionVariant {
@@ -24,33 +31,38 @@ impl InstructionVariant {
     }
 }
 
-pub fn render_instruction_data_structs(
+pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variants: Vec<InstructionVariant>,
-) -> TokenStream {
+) -> Vec<NamespacedTokenStream> {
     instruction_variants
         .into_iter()
-        // Don't render anything for `batch` instructions.
+        // Don't render anything for instructions that have no accounts/arguments.
         .filter(|instruction_variant| !instruction_variant.no_accounts_or_args)
-        .map(|variant| render_variant(parsed_enum, variant))
+        .flat_map(|instruction_variant| {
+            Feature::iter().map(move |feature| NamespacedTokenStream {
+                tokens: render_variant(parsed_enum, &instruction_variant, feature),
+                namespace: FeatureNamespace(feature),
+            })
+        })
         .collect::<_>()
 }
 
 fn render_variant(
     parsed_enum: &ParsedEnum,
-    instruction_variant: InstructionVariant,
+    instruction_variant: &InstructionVariant,
+    feature: Feature,
 ) -> TokenStream {
     let tag_variant = &instruction_variant.variant_name;
     let struct_name = instruction_variant.instruction_data_struct_ident();
-    let instruction_args = instruction_variant.arguments;
+    let instruction_args = &instruction_variant.arguments;
 
     let enum_ident = &parsed_enum.enum_ident;
-    let error_base = &parsed_enum.config.error_base;
-    let error_variant = &parsed_enum.config.error_variant;
+    let error_base = ErrorType::InvalidInstructionData.to_path(feature).base;
 
-    let struct_doc = build_struct_doc(enum_ident, tag_variant, &instruction_args);
+    let struct_doc = build_struct_doc(enum_ident, tag_variant, instruction_args);
     let (field_names, struct_fields, field_sizes) =
-        collect_names_fields_and_sizes(&instruction_args);
+        collect_names_fields_and_sizes(instruction_args);
 
     let (
         BuiltTokenStreams {
@@ -62,19 +74,17 @@ fn render_variant(
             size_with_tag,
             size_without_tag,
         },
-    ) = build_token_streams_and_variant_sizes(&instruction_args);
+    ) = build_token_streams_and_variant_sizes(instruction_args);
 
-    let enum_variant = format!("{enum_ident}::{tag_variant}");
     let discriminant_description =
-        format!(" - [0]: the discriminant `{enum_variant}` (u8, 1 byte)");
-    let const_assertion = build_const_assertion(&instruction_args, &size_with_tag, &field_sizes);
+        format!(" - [0]: the discriminant `{enum_ident}::{tag_variant}` (u8, 1 byte)");
+    let const_assertion = build_const_assertion(instruction_args, &size_with_tag, &field_sizes);
 
     let unpack_body = render_unpack_body(
         &size_without_tag,
-        error_base,
-        error_variant,
         &unpack_assignments,
         &field_names,
+        feature,
     );
 
     // Outputs:
@@ -98,7 +108,7 @@ fn render_variant(
             #[inline(always)]
             pub fn pack(&self) -> [u8; #size_with_tag] {
                 let mut data: [core::mem::MaybeUninit<u8>; #size_with_tag] = [core::mem::MaybeUninit::uninit(); #size_with_tag];
-                data[0].write(#enum_ident::#tag_variant as u8);
+                data[0].write(super::#enum_ident::#tag_variant as u8);
                 // Safety: The pointers are non-overlapping and the same exact size.
                 unsafe { #(#pack_statements)* }
 
@@ -119,18 +129,20 @@ fn render_variant(
 
 fn render_unpack_body(
     size_without_tag: &Literal,
-    error_base: &Type,
-    error_variant: &Ident,
     unpack_assignments: &[TokenStream],
     field_names: &[&Ident],
+    feature: Feature,
 ) -> TokenStream {
+    let error_path = ErrorType::InvalidInstructionData.to_path(feature);
+    let ErrorPath { base, variant } = error_path;
+
     if size_without_tag.to_string().as_str() == "0" {
         return quote! { Ok(Self {}) };
     }
 
     quote! {
         if instruction_data.len() < #size_without_tag {
-            return Err(#error_base::#error_variant);
+            return Err(#base::#variant);
         }
 
         // Safety: The length was just verified; all dereferences are valid.

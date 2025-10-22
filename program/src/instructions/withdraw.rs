@@ -1,6 +1,6 @@
 use dropset_interface::{
     error::DropsetError,
-    instructions::WithdrawInstructionData,
+    instructions::generated_pinocchio::WithdrawInstructionData,
     state::node::Node,
 };
 use pinocchio::{

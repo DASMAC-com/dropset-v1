@@ -1,5 +1,5 @@
 use dropset_interface::{
-    instructions::CloseSeatInstructionData,
+    instructions::generated_pinocchio::CloseSeatInstructionData,
     state::node::Node,
     utils::is_owned_by_spl_token,
 };

@@ -1,6 +1,6 @@
 use dropset_interface::{
     error::DropsetError,
-    instructions::RegisterMarketInstructionData,
+    instructions::generated_pinocchio::RegisterMarketInstructionData,
     state::{
         market_header::MarketHeader,
         sector::SECTOR_SIZE,

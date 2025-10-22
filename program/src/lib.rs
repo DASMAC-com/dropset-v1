@@ -9,7 +9,6 @@ mod instructions;
 mod shared;
 mod validation;
 
-use pinocchio::program_error::ProgramError;
 pub use shared::seeds::market::MARKET_SEED_STR;
 #[cfg(not(feature = "no-entrypoint"))]
 mod entrypoint;

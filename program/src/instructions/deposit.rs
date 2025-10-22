@@ -1,5 +1,5 @@
 use dropset_interface::{
-    instructions::DepositInstructionData,
+    instructions::generated_pinocchio::DepositInstructionData,
     state::{
         market_seat::MarketSeat,
         node::Node,

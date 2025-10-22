@@ -19,8 +19,6 @@ pub(crate) enum ParsingError {
     InvalidPrimitiveType,
     ExpectedArgumentDescription,
     InvalidLiteralU8,
-    InvalidErrorType,
-    ErrorNotFullyQualified,
 }
 
 impl From<ParsingError> for String {
@@ -58,8 +56,6 @@ impl From<ParsingError> for String {
                 "Expected a string literal for the argument description".into()
             }
             ParsingError::InvalidLiteralU8 => "Enum variant must be a literal u8".into(),
-            ParsingError::InvalidErrorType => "Invalid error type, expected a raw path like: ProgramError::InvalidInstructionData".into(),
-            ParsingError::ErrorNotFullyQualified => "Instruction tag error type must be minimally qualified; e.g. `ProgramError::InvalidInstructionData`".into(),
         }
     }
 }

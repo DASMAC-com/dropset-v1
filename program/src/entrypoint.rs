@@ -30,7 +30,7 @@ pub fn process_instruction(
     // Safety: No account data is currently borrowed. CPIs to this program must ensure they do not
     // hold references to the account data used in each instruction.
     unsafe {
-        match DropsetInstruction::try_from(*tag)? {
+        match DropsetInstruction::try_from_u8(*tag, || DropsetError::InvalidInstructionTag)? {
             DropsetInstruction::RegisterMarket => process_register_market(accounts, remaining),
             DropsetInstruction::Deposit => process_deposit(accounts, remaining),
             DropsetInstruction::Withdraw => process_withdraw(accounts, remaining),

@@ -5,7 +5,7 @@ use syn::{
     Type,
 };
 
-use crate::parse::error::ParsingError;
+use crate::parse::parsing_error::ParsingError;
 
 #[derive(Debug, Clone, strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString)]
 #[strum(serialize_all = "lowercase")]
