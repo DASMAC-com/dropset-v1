@@ -34,8 +34,9 @@ impl TryFrom<u8> for InstructionTag {
 
 #[cfg(test)]
 mod tests {
-    use super::InstructionTag;
     use strum::IntoEnumIterator;
+
+    use super::InstructionTag;
 
     #[test]
     fn test_instruction_tag_from_u8_exhaustive() {

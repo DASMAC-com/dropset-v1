@@ -1,8 +1,17 @@
-use crate::instructions::*;
-use dropset_interface::{error::DropsetError, instructions::InstructionTag};
-use pinocchio::{account_info::AccountInfo, pubkey::Pubkey, ProgramResult};
+use dropset_interface::{
+    error::DropsetError,
+    instructions::InstructionTag,
+};
+use pinocchio::{
+    account_info::AccountInfo,
+    no_allocator,
+    nostd_panic_handler,
+    program_entrypoint,
+    pubkey::Pubkey,
+    ProgramResult,
+};
 
-use pinocchio::{no_allocator, nostd_panic_handler, program_entrypoint};
+use crate::instructions::*;
 
 program_entrypoint!(process_instruction);
 no_allocator!();

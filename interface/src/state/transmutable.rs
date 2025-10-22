@@ -1,12 +1,15 @@
-// Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39, Apache-2.0.
-// Substantial modifications by DASMAC, 2025:
+// Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39,
+// Apache-2.0. Substantial modifications by DASMAC, 2025:
 // - Removed `Initializable` trait
 // - Moved `load_*` functions to trait methods with validation contract
 // - Added validate_bit_patterns requirement
 // - Made load/load_mut safe for callers
 // Original: https://github.com/solana-program/token/blob/75116550519a9ee3fdfa6c819aca91e383fffa39/p-interface/src/state/mod.rs
 
-use crate::error::{DropsetError, DropsetResult};
+use crate::error::{
+    DropsetError,
+    DropsetResult,
+};
 
 /// Marker trait for a zero-copy view of bytes as `&Self` via an unchecked cast, aka a transmute.
 ///

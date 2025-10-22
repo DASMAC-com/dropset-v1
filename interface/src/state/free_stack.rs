@@ -1,11 +1,21 @@
 use static_assertions::const_assert_eq;
 
 use crate::{
-    error::{DropsetError, DropsetResult},
+    error::{
+        DropsetError,
+        DropsetResult,
+    },
     state::{
         market_header::MarketHeader,
-        node::{Node, NodePayload, NODE_PAYLOAD_SIZE},
-        sector::{SectorIndex, NIL},
+        node::{
+            Node,
+            NodePayload,
+            NODE_PAYLOAD_SIZE,
+        },
+        sector::{
+            SectorIndex,
+            NIL,
+        },
         transmutable::Transmutable,
     },
 };

@@ -1,8 +1,16 @@
-use dropset_interface::{pack::unpack_u32, state::node::Node, utils::is_owned_by_spl_token};
-use pinocchio::{account_info::AccountInfo, ProgramResult};
+use dropset_interface::{
+    pack::unpack_u32,
+    state::node::Node,
+    utils::is_owned_by_spl_token,
+};
+use pinocchio::{
+    account_info::AccountInfo,
+    ProgramResult,
+};
 
 use crate::{
-    context::close_seat_context::CloseSeatContext, market_signer,
+    context::close_seat_context::CloseSeatContext,
+    market_signer,
     shared::market_operations::find_seat_with_hint,
 };
 
@@ -10,7 +18,8 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::close_seat::CloseSeat`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::close_seat::CloseSeat`]
 pub fn process_close_seat(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let hint = unpack_u32(instruction_data)?;
     let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;
@@ -25,8 +34,8 @@ pub fn process_close_seat(accounts: &[AccountInfo], instruction_data: &[u8]) -> 
         // Safety: The index hint was just verified as in-bounds.
         let seat = find_seat_with_hint(market, hint, ctx.user.key())?;
 
-        // NOTE: The base/quote available and deposited do not need to be zeroed here because they're
-        // zeroed out in the `push_free_node` call in the `remove_at` method below.
+        // NOTE: The base/quote available and deposited do not need to be zeroed here because
+        // they're zeroed out in the `push_free_node` call in the `remove_at` method below.
         (market_bump, seat.base_available(), seat.quote_available())
     };
 

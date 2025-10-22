@@ -1,4 +1,8 @@
-use dropset_interface::{error::DropsetError, state::SYSTEM_PROGRAM_ID, utils::owned_by};
+use dropset_interface::{
+    error::DropsetError,
+    state::SYSTEM_PROGRAM_ID,
+    utils::owned_by,
+};
 use pinocchio::account_info::AccountInfo;
 
 /// Represents a completely uninitialized account.

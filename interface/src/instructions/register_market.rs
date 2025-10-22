@@ -1,11 +1,19 @@
-use crate::{
-    instructions::InstructionTag,
-    pack::{write_bytes, UNINIT_BYTE},
-};
 use pinocchio::{
     account_info::AccountInfo,
-    instruction::{AccountMeta, Instruction, Signer},
+    instruction::{
+        AccountMeta,
+        Instruction,
+        Signer,
+    },
     ProgramResult,
+};
+
+use crate::{
+    instructions::InstructionTag,
+    pack::{
+        write_bytes,
+        UNINIT_BYTE,
+    },
 };
 
 /// Registers a program-owned market account derived from the base mint and quote mint pubkeys.

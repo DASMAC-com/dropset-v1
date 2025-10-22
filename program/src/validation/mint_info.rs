@@ -1,6 +1,16 @@
-use dropset_interface::{error::DropsetError, state::market::MarketRef};
-use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::pubkey_eq};
-use pinocchio_token_interface::state::{load_unchecked as pinocchio_load_unchecked, mint::Mint};
+use dropset_interface::{
+    error::DropsetError,
+    state::market::MarketRef,
+};
+use pinocchio::{
+    account_info::AccountInfo,
+    program_error::ProgramError,
+    pubkey::pubkey_eq,
+};
+use pinocchio_token_interface::state::{
+    load_unchecked as pinocchio_load_unchecked,
+    mint::Mint,
+};
 
 #[derive(Clone)]
 pub struct MintInfo<'a> {

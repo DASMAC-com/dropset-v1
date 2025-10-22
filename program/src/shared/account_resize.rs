@@ -1,6 +1,9 @@
 use pinocchio::{
     account_info::AccountInfo,
-    sysvars::{rent::Rent, Sysvar},
+    sysvars::{
+        rent::Rent,
+        Sysvar,
+    },
     ProgramResult,
 };
 

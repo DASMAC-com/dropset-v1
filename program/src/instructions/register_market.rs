@@ -1,23 +1,32 @@
 use dropset_interface::{
     error::DropsetError,
     pack::unpack_u16,
-    state::{market_header::MarketHeader, sector::SECTOR_SIZE, transmutable::Transmutable},
+    state::{
+        market_header::MarketHeader,
+        sector::SECTOR_SIZE,
+        transmutable::Transmutable,
+    },
 };
 use pinocchio::{
     account_info::AccountInfo,
     pubkey::try_find_program_address,
-    sysvars::{rent::Rent, Sysvar},
+    sysvars::{
+        rent::Rent,
+        Sysvar,
+    },
     ProgramResult,
 };
 
 use crate::{
-    context::register_market_context::RegisterMarketContext, market_signer,
+    context::register_market_context::RegisterMarketContext,
+    market_signer,
     shared::market_operations::initialize_market_account_data,
 };
 
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::register_market::RegisterMarket`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::register_market::RegisterMarket`]
 pub unsafe fn process_register_market(
     accounts: &[AccountInfo],
     instruction_data: &[u8],

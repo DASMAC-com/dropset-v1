@@ -1,8 +1,12 @@
 use dropset_interface::error::DropsetError;
-use pinocchio::{account_info::AccountInfo, program_error::ProgramError};
+use pinocchio::{
+    account_info::AccountInfo,
+    program_error::ProgramError,
+};
 
 use crate::validation::{
-    market_account_info::MarketAccountInfo, mint_info::MintInfo,
+    market_account_info::MarketAccountInfo,
+    mint_info::MintInfo,
     token_account_info::TokenAccountInfo,
 };
 

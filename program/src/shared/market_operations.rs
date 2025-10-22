@@ -2,15 +2,26 @@ use dropset_interface::{
     error::DropsetError,
     state::{
         linked_list::LinkedList,
-        market::{Market, MarketRef, MarketRefMut},
+        market::{
+            Market,
+            MarketRef,
+            MarketRefMut,
+        },
         market_header::MarketHeader,
         market_seat::MarketSeat,
         node::Node,
-        sector::{SectorIndex, NIL, SECTOR_SIZE},
+        sector::{
+            SectorIndex,
+            NIL,
+            SECTOR_SIZE,
+        },
         transmutable::Transmutable,
     },
 };
-use pinocchio::pubkey::{pubkey_eq, Pubkey};
+use pinocchio::pubkey::{
+    pubkey_eq,
+    Pubkey,
+};
 
 pub fn insert_market_seat(
     list: &mut LinkedList,
@@ -144,14 +155,20 @@ pub fn initialize_market_account_data<'a>(
 
 #[cfg(test)]
 pub mod tests {
-    use super::initialize_market_account_data;
-    use dropset_interface::state::transmutable::Transmutable;
-    use dropset_interface::state::{market_seat::MarketSeat, sector::SECTOR_SIZE};
+    use dropset_interface::state::{
+        market_seat::MarketSeat,
+        sector::SECTOR_SIZE,
+        transmutable::Transmutable,
+    };
     use pinocchio_pubkey::pubkey;
 
+    use super::initialize_market_account_data;
+
     extern crate std;
-    use std::vec;
-    use std::vec::Vec;
+    use std::{
+        vec,
+        vec::Vec,
+    };
 
     use super::*;
 

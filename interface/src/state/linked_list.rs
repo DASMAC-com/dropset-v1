@@ -3,8 +3,14 @@ use crate::{
     state::{
         free_stack::Stack,
         market_header::MarketHeader,
-        node::{Node, NODE_PAYLOAD_SIZE},
-        sector::{SectorIndex, NIL},
+        node::{
+            Node,
+            NODE_PAYLOAD_SIZE,
+        },
+        sector::{
+            SectorIndex,
+            NIL,
+        },
     },
 };
 

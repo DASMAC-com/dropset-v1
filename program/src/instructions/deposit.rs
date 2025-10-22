@@ -1,13 +1,23 @@
 use dropset_interface::{
     pack::unpack_amount_and_optional_sector_index,
-    state::{market_seat::MarketSeat, node::Node},
+    state::{
+        market_seat::MarketSeat,
+        node::Node,
+    },
 };
-use pinocchio::{account_info::AccountInfo, program_error::ProgramError, ProgramResult};
+use pinocchio::{
+    account_info::AccountInfo,
+    program_error::ProgramError,
+    ProgramResult,
+};
 
 use crate::{
     context::deposit_withdraw_context::DepositWithdrawContext,
     shared::{
-        market_operations::{find_mut_seat_with_hint, insert_market_seat},
+        market_operations::{
+            find_mut_seat_with_hint,
+            insert_market_seat,
+        },
         token_utils::market_transfers::deposit_non_zero_to_market,
     },
 };
@@ -25,7 +35,8 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in [`dropset_interface::instructions::deposit::Deposit`]
+/// Caller guarantees the safety contract detailed in
+/// [`dropset_interface::instructions::deposit::Deposit`]
 pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let (amount, hint) = unpack_amount_and_optional_sector_index(instruction_data)?;
 

@@ -2,11 +2,21 @@ use pinocchio::pubkey::Pubkey;
 use static_assertions::const_assert_eq;
 
 use crate::{
-    error::{DropsetError, DropsetResult},
+    error::{
+        DropsetError,
+        DropsetResult,
+    },
     state::{
-        sector::{LeSectorIndex, SectorIndex, NIL},
+        sector::{
+            LeSectorIndex,
+            SectorIndex,
+            NIL,
+        },
         transmutable::Transmutable,
-        LeU32, LeU64, U32_SIZE, U64_SIZE,
+        LeU32,
+        LeU64,
+        U32_SIZE,
+        U64_SIZE,
     },
 };
 

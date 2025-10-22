@@ -2,7 +2,10 @@ use pinocchio::pubkey::Pubkey;
 use static_assertions::const_assert_eq;
 
 use crate::state::{
-    node::{NodePayload, NODE_PAYLOAD_SIZE},
+    node::{
+        NodePayload,
+        NODE_PAYLOAD_SIZE,
+    },
     transmutable::Transmutable,
     LeU64,
 };

@@ -1,0 +1,15 @@
+unstable_features = true
+
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+imports_layout = "Vertical"
+
+comment_width = 100
+wrap_comments = true
+
+reorder_impl_items = true
+
+single_line_if_else_max_width = 60
+single_line_let_else_max_width = 60
+

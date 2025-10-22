@@ -1,7 +1,16 @@
-use dropset_interface::{error::DropsetError, utils::is_owned_by_spl_token};
-use pinocchio::{program_error::ProgramError, ProgramResult};
+use dropset_interface::{
+    error::DropsetError,
+    utils::is_owned_by_spl_token,
+};
+use pinocchio::{
+    program_error::ProgramError,
+    ProgramResult,
+};
 
-use crate::{context::deposit_withdraw_context::DepositWithdrawContext, market_signer};
+use crate::{
+    context::deposit_withdraw_context::DepositWithdrawContext,
+    market_signer,
+};
 
 /// Deposits `amount` of token `ctx.mint` from the user to the market account. This does not track
 /// or update seat balances.

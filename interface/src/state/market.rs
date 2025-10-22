@@ -1,7 +1,13 @@
 use crate::state::{
     free_stack::Stack,
-    linked_list::{LinkedList, LinkedListIter},
-    market_header::{MarketHeader, MARKET_ACCOUNT_DISCRIMINANT},
+    linked_list::{
+        LinkedList,
+        LinkedListIter,
+    },
+    market_header::{
+        MarketHeader,
+        MARKET_ACCOUNT_DISCRIMINANT,
+    },
     sector::SECTOR_SIZE,
     transmutable::Transmutable,
 };
@@ -74,7 +80,7 @@ impl<'a> MarketRefMut<'a> {
 
 impl<H: AsRef<MarketHeader>, S: AsRef<[u8]>> Market<H, S> {
     #[inline(always)]
-    pub fn iter_seats(&self) -> LinkedListIter {
+    pub fn iter_seats(&self) -> LinkedListIter<'_> {
         LinkedListIter {
             curr: self.header.as_ref().seat_dll_head(),
             sectors: self.sectors.as_ref(),

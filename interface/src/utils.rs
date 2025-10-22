@@ -1,6 +1,9 @@
 use pinocchio::{
     account_info::AccountInfo,
-    pubkey::{pubkey_eq, Pubkey},
+    pubkey::{
+        pubkey_eq,
+        Pubkey,
+    },
 };
 
 #[inline(always)]

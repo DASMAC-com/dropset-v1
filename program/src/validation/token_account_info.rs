@@ -2,10 +2,15 @@ use dropset_interface::error::DropsetError;
 use pinocchio::{
     account_info::AccountInfo,
     program_error::ProgramError,
-    pubkey::{pubkey_eq, Pubkey},
+    pubkey::{
+        pubkey_eq,
+        Pubkey,
+    },
 };
 use pinocchio_token_interface::state::{
-    account::Account, load as pinocchio_load, load_unchecked as pinocchio_load_unchecked,
+    account::Account,
+    load as pinocchio_load,
+    load_unchecked as pinocchio_load_unchecked,
 };
 
 #[derive(Clone)]

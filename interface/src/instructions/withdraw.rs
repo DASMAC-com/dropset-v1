@@ -1,12 +1,19 @@
 use pinocchio::{
     account_info::AccountInfo,
-    instruction::{AccountMeta, Instruction, Signer},
+    instruction::{
+        AccountMeta,
+        Instruction,
+        Signer,
+    },
     ProgramResult,
 };
 
 use crate::{
     instructions::InstructionTag,
-    pack::{write_bytes, UNINIT_BYTE},
+    pack::{
+        write_bytes,
+        UNINIT_BYTE,
+    },
     state::sector::SectorIndex,
 };
 

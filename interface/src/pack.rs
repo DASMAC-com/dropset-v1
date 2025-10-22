@@ -3,8 +3,13 @@ use core::mem::MaybeUninit;
 use crate::{
     error::DropsetError,
     state::{
-        sector::{SectorIndex, NIL},
-        U16_SIZE, U32_SIZE, U64_SIZE,
+        sector::{
+            SectorIndex,
+            NIL,
+        },
+        U16_SIZE,
+        U32_SIZE,
+        U64_SIZE,
     },
 };
 
