@@ -131,13 +131,24 @@ fn format_instruction_info(instruction: &ParsedInstruction, outer: bool) -> Stri
     let program_id = &instruction.program_id;
     let known_program = KnownProgram::from_program_id(program_id);
 
+    let first_acc = instruction
+        .accounts
+        .iter()
+        .find_map(|acc| acc.signer.then_some(acc.pubkey))
+        .map(|acc| format!("sender: {acc}"))
+        .unwrap_or_default();
+
     match known_program {
         Some(program) => {
-            let name = match outer {
-                true => program.to_string().color(LogColor::Debug),
-                false => program.to_string().bright_black(),
+            let (name, first_acc) = match outer {
+                true => (program.to_string().color(LogColor::Debug), Some(first_acc)),
+                false => (program.to_string().bright_black(), None),
             };
-            format!("{name}::{}", program.instruction_name(&instruction.data))
+            format!(
+                "{name}::{}{}",
+                program.instruction_name(&instruction.data),
+                first_acc.unwrap_or_default()
+            )
         }
         None => format!("Unknown program: {:?}", program_id)
             .color(LogColor::Warning)

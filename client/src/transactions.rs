@@ -1,4 +1,5 @@
 use anyhow::Context;
+use colored::Colorize;
 use dropset_interface::{
     error::DropsetError,
     instructions::DropsetInstruction,
@@ -35,6 +36,7 @@ use crate::{
         log_error,
         log_info,
         log_success,
+        LogColor,
     },
     pretty::transaction::PrettyTransaction,
     transaction_parser::ParsedTransaction,
@@ -73,10 +75,18 @@ pub async fn send_transaction(
     send_transaction_with_config(rpc, payer, signers, instructions, None).await
 }
 
-#[derive(Default)]
 pub struct SendTransactionConfig {
     pub compute_budget: Option<u32>,
     pub debug_logs: Option<bool>,
+}
+
+impl Default for SendTransactionConfig {
+    fn default() -> Self {
+        SendTransactionConfig {
+            compute_budget: Default::default(),
+            debug_logs: Some(true),
+        }
+    }
 }
 
 pub async fn send_transaction_with_config(
@@ -125,7 +135,9 @@ pub async fn send_transaction_with_config(
         Ok(sig) => {
             if matches!(debug_logs, Some(true)) {
                 println!();
-                log_success("Signature", sig);
+                let sender_info = format!("{}: {}", "sender".color(LogColor::Gray), payer.pubkey());
+                let tx_info = format! {"{sig}\n{sender_info}"};
+                log_success("Signature", tx_info);
                 let encoded = get_transaction_json(rpc, sig).await?;
                 let parsed = ParsedTransaction::from_encoded_transaction(encoded);
                 parsed.inspect(|transaction| {
