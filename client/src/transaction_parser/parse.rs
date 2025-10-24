@@ -26,7 +26,7 @@ use crate::transaction_parser::{
 // Re-export the main parsing entry function for clarity.
 pub fn parse_transaction(
     encoded_with_meta: EncodedConfirmedTransactionWithStatusMeta,
-) -> Option<ParsedTransaction> {
+) -> Result<ParsedTransaction, anyhow::Error> {
     ParsedTransaction::from_encoded_transaction(encoded_with_meta)
 }
 

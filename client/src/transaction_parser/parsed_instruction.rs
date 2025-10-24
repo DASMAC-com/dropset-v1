@@ -8,13 +8,17 @@ use solana_transaction_status::{
     UiParsedInstruction,
 };
 
-use crate::transaction_parser::ParsedAccounts;
+use crate::transaction_parser::{
+    ComputeInfo,
+    ParsedAccounts,
+};
 
 #[derive(Debug)]
 pub struct ParsedInstruction {
     pub program_id: Pubkey,
     pub accounts: ParsedAccounts,
     pub data: Vec<u8>,
+    pub compute_info: Option<ComputeInfo>,
 }
 
 #[derive(Debug)]
@@ -42,6 +46,7 @@ impl ParsedInstruction {
                 .map(|i| parsed_accounts[*i as usize])
                 .collect(),
             data: instruction.data.clone(),
+            compute_info: None,
         }
     }
 
@@ -60,6 +65,7 @@ impl ParsedInstruction {
                 data: bs58::decode(&compiled.data)
                     .into_vec()
                     .expect("Should base58 decode"),
+                compute_info: None,
             },
             UiInstruction::Parsed(UiParsedInstruction::PartiallyDecoded(decoded)) => Self {
                 program_id: Pubkey::from_str_const(&decoded.program_id),
@@ -76,6 +82,7 @@ impl ParsedInstruction {
                 data: bs58::decode(&decoded.data)
                     .into_vec()
                     .expect("Should base58 decode"),
+                compute_info: None,
             },
             // It's unclear how to parse already parsed ui transactions.
             UiInstruction::Parsed(UiParsedInstruction::Parsed(_)) => unimplemented!(),

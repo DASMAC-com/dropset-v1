@@ -39,7 +39,7 @@ use crate::{
         LogColor,
     },
     pretty::transaction::PrettyTransaction,
-    transaction_parser::ParsedTransaction,
+    transaction_parser::parse_transaction,
 };
 
 pub async fn fund_account(rpc: &RpcClient, keypair: Option<Keypair>) -> anyhow::Result<Keypair> {
@@ -139,16 +139,20 @@ pub async fn send_transaction_with_config(
                 let tx_info = format! {"{sig}\n{sender_info}"};
                 log_success("Signature", tx_info);
                 let encoded = get_transaction_json(rpc, sig).await?;
-                let parsed = ParsedTransaction::from_encoded_transaction(encoded);
-                parsed.inspect(|transaction| {
-                    println!(
-                        "\n{}",
-                        PrettyTransaction {
-                            indent: 2,
-                            transaction,
-                        }
-                    );
-                });
+                match parse_transaction(encoded) {
+                    Ok(ref transaction) => {
+                        println!(
+                            "\n{}",
+                            PrettyTransaction {
+                                indent_size: 2,
+                                transaction,
+                            }
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!("{e}");
+                    }
+                }
             }
             Ok(sig)
         }

@@ -5,7 +5,10 @@ use std::fmt::{
     Formatter,
 };
 
-use colored::Colorize;
+use colored::{
+    Color,
+    Colorize,
+};
 use dropset_interface::{
     instructions::DropsetInstruction,
     state::SYSTEM_PROGRAM_ID,
@@ -29,7 +32,7 @@ use crate::{
 
 pub struct PrettyTransaction<'a> {
     /// The amount of spaces preceding each line in the output.
-    pub indent: u8,
+    pub indent_size: usize,
     /// The parsed transaction.
     pub transaction: &'a ParsedTransaction,
 }
@@ -41,27 +44,61 @@ pub struct PrettyInstruction<'a> {
 
 impl Display for PrettyInstruction<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let s = format_instruction_info(self.instruction, self.outer);
+        let instruction = self.instruction;
+        let program_id = &instruction.program_id;
+        let known_program = KnownProgram::from_program_id(program_id);
+
+        let name_highlight_color = match (self.outer, known_program.is_some()) {
+            (true, true) => LogColor::Debug.into(),
+            (false, true) => Color::BrightBlack,
+            (_, false) => LogColor::Warning.into(),
+        };
+
+        let compute_units = self.format_cu();
+
+        let (program_name, instruction_name) = match known_program {
+            Some(known) => (known.to_string(), known.instruction_name(&instruction.data)),
+            None => (program_id.to_string(), "UnknownInstruction".into()),
+        };
+
+        let colored_name = program_name.color(name_highlight_color);
+        let s = format!("{colored_name}::{instruction_name}{compute_units}");
+
         f.write_str(&s)
     }
 }
 
 impl Display for PrettyTransaction<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut i = 0;
         for outer in &self.transaction.instructions {
-            let outer_header = format_instruction_info(&outer.outer_instruction, true);
-            let indentation = " ".repeat(self.indent as usize);
+            i += 1;
+            let indentation = " ".repeat(self.indent_size);
+            let pretty_outer = PrettyInstruction {
+                instruction: &outer.outer_instruction,
+                outer: true,
+            };
 
-            writeln!(f, "{indentation}{outer_header}")?;
+            let idx = format_instruction_index(i);
+            writeln!(f, "{idx}{indentation}{}", pretty_outer,)?;
 
-            for (i, inner) in outer.inner_instructions.iter().enumerate() {
+            for inner in outer.inner_instructions.iter() {
+                i += 1;
                 let pretty_instruction = PrettyInstruction {
                     instruction: inner,
                     outer: false,
                 };
-                let text = format!("    {:>2}. {}", i + 1, pretty_instruction);
+                let inner_indent = indentation.repeat(
+                    inner
+                        .compute_info
+                        .as_ref()
+                        .map(|cu| cu.stack_height)
+                        .unwrap_or(1),
+                );
+                let text = format!("{inner_indent} {}", pretty_instruction);
                 let colored = text.color(LogColor::FadedGray);
-                writeln!(f, "{indentation}{colored}")?;
+                let idx = format_instruction_index(i);
+                writeln!(f, "{idx} {colored}")?;
             }
         }
 
@@ -127,35 +164,6 @@ impl KnownProgram {
     }
 }
 
-fn format_instruction_info(instruction: &ParsedInstruction, outer: bool) -> String {
-    let program_id = &instruction.program_id;
-    let known_program = KnownProgram::from_program_id(program_id);
-
-    let first_acc = instruction
-        .accounts
-        .iter()
-        .find_map(|acc| acc.signer.then_some(acc.pubkey))
-        .map(|acc| format!("sender: {acc}"))
-        .unwrap_or_default();
-
-    match known_program {
-        Some(program) => {
-            let (name, first_acc) = match outer {
-                true => (program.to_string().color(LogColor::Debug), Some(first_acc)),
-                false => (program.to_string().bright_black(), None),
-            };
-            format!(
-                "{name}::{}{}",
-                program.instruction_name(&instruction.data),
-                first_acc.unwrap_or_default()
-            )
-        }
-        None => format!("Unknown program: {:?}", program_id)
-            .color(LogColor::Warning)
-            .to_string(),
-    }
-}
-
 // This should only be used with enums. It assumes that `Debug` will print the value like `Ident {`.
 fn enum_name<T: Debug>(value: &T) -> String {
     let s = format!("{:?}", value);
@@ -163,4 +171,44 @@ fn enum_name<T: Debug>(value: &T) -> String {
         .map(|(n, _)| n)
         .unwrap_or(&s)
         .into()
+}
+
+impl PrettyInstruction<'_> {
+    fn format_cu(&self) -> String {
+        self.instruction
+            .compute_info
+            .as_ref()
+            .and_then(|cu| cu.units_consumed)
+            .map(|cu| {
+                let cu_highlight_color = match self.outer {
+                    true => color_from_value(cu),
+                    false => Color::BrightBlack,
+                };
+                let highlighted_cu = format!("{cu}").color(cu_highlight_color);
+                match self.outer {
+                    true => format!(" consumed {} compute units", highlighted_cu)
+                        .color(LogColor::FadedGray)
+                        .to_string(),
+                    false => format!(" — {} cu", highlighted_cu),
+                }
+            })
+            .unwrap_or_default()
+    }
+}
+
+fn format_instruction_index(idx: usize) -> String {
+    format!("{idx:>2}").color(LogColor::FadedGray).to_string()
+}
+
+const MAX_CU_SATURATION: u64 = 50000;
+
+// Increase color saturation as the CU goes from 0 -> MAX_CU_SATURATION.
+fn color_from_value(v: u64) -> Color {
+    let t = (v.min(MAX_CU_SATURATION) as f64 / 50000.0).powf(1.3);
+    let lerp = |a: f64, b: f64| (a + (b - a) * t).round() as u8;
+    Color::TrueColor {
+        r: lerp(150.0, 255.0),
+        g: lerp(120.0, 160.0),
+        b: lerp(100.0, 20.0),
+    }
 }

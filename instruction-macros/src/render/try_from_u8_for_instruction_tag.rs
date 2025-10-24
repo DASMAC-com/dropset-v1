@@ -13,12 +13,16 @@ use crate::parse::{
 pub fn render(parsed_enum: &ParsedEnum, instruction_tags: &InstructionTags) -> TokenStream {
     let enum_ident = &parsed_enum.enum_ident;
 
-    let mut cloned_variants = instruction_tags.0.clone().into_iter().collect_vec();
-    cloned_variants.sort_by_key(|t| t.discriminant);
+    let sorted_by_discriminants = instruction_tags
+        .0
+        .clone()
+        .into_iter()
+        .sorted_by_key(|t| t.discriminant)
+        .collect_vec();
 
-    // Build a 2d vector of disjoint ranges, grouped/chunked by contiguous discriminants.
+    // Build a 2d collection of disjoint ranges, grouped by contiguous discriminants.
     // For example: [0..2, 3..5, 7..99]
-    let chunks = cloned_variants
+    let chunks = sorted_by_discriminants
         .chunk_by(|a, b| a.discriminant + 1 == b.discriminant)
         .collect_vec();
 

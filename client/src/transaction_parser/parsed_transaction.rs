@@ -13,6 +13,7 @@ use solana_transaction_status::{
 use solana_transaction_status_client_types::UiTransactionError;
 
 use crate::transaction_parser::{
+    add_infos_to_outer_instructions,
     parse::{
         parse_inner_instructions,
         parse_ui_message,
@@ -24,6 +25,7 @@ use crate::transaction_parser::{
         ParsedInstruction,
         ParsedOuterInstruction,
     },
+    GroupedComputeInfo,
 };
 
 #[derive(Debug)]
@@ -45,45 +47,17 @@ pub struct ParsedTransaction {
 impl ParsedTransaction {
     pub fn from_encoded_transaction(
         encoded: EncodedConfirmedTransactionWithStatusMeta,
-    ) -> Option<Self> {
+    ) -> Result<Self, anyhow::Error> {
         let EncodedConfirmedTransactionWithStatusMeta {
             slot,
             block_time,
             transaction,
         } = encoded;
 
-        let meta = transaction.meta?;
-        let computes = parse_logs_for_compute(&meta);
-
-        meta.log_messages
-            .clone()
-            .unwrap()
-            .iter()
-            .for_each(|l| println!("{l}"));
-
-        let sorted = computes.clone();
-
-        for i in 1..(sorted.len() * 2) + 1 {
-            let invoke = sorted
-                .iter()
-                .find(|ixn| i as u8 == ixn.absolute_invoke_index);
-            if let Some(invoke) = invoke {
-                let indent = "    ".repeat(invoke.stack_height as usize);
-                println!(
-                    "{}Program {} invoke [{}]",
-                    indent, invoke.program_id, invoke.stack_height
-                );
-            } else {
-                let success = sorted.iter().find(|txn| i as u8 == txn.absolute_cu_index);
-                assert!(success.is_some());
-                let ixn = success.unwrap();
-                let indent = "    ".repeat(ixn.stack_height as usize);
-                println!(
-                    "{}Program {} consumed {} of {} units",
-                    indent, ixn.program_id, ixn.units_consumed, ixn.total_consumption
-                );
-            }
-        }
+        let meta = transaction
+            .meta
+            .ok_or(anyhow::Error::msg("Expected transaction meta"))?;
+        let compute_infos = parse_logs_for_compute(&meta).expect("Should parse");
 
         let addresses = match meta.loaded_addresses {
             OptionSerializer::Some(addresses) => [addresses.writable, addresses.readonly]
@@ -108,7 +82,7 @@ impl ParsedTransaction {
         let inner_instructions: Vec<ParsedInnerInstruction> =
             parse_inner_instructions(meta.inner_instructions, &parsed_accounts);
 
-        Some(Self {
+        Ok(Self {
             version: transaction.version.map(|v| match v {
                 TransactionVersion::Number(v) => v as i8,
                 _ => -1,
@@ -119,7 +93,11 @@ impl ParsedTransaction {
             fee: meta.fee,
             pre_balances: meta.pre_balances,
             post_balances: meta.post_balances,
-            instructions: Self::parse_outer_instructions(outer_instructions, inner_instructions),
+            instructions: Self::parse_outer_instructions(
+                outer_instructions,
+                inner_instructions,
+                Some(compute_infos),
+            )?,
             log_messages: meta.log_messages.unwrap_or(vec![]),
             pre_token_balances: meta.pre_token_balances.unwrap_or(vec![]),
             post_token_balances: meta.post_token_balances.unwrap_or(vec![]),
@@ -135,7 +113,9 @@ impl ParsedTransaction {
     fn parse_outer_instructions(
         outer_instructions: Vec<ParsedInstruction>,
         inner_instructions: Vec<ParsedInnerInstruction>,
-    ) -> Vec<ParsedOuterInstruction> {
+        maybe_compute_map: Option<Vec<GroupedComputeInfo>>,
+    ) -> Result<Vec<ParsedOuterInstruction>, anyhow::Error> {
+        // Group outers as a vec.
         let mut outers = outer_instructions
             .into_iter()
             .map(|outer| ParsedOuterInstruction {
@@ -144,6 +124,7 @@ impl ParsedTransaction {
             })
             .collect::<Vec<_>>();
 
+        // Push the inner instructions to their corresponding outer instruction vec.
         for inner in inner_instructions {
             outers
                 .get_mut(inner.parent_index as usize)
@@ -152,6 +133,10 @@ impl ParsedTransaction {
                 .push(inner.inner_instruction);
         }
 
-        outers
+        if let Some(compute_map) = maybe_compute_map {
+            add_infos_to_outer_instructions(&mut outers, compute_map)?;
+        }
+
+        Ok(outers)
     }
 }

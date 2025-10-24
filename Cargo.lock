@@ -483,6 +483,7 @@ dependencies = [
  "derive_more",
  "dropset",
  "dropset-interface",
+ "itertools 0.14.0",
  "regex",
  "solana-client",
  "solana-commitment-config",
