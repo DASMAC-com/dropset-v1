@@ -7,6 +7,8 @@ use syn::{
 
 use crate::{
     parse::parsing_error::ParsingError,
+    parsing_bail,
+    parsing_error,
     PROGRAM_ID_IDENTIFIER,
 };
 
@@ -30,7 +32,7 @@ impl TryFrom<&DeriveInput> for ProgramID {
     type Error = syn::Error;
 
     fn try_from(input: &DeriveInput) -> Result<Self, Self::Error> {
-        let err = || ParsingError::ProgramIdMissing.into_err(input.ident.span());
+        let err = || parsing_error!(input.ident, ParsingError::ProgramIdMissing);
 
         let program_id = input
             .attrs
@@ -72,9 +74,7 @@ impl TryFrom<&DeriveInput> for ProgramID {
                 p
             }
             // Something invalid, like `program::ID`, since this is ambiguous.
-            p => {
-                return Err(ParsingError::InvalidProgramIdPath.into_err(p.span()));
-            }
+            p => parsing_bail!(p, ParsingError::InvalidProgramIdPath),
         };
 
         Ok(ProgramID(program_id_path))
