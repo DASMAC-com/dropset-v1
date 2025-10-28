@@ -39,16 +39,3 @@ macro_rules! parsing_error {
         syn::Error::new($span.span(), $err)
     };
 }
-
-#[macro_export]
-/// A convenience function for [`parsing_error`] that wraps the `syn::Error` with `Err(...)`.
-///
-/// Example:
-/// ```rust
-/// return parsing_err!(input, ParsingError::InvalidInput);
-/// ```
-macro_rules! parsing_err {
-    ( $span:expr, $err:expr ) => {
-        Err(syn::Error::new($span.span(), $err))
-    };
-}

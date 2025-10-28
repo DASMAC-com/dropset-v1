@@ -5,13 +5,13 @@ use syn::{
 };
 
 use crate::{
-    parsing_err,
+    parsing_error,
     ParsingError,
 };
 
 pub fn require_data_enum(input: DeriveInput) -> syn::Result<DataEnum> {
     match input.data {
         syn::Data::Enum(e) => Ok(e),
-        _ => parsing_err!(input, ParsingError::NotAnEnum),
+        _ => Err(parsing_error!(input, ParsingError::NotAnEnum)),
     }
 }
