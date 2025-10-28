@@ -50,10 +50,9 @@ strum_macros = "0.27.2"
 tokio = "1.47.1"
 
 # proc-macro dependencies
-quote = "1"
-proc-macro2 = "1"
-syn = { version = "2", features = ["full", "extra-traits"] }
-
+quote = "1.0.41"
+proc-macro2 = "1.0.103"
+syn = { version = "2.0.108", features = ["full", "extra-traits"] }
 
 [workspace.dependencies.pinocchio-token-interface]
 git = "https://github.com/solana-program/token.git"
