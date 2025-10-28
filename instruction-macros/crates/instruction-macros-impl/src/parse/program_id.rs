@@ -7,7 +7,7 @@ use syn::{
 
 use crate::{
     parse::parsing_error::ParsingError,
-    parsing_bail,
+    parsing_err,
     parsing_error,
     PROGRAM_ID_IDENTIFIER,
 };
@@ -74,7 +74,7 @@ impl TryFrom<&DeriveInput> for ProgramID {
                 p
             }
             // Something invalid, like `program::ID`, since this is ambiguous.
-            p => parsing_bail!(p, ParsingError::InvalidProgramIdPath),
+            p => return parsing_err!(p, ParsingError::InvalidProgramIdPath),
         };
 
         Ok(ProgramID(program_id_path))

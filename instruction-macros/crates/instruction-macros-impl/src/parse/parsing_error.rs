@@ -22,6 +22,18 @@ impl std::fmt::Display for ParsingError {
 }
 
 #[macro_export]
+/// Given a `span`-able value and an error type, create the `syn::Error`.
+///
+/// Example:
+/// ```rust
+/// use syn::spanned::Spanned;
+///
+/// let input: DeriveInput = parse_macro_input!(...);
+///
+/// if some_invalid_condition {
+///   return Err(parsing_error!(input, ParsingError::InvalidInput));
+/// }
+/// ```
 macro_rules! parsing_error {
     ( $span:expr, $err:expr ) => {
         syn::Error::new($span.span(), $err)
@@ -29,8 +41,14 @@ macro_rules! parsing_error {
 }
 
 #[macro_export]
-macro_rules! parsing_bail {
+/// A convenience function for [`parsing_error`] that wraps the `syn::Error` with `Err(...)`.
+///
+/// Example:
+/// ```rust
+/// return parsing_err!(input, ParsingError::InvalidInput);
+/// ```
+macro_rules! parsing_err {
     ( $span:expr, $err:expr ) => {
-        return Err(syn::Error::new($span.span(), $err))
+        Err(syn::Error::new($span.span(), $err))
     };
 }
