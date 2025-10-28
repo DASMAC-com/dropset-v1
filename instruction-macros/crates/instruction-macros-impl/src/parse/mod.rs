@@ -1,4 +1,11 @@
 pub mod data_enum;
+pub mod instruction_account;
+pub mod instruction_argument;
+pub mod instruction_discriminant;
+pub mod instruction_variant;
+pub mod name_value;
 pub mod parsed_enum;
 pub mod parsing_error;
+pub mod primitive_arg;
 pub mod program_id;
+pub mod validation;
