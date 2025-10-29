@@ -6,8 +6,8 @@ use crate::parse::primitive_arg::PrimitiveArg;
 pub enum ParsingError {
     NotAnEnum,
     ProgramIdMissing,
-    EnumVariantShouldBeFieldless,
     InvalidProgramIdPath,
+    EnumVariantShouldBeFieldless,
     ZeroAccounts,
     MissingSigner,
     DuplicateName(String, String),
