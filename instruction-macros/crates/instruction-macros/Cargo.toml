@@ -1,0 +1,15 @@
+[package]
+name = "instruction-macros"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true
+
+[dependencies]
+quote.workspace = true
+proc-macro2.workspace = true
+syn.workspace = true
