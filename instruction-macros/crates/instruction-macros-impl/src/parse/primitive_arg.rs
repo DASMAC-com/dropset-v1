@@ -26,7 +26,7 @@ impl PrimitiveArg {
     }
 
     pub fn as_parsed_type(&self) -> syn::Type {
-        syn::parse_str(self.to_string().as_str()).expect("All types should be valid")
+        syn::parse_str(&self.to_string()).expect("All types should be valid")
     }
 }
 
@@ -51,7 +51,7 @@ impl TryFrom<&Type> for PrimitiveArg {
             }
 
             // Try converting the segment identifier to a stringified `PrimitiveArg` variant.
-            PrimitiveArg::from_str(segment.ident.to_string().as_str()).or(Err(err))
+            PrimitiveArg::from_str(&segment.ident.to_string()).or(Err(err))
         } else {
             Err(err)
         }
