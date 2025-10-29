@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "instruction-macros/crates/instruction-macros",
+  "instruction-macros/crates/instruction-macros-impl",
   "interface",
   "program",
 ]
