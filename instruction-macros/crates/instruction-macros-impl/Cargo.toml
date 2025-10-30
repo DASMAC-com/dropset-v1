@@ -8,6 +8,7 @@ workspace = true
 
 [dependencies]
 itertools.workspace = true
+heck.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
 strum.workspace = true

@@ -22,6 +22,7 @@ pub enum ParsingError {
     InvalidPrimitiveType,
     ExpectedArgumentDescription,
     ExpectedNameValueLiteral(String),
+    ExpectedReprU8,
 }
 
 impl From<ParsingError> for String {
@@ -54,6 +55,7 @@ impl From<ParsingError> for String {
                 "Expected a string literal for the argument description".into(),
             ParsingError::ExpectedNameValueLiteral(value) =>
                 format!("Expected name = \"value\" literal, got: {value}"),
+            ParsingError::ExpectedReprU8 => "Enum does not have the attribute `#[repr(u8)]`".into(),
         }
     }
 }

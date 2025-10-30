@@ -8,4 +8,5 @@ pub mod parsed_enum;
 pub mod parsing_error;
 pub mod primitive_arg;
 pub mod program_id;
+pub mod require_repr_u8;
 pub mod validation;

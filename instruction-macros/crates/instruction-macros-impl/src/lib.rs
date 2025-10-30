@@ -1,4 +1,5 @@
 pub mod parse;
+pub mod render;
 
 use parse::parsing_error::ParsingError;
 

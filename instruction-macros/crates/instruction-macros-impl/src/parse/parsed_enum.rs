@@ -8,6 +8,7 @@ use syn::{
 use crate::parse::{
     data_enum::require_data_enum,
     program_id::ProgramID,
+    require_repr_u8::require_repr_u8,
 };
 
 pub struct ParsedEnum {
@@ -22,6 +23,7 @@ impl TryFrom<DeriveInput> for ParsedEnum {
     fn try_from(input: DeriveInput) -> Result<Self, Self::Error> {
         let enum_ident = input.ident.clone();
         let program_id = ProgramID::try_from(&input)?;
+        require_repr_u8(&input)?;
         let data_enum = require_data_enum(input)?;
 
         Ok(Self {
