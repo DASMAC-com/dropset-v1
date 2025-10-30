@@ -8,7 +8,10 @@ use quote::{
     quote,
 };
 use strum::IntoEnumIterator;
-use syn::Ident;
+use syn::{
+    Ident,
+    Type,
+};
 
 use crate::{
     parse::{
@@ -61,8 +64,13 @@ fn render_variant(
     let error_base = ErrorType::InvalidInstructionData.to_path(feature).base;
 
     let struct_doc = build_struct_doc(enum_ident, tag_variant, instruction_args);
-    let (field_names, struct_fields, field_sizes) =
-        collect_names_fields_and_sizes(instruction_args);
+
+    let UnzippedArgumentInfos {
+        names,
+        types,
+        sizes,
+        descriptions,
+    } = UnzippedArgumentInfos::new(instruction_args);
 
     let (
         BuiltTokenStreams {
@@ -78,14 +86,9 @@ fn render_variant(
 
     let discriminant_description =
         format!(" - [0]: the discriminant `{enum_ident}::{tag_variant}` (u8, 1 byte)");
-    let const_assertion = build_const_assertion(instruction_args, &size_with_tag, &field_sizes);
+    let const_assertion = build_const_assertion(instruction_args, &size_with_tag, &sizes);
 
-    let unpack_body = render_unpack_body(
-        &size_without_tag,
-        &unpack_assignments,
-        &field_names,
-        feature,
-    );
+    let unpack_body = render_unpack_body(&size_without_tag, &unpack_assignments, &names, feature);
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -95,13 +98,21 @@ fn render_variant(
     quote! {
         #struct_doc
         pub struct #struct_name {
-            #(#struct_fields)*
+            #(
+                #[doc = #descriptions]
+                pub #names: #types,
+            )*
         }
 
         /// Compile time assertion that the size with the tag == the sum of the field sizes.
         #const_assertion
 
         impl #struct_name {
+            #struct_doc
+            pub fn new(
+                #(#names: #types),*
+            ) {}
+
             #[doc = " Instruction data layout:"]
             #[doc = #discriminant_description]
             #(#layout_docs)*
@@ -130,7 +141,7 @@ fn render_variant(
 fn render_unpack_body(
     size_without_tag: &Literal,
     unpack_assignments: &[TokenStream],
-    field_names: &[&Ident],
+    field_names: &[Ident],
     feature: Feature,
 ) -> TokenStream {
     let error_path = ErrorType::InvalidInstructionData.to_path(feature);
@@ -161,13 +172,13 @@ fn render_unpack_body(
 
 fn build_const_assertion(
     instruction_args: &[InstructionArgument],
-    size_with_tag: &Literal,
-    field_sizes: &[Literal],
+    total_size_with_tag: &Literal,
+    sizes: &[Literal],
 ) -> TokenStream {
     if instruction_args.is_empty() {
-        quote! { const _: [(); #size_with_tag] = [(); 1]; }
+        quote! { const _: [(); #total_size_with_tag] = [(); 1]; }
     } else {
-        quote! { const _: [(); #size_with_tag] = [(); 1 + #( #field_sizes )+* ]; }
+        quote! { const _: [(); #total_size_with_tag] = [(); 1 + #( #sizes )+* ]; }
     }
 }
 
@@ -176,47 +187,74 @@ fn build_struct_doc(
     tag_variant: &Ident,
     instruction_args: &[InstructionArgument],
 ) -> TokenStream {
-    let first_line = format!(" Instruction data for `{}::{}`.", enum_ident, tag_variant);
+    let first_line = format!(" `{}::{}` instruction data.", enum_ident, tag_variant);
 
     let remaining = instruction_args
         .iter()
         .map(|a| {
-            let line = format!(" - `{}` — {}", a.name, a.description);
+            let line = match a.description.is_empty() {
+                true => format!(" - `{}`", a.name),
+                false => format!(" - `{}` — {}", a.name, a.description),
+            };
             quote! { #[doc = #line] }
         })
         .collect::<Vec<_>>();
 
-    if remaining.is_empty() {
-        quote! { #[doc = #first_line] }
-    } else {
-        quote! {
-            #[doc = #first_line]
+    quote! {
+        #[doc = #first_line]
+        #(
             #[doc = ""]
-            #(#remaining)*
-        }
+            #remaining
+        )*
     }
 }
 
-fn collect_names_fields_and_sizes(
-    instruction_args: &[InstructionArgument],
-) -> (Vec<&Ident>, Vec<TokenStream>, Vec<Literal>) {
-    let (names, struct_fields, sizes) = instruction_args
-        .iter()
-        .map(|arg| {
-            let description = format!(" {}", arg.description);
-            let parsed_type = &arg.ty.as_parsed_type();
-            let name = &arg.name;
+/// An unzipped collection of each instruction argument's identifying information.
+///
+/// For example, this struct might resemble something like this:
+/// ```rust
+/// UnzippedArgumentInfo {
+///     names: ["amount", "index"],
+///     parsed_types: [u64, u32],
+///     sizes: [8, 4],
+///     descriptions: ["The amount to deposit.", "The user's index."],
+/// }
+/// ```
+struct UnzippedArgumentInfos {
+    /// The field's name; e.g. `name` in `pub name: u32,`
+    names: Vec<Ident>,
+    /// The field's type; e.g. `u32`
+    types: Vec<Type>,
+    /// The literal token for the `usize` size; e.g. `4` for a `u32`
+    sizes: Vec<Literal>,
+    /// The doc comment description for this argument.
+    descriptions: Vec<String>,
+}
 
-            let struct_field = quote! {
-               #[doc = #description]
-               pub #name: #parsed_type,
-            };
+impl UnzippedArgumentInfos {
+    pub fn new(instruction_args: &[InstructionArgument]) -> Self {
+        let (names, types, sizes, descriptions) = instruction_args
+            .iter()
+            .map(|arg| {
+                let description = format!(" {}", arg.description);
+                let parsed_type = &arg.ty.as_parsed_type();
+                let name = &arg.name;
+                (
+                    name.clone(),
+                    parsed_type.clone(),
+                    Literal::usize_unsuffixed(arg.ty.size()),
+                    description,
+                )
+            })
+            .multiunzip();
 
-            (name, struct_field, Literal::usize_unsuffixed(arg.ty.size()))
-        })
-        .multiunzip();
-
-    (names, struct_fields, sizes)
+        Self {
+            names,
+            types,
+            sizes,
+            descriptions,
+        }
+    }
 }
 
 #[derive(Default)]
