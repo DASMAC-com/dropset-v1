@@ -286,6 +286,7 @@ dependencies = [
 name = "dropset-interface"
 version = "0.1.0"
 dependencies = [
+ "instruction-macros",
  "pinocchio",
  "pinocchio-pubkey",
  "pinocchio-token",
