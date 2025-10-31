@@ -71,7 +71,7 @@ fn render_variant(
         names,
         types,
         sizes,
-        descriptions,
+        doc_descriptions,
     } = UnzippedArgumentInfos::new(instruction_args);
 
     let (
@@ -101,7 +101,7 @@ fn render_variant(
         #struct_doc
         pub struct #struct_name {
             #(
-                #[doc = #descriptions]
+                #doc_descriptions
                 pub #names: #types,
             )*
         }
@@ -111,9 +111,12 @@ fn render_variant(
 
         impl #struct_name {
             #struct_doc
+            #[inline(always)]
             pub fn new(
                 #(#names: #types),*
-            ) {}
+            ) -> Self {
+                Self { #(#names),* }
+            }
 
             #[doc = " Instruction data layout:"]
             #[doc = #discriminant_description]
@@ -230,22 +233,28 @@ struct UnzippedArgumentInfos {
     /// The literal token for the `usize` size; e.g. `4` for a `u32`
     sizes: Vec<Literal>,
     /// The doc comment description for this argument.
-    descriptions: Vec<String>,
+    doc_descriptions: Vec<TokenStream>,
 }
 
 impl UnzippedArgumentInfos {
     pub fn new(instruction_args: &[InstructionArgument]) -> Self {
-        let (names, types, sizes, descriptions) = instruction_args
+        let (names, types, sizes, doc_descriptions) = instruction_args
             .iter()
             .map(|arg| {
-                let description = format!(" {}", arg.description);
+                let doc_description = match arg.description.is_empty() {
+                    true => quote! {},
+                    false => {
+                        let description = format!(" {}", arg.description);
+                        quote! { #[doc = #description] }
+                    }
+                };
                 let parsed_type = &arg.ty.as_parsed_type();
                 let name = &arg.name;
                 (
                     name.clone(),
                     parsed_type.clone(),
                     Literal::usize_unsuffixed(arg.ty.size()),
-                    description,
+                    doc_description,
                 )
             })
             .multiunzip();
@@ -254,7 +263,7 @@ impl UnzippedArgumentInfos {
             names,
             types,
             sizes,
-            descriptions,
+            doc_descriptions,
         }
     }
 }
