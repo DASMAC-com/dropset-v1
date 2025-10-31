@@ -5,6 +5,7 @@ use syn::{
     DeriveInput,
 };
 
+mod debug;
 mod derive;
 
 use derive::{
@@ -46,6 +47,9 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         })
         .collect::<proc_macro2::TokenStream>();
+
+    debug::debug_print_multi_segment_paths(&try_from_u8_macro);
+    debug::debug_print_multi_segment_paths(&namespaced_outputs);
 
     quote! {
         #try_from_u8_macro

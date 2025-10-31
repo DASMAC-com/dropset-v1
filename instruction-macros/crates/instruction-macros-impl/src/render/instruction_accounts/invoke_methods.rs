@@ -51,19 +51,19 @@ fn pinocchio_invoke(
 ) -> TokenStream {
     quote! {
         #[inline(always)]
-        pub fn invoke(self, data: #instruction_data_type) -> pinocchio::ProgramResult {
+        pub fn invoke(self, data: #instruction_data_type) -> ::pinocchio::ProgramResult {
             self.invoke_signed(&[], data)
         }
 
         #[inline(always)]
-        pub fn invoke_signed(self, signers_seeds: &[pinocchio::instruction::Signer], data: #instruction_data_type) -> pinocchio::ProgramResult {
+        pub fn invoke_signed(self, signers_seeds: &[::pinocchio::instruction::Signer], data: #instruction_data_type) -> ::pinocchio::ProgramResult {
             let accounts = &[ #(#account_metas),* ];
             let Self {
                 #(#account_names),*
             } = self;
 
-            pinocchio::cpi::invoke_signed(
-                &pinocchio::instruction::Instruction {
+            ::pinocchio::cpi::invoke_signed(
+                &::pinocchio::instruction::Instruction {
                     program_id: &#program_id_path.into(),
                     accounts,
                     data: &data.pack(),
@@ -85,19 +85,19 @@ fn solana_program_invoke(
 ) -> TokenStream {
     let res = quote! {
         #[inline(always)]
-        pub fn invoke(self, data: #instruction_data_ident) -> solana_sdk::entrypoint::ProgramResult {
+        pub fn invoke(self, data: #instruction_data_ident) -> ::solana_sdk::entrypoint::ProgramResult {
             self.invoke_signed(&[], data)
         }
 
         #[inline(always)]
-        pub fn invoke_signed(self, signers_seeds: &[&[&[u8]]], data: #instruction_data_ident) -> solana_sdk::entrypoint::ProgramResult {
+        pub fn invoke_signed(self, signers_seeds: &[&[&[u8]]], data: #instruction_data_ident) -> ::solana_sdk::entrypoint::ProgramResult {
             let accounts = [ #(#account_metas),* ].to_vec();
             let Self {
                 #(#account_names),*
             } = self;
 
-            solana_cpi::invoke_signed(
-                &solana_instruction::Instruction {
+            ::solana_cpi::invoke_signed(
+                &::solana_instruction::Instruction {
                     program_id: #program_id_path.into(),
                     accounts,
                     data: data.pack().to_vec(),
@@ -120,10 +120,10 @@ fn client_create_instruction(
 ) -> TokenStream {
     quote! {
         #[inline(always)]
-        pub fn create_instruction(&self, data: #instruction_data_ident) -> solana_instruction::Instruction {
+        pub fn create_instruction(&self, data: #instruction_data_ident) -> ::solana_instruction::Instruction {
             let accounts = [ #(#account_metas),* ].to_vec();
 
-            solana_instruction::Instruction {
+            ::solana_instruction::Instruction {
                 program_id: #program_id_path.into(),
                 accounts,
                 data: data.pack().to_vec(),
