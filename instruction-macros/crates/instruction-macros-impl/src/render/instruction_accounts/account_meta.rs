@@ -27,7 +27,7 @@ impl InstructionAccount {
                     true => quote! { new },
                     false => quote! { new_readonly },
                 };
-                let is_signer = format_ident!("{}", self.is_signer);
+                let is_signer = self.is_signer;
                 quote! { solana_instruction::AccountMeta::#ctor_method(*self.#field_ident.key, #is_signer) }
             }
             Feature::Client => {
