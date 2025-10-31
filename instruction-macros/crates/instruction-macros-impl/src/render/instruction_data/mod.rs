@@ -70,10 +70,10 @@ fn render_variant(
         types,
         sizes,
         doc_descriptions,
-        total_size_with_tag,
+        total_size_without_tag,
     } = InstructionArgumentInfo::new(instruction_args);
 
-    let const_assertion = render_const_assertion(instruction_args, total_size_with_tag, &sizes);
+    let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
 
     let (pack_fn, unpack_fn) =
         pack_and_unpack::render(parsed_enum, instruction_variant, &names, feature);
@@ -113,13 +113,14 @@ fn render_variant(
 
 fn render_const_assertion(
     instruction_args: &[InstructionArgument],
-    total_size_with_tag: usize,
+    total_size_without_tag: usize,
     sizes: &[Literal],
 ) -> TokenStream {
-    let total_lit = Literal::usize_unsuffixed(total_size_with_tag);
+    let total_with_tag = Literal::usize_unsuffixed(total_size_without_tag + 1);
+
     if instruction_args.is_empty() {
-        quote! { const _: [(); #total_lit] = [(); 1]; }
+        quote! { const _: [(); #total_with_tag] = [(); 1]; }
     } else {
-        quote! { const _: [(); #total_lit] = [(); 1 + #( #sizes )+* ]; }
+        quote! { const _: [(); #total_with_tag] = [(); 1 + #( #sizes )+* ]; }
     }
 }

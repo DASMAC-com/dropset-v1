@@ -10,7 +10,8 @@ use syn::{
 
 use crate::parse::instruction_argument::InstructionArgument;
 
-/// Information about each instruction argument, as well as the total size of the instruction data.
+/// Information about each instruction argument, as well as the total size of the instruction data
+/// (not including the tag byte).
 ///
 /// For example, this struct might resemble something like this:
 /// ```rust
@@ -19,7 +20,7 @@ use crate::parse::instruction_argument::InstructionArgument;
 ///     types: [u64, u32],
 ///     sizes: [8, 4],
 ///     descriptions: ["The amount to deposit.", "The user's index."],
-///     total_size_with_tag: 13,
+///     total_size_without_tag: 13,
 /// }
 /// ```
 #[derive(Default)]
@@ -32,8 +33,8 @@ pub struct InstructionArgumentInfo {
     pub sizes: Vec<Literal>,
     /// Each argument's doc comment description.
     pub doc_descriptions: Vec<TokenStream>,
-    /// The total size of all arguments, with the tag byte.
-    pub total_size_with_tag: usize,
+    /// The total size of all arguments, without the tag byte.
+    pub total_size_without_tag: usize,
 }
 
 impl InstructionArgumentInfo {
@@ -56,7 +57,7 @@ impl InstructionArgumentInfo {
                 info.types.push(parsed_type.clone());
                 info.sizes.push(Literal::usize_unsuffixed(arg_size));
                 info.doc_descriptions.push(doc_description);
-                info.total_size_with_tag += arg_size;
+                info.total_size_without_tag += arg_size;
 
                 info
             })
