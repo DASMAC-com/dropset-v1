@@ -1,0 +1,25 @@
+[package]
+name = "instruction-macros-test-fixtures"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+instruction-macros = { path = "../instruction-macros" }
+pinocchio = { workspace = true, optional = true }
+pinocchio-pubkey.workspace = true
+solana-cpi = { workspace = true, optional = true}
+solana-instruction = { workspace = true, optional = true }
+solana-sdk = { workspace = true, optional = true}
+
+[dev-dependencies]
+macrotest = "1.2.0"
+
+[features]
+default = ["client", "pinocchio", "solana-program"]
+client = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
+pinocchio = ["dep:pinocchio"]
+solana-program = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
