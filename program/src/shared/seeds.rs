@@ -24,10 +24,10 @@ macro_rules! market_seeds {
 /// ```
 #[macro_export]
 macro_rules! market_signer {
-    ( $base:expr, $quote:expr, $bump:expr ) => {
+    ( $base_mint:expr, $quote_mint:expr, $bump:expr ) => {
         pinocchio::instruction::Signer::from(&pinocchio::seeds!(
-            $base.as_ref(),
-            $quote.as_ref(),
+            $base_mint.as_ref(),
+            $quote_mint.as_ref(),
             $crate::shared::seeds::market::MARKET_SEED_STR,
             &[$bump]
         ))
