@@ -48,8 +48,11 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         })
         .collect::<proc_macro2::TokenStream>();
 
-    debug::debug_print_multi_segment_paths(&try_from_u8_macro);
-    debug::debug_print_multi_segment_paths(&namespaced_outputs);
+    // Simple command to view all multi-segment paths (note this silences the cargo expand output):
+    // DEBUG_PATHS=1 cargo expand 1>/dev/null
+    if std::env::var("DEBUG_PATHS").is_ok() {
+        debug::debug_print_multi_segment_paths(&[&try_from_u8_macro, &namespaced_outputs]);
+    }
 
     quote! {
         #try_from_u8_macro

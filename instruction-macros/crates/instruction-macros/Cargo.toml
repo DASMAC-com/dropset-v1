@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 instruction-macros-impl = { path = "../instruction-macros-impl" }
+itertools.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
 syn.workspace = true

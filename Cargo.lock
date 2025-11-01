@@ -517,6 +517,7 @@ name = "instruction-macros"
 version = "0.1.0"
 dependencies = [
  "instruction-macros-impl",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn",
