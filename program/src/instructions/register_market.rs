@@ -19,6 +19,7 @@ use pinocchio::{
 
 use crate::{
     context::register_market_context::RegisterMarketContext,
+    market_seeds,
     market_signer,
     shared::market_operations::initialize_market_account_data,
 };
@@ -36,9 +37,11 @@ pub unsafe fn process_register_market(
 
     // It's not necessary to check the returned PDA here because `CreateAccount` will fail if the
     // market account info's pubkey doesn't match.
-    let (_pda, market_bump) =
-        try_find_program_address(&[ctx.base_mint.key(), ctx.quote_mint.key()], &crate::ID)
-            .ok_or(DropsetError::AddressDerivationFailed)?;
+    let (_pda, market_bump) = try_find_program_address(
+        market_seeds!(ctx.base_mint.key(), ctx.quote_mint.key()),
+        &crate::ID,
+    )
+    .ok_or(DropsetError::AddressDerivationFailed)?;
 
     // Calculate the lamports required to create the market account.
     let account_space = MarketHeader::LEN + SECTOR_SIZE * (num_sectors as usize);

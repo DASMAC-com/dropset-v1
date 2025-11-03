@@ -30,7 +30,7 @@ pub struct MarketHeader {
     /// The u32 total number of fully initialized seats as LE bytes.
     num_seats: LeU32,
     /// The u32 total number of sectors in the free stack as LE bytes.
-    num_free_sectors: LeSectorIndex,
+    num_free_sectors: LeU32,
     /// The u32 sector index of the first node in the stack of free nodes as LE bytes.
     free_stack_top: LeSectorIndex,
     /// The u32 sector index of the first node in the doubly linked list of seat nodes as LE bytes.
@@ -168,5 +168,15 @@ impl MarketHeader {
     #[inline(always)]
     pub fn set_seat_dll_tail(&mut self, index: SectorIndex) {
         self.seat_dll_tail = index.to_le_bytes();
+    }
+
+    #[inline(always)]
+    pub fn nonce(&self) -> u64 {
+        u64::from_le_bytes(self.nonce)
+    }
+
+    #[inline(always)]
+    pub fn increment_nonce(&mut self) {
+        self.nonce = (self.nonce().saturating_add(1)).to_le_bytes();
     }
 }

@@ -2,6 +2,17 @@ pub mod market {
     pub const MARKET_SEED_STR: &[u8] = b"market";
 }
 
+#[macro_export]
+macro_rules! market_seeds {
+    ($base:expr, $quote:expr) => {
+        &[
+            $base.as_ref(),
+            $quote.as_ref(),
+            $crate::shared::seeds::market::MARKET_SEED_STR,
+        ]
+    };
+}
+
 /// # Example
 ///
 /// ```

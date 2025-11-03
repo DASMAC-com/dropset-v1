@@ -8,9 +8,10 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 bytemuck.workspace = true
-dropset-interface = { path = "../interface" }
+dropset-interface = { path = "../interface", features = ["pinocchio"], default-features = false }
 pinocchio.workspace = true
 pinocchio-associated-token-account.workspace = true
+pinocchio-log = { workspace = true, optional = true }
 pinocchio-pubkey.workspace = true
 pinocchio-system.workspace = true
 pinocchio-token.workspace = true
@@ -28,3 +29,4 @@ workspace = true
 default = []
 std = []
 no-entrypoint = []
+debug = ["dep:pinocchio-log"]

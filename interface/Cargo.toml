@@ -9,6 +9,9 @@ pinocchio.workspace = true
 pinocchio-pubkey.workspace = true
 pinocchio-token.workspace = true
 pinocchio-token-interface.workspace = true
+solana-cpi = { workspace = true, optional = true }
+solana-instruction = { workspace = true, optional = true }
+solana-sdk = { workspace = true, optional = true }
 static_assertions.workspace = true
 
 [dev-dependencies]
@@ -22,5 +25,5 @@ workspace = true
 default = ["pinocchio"]
 std = []
 pinocchio = []
-client = []
-solana_program = []
+client = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
+solana-program = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]
