@@ -133,12 +133,13 @@ impl<'a> Stack<'a> {
         // Safety: The free index was just checked as in-bounds.
         let node_being_freed = unsafe { Node::from_sector_index_mut(self.sectors, free_index) };
 
+        // Copy the current top's `next` as that will become the new `top`.
+        let new_top = node_being_freed.next();
+
         // Zero out the rest of the node by setting `next` to 0. The payload and `prev` were zeroed
         // out when adding to the free list.
         node_being_freed.set_next(0);
 
-        // Set the new `top` to the current top's `next`.
-        let new_top = node_being_freed.next();
         self.set_top(new_top);
         self.header.decrement_num_free_sectors();
 
