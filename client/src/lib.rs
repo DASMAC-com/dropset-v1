@@ -1,6 +1,7 @@
 use solana_sdk::pubkey::Pubkey;
 
 pub mod logs;
+pub mod pretty;
 pub mod transaction_parser;
 
 pub use logs::LogColor;
