@@ -4,6 +4,7 @@ pub mod context;
 pub mod logs;
 pub mod pda;
 pub mod pretty;
+pub mod test_accounts;
 pub mod transaction_parser;
 pub mod transactions;
 pub mod views;

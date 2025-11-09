@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build": "cd program && cargo build-sbf",
+    "build:debug": "cd program && cargo build-sbf --features debug",
+    "deploy": "solana program deploy target/deploy/dropset.so || echo 'Make sure the local validator is running'",
+    "examples:register": "cargo run --example register_market",
+    "examples:deposit_and_withdraw": "cargo run --example deposit_and_withdraw",
+    "examples:close_seat": "cargo run --example close_seat",
+    "examples:many_instructions": "cargo run --example many_instructions",
+    "examples:two_seats": "cargo run --example two_seats"
+  }
+}
