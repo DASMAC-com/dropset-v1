@@ -1,3 +1,5 @@
+//! Generates helper functions for loading and validating the accounts required by each instruction.
+
 use proc_macro2::TokenStream;
 use quote::{
     format_ident,
@@ -13,9 +15,9 @@ use crate::{
     render::Feature,
 };
 
-/// Render the account load function.
+/// Render the account loader function.
 ///
-/// The account load function fallibly attempts to structure a slice of `AccountInfo`s into the
+/// The account loader function fallibly attempts to structure a slice of `AccountInfo`s into the
 /// corresponding struct of ordered accounts.
 pub fn render_account_loader(
     feature: Feature,
@@ -38,6 +40,7 @@ pub fn render_account_loader(
     let ErrorPath { base, variant } = ErrorType::IncorrectNumAccounts.to_path(feature);
 
     quote! {
+        #[inline(always)]
         pub fn load_accounts(accounts: #lifetimed_ref [#account_field_type]) -> Result<Self, #base> {
             let [ #(#accounts),* ] = accounts else {
                 return Err(#base::#variant);

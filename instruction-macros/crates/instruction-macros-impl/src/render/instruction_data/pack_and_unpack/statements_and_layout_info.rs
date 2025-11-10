@@ -1,3 +1,6 @@
+//! Builds intermediate representations describing layout, ordering, and serialization statements
+//! used by pack/unpack code generation.
+
 use proc_macro2::{
     Literal,
     TokenStream,

@@ -1,3 +1,6 @@
+//! Renders the code that deserializes raw instruction data into structured arguments for program
+//! execution.
+
 use proc_macro2::{
     Literal,
     TokenStream,
@@ -14,6 +17,9 @@ use crate::{
 };
 
 /// Render the inner body of the fallible `unpack` method.
+///
+/// `unpack` deserializes raw instruction data bytes into structured arguments according to the
+/// corresponding instruction variant's instruction arguments.
 pub fn render(
     size_without_tag: &Literal,
     unpack_assignments: &[TokenStream],

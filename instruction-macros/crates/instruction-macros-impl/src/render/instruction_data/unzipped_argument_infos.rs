@@ -1,3 +1,6 @@
+//! Extracts and formats instruction argument metadata, like the argument's `name`, `type`, byte
+//! `size`, and `description`. This metadata is then used in various code generation functions.
+
 use proc_macro2::{
     Literal,
     TokenStream,

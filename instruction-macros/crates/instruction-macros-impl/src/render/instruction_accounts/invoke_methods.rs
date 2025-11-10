@@ -1,3 +1,6 @@
+//! Generates invoke-style helper methods for constructing and dispatching instructions using the
+//! rendered account metadata. Each [`Feature`] type has its own specific output.
+
 use proc_macro2::TokenStream;
 use quote::{
     format_ident,

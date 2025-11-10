@@ -1,3 +1,5 @@
+//! See [`InstructionAccount::render_account_meta`].
+
 use proc_macro2::TokenStream;
 use quote::{
     format_ident,
@@ -10,6 +12,8 @@ use crate::{
 };
 
 impl InstructionAccount {
+    /// Generates Solana `AccountMeta` constructors for each instruction’s accounts, suitable for
+    /// building instruction account lists for each of the various [`Feature`] types.
     pub fn render_account_meta(&self, feature: Feature) -> TokenStream {
         let field_ident = format_ident!("{}", self.name);
         match feature {

@@ -1,3 +1,6 @@
+//! Renders account-related helpers for each instruction, including account metadata, loaders, and
+//! invocation methods.
+
 mod account_loader;
 mod account_meta;
 mod invoke_methods;

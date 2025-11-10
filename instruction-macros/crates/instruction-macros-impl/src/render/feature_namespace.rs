@@ -1,3 +1,6 @@
+//! Builds feature-gated namespaces so generated instruction APIs can target different
+//! environments without conflicts.
+
 use std::collections::HashMap;
 
 use proc_macro2::TokenStream;
@@ -10,6 +13,8 @@ use strum::IntoEnumIterator;
 
 use crate::render::Feature;
 
+/// A newtype representing a feature-specific namespace, where the inner value defines the semantic
+/// scope used to organize generated code.
 #[derive(PartialEq, Eq, Hash)]
 pub struct FeatureNamespace(pub Feature);
 
@@ -20,11 +25,13 @@ impl ToTokens for FeatureNamespace {
     }
 }
 
+/// Generated tokens and their associated feature namespace.
 pub struct NamespacedTokenStream {
     pub tokens: TokenStream,
     pub namespace: FeatureNamespace,
 }
 
+/// Merges multiple namespaced token streams into a map grouped by feature namespace.
 pub fn merge_namespaced_token_streams(
     streams: Vec<Vec<NamespacedTokenStream>>,
 ) -> HashMap<FeatureNamespace, Vec<TokenStream>> {

@@ -1,3 +1,6 @@
+//! Code generation utilities for packing and unpacking instruction data, including field layout and
+//! serialization logic.
+
 mod pack;
 mod statements_and_layout_info;
 mod unpack;
@@ -14,6 +17,7 @@ use crate::{
     render::Feature,
 };
 
+/// Renders an enum instruction variant's `pack` and `unpack` function for each [`Feature`].
 pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variant: &InstructionVariant,

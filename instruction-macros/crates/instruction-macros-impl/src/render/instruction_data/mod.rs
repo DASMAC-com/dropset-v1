@@ -1,3 +1,6 @@
+//! Renders the core instruction data structures used by generated code, including argument packing,
+//! unpacking, and documentation helpers.
+
 mod pack_and_unpack;
 mod struct_doc_comment;
 mod unzipped_argument_infos;

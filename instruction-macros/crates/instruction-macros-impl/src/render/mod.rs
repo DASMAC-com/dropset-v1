@@ -1,3 +1,5 @@
+//! Renders the parsed instruction model into generated modules, helpers, and macros.
+
 mod feature;
 mod feature_namespace;
 mod instruction_accounts;

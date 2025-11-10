@@ -1,9 +1,13 @@
+//! See [`render`].
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
 use crate::parse::instruction_argument::InstructionArgument;
 
+/// Generates the documentation comment attached to each rendered instruction
+/// struct, summarizing its arguments and purpose.
 pub fn render(
     enum_ident: &Ident,
     tag_variant: &Ident,

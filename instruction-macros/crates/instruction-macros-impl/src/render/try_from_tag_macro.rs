@@ -1,3 +1,9 @@
+//! Generates a helper macro that maps raw instruction tags to their corresponding
+//! enum variants using efficient, `unsafe` but sound transmutations.
+//!
+//! Includes compile-time checks to guarantee the generated code’s soundness. These checks output no
+//! code in release builds.
+
 use itertools::Itertools;
 use proc_macro2::{
     Literal,

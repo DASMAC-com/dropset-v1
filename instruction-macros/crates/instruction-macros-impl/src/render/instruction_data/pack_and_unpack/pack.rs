@@ -1,3 +1,6 @@
+//! Renders the `pack` function code that serializes instruction arguments into their on-chain
+//! binary layout.
+
 use proc_macro2::{
     Literal,
     TokenStream,
@@ -5,7 +8,9 @@ use proc_macro2::{
 use quote::quote;
 use syn::Ident;
 
-/// Render the `pack` statement for an instruction data variant.
+/// Render the `pack` function for an instruction data variant.
+///
+/// `pack` serializes instruction arguments into their on-chain binary layout.
 pub fn render(
     enum_ident: &Ident,
     tag_variant: &Ident,

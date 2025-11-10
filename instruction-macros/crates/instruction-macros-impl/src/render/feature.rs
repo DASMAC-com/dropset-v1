@@ -1,3 +1,6 @@
+//! Describes the supported codegen features/targets and provides helpers to conditionally
+//! enable or disable parts of the generated API.
+
 use proc_macro2::{
     Literal,
     TokenStream,
