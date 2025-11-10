@@ -1,3 +1,6 @@
+//! Typed representations of outer and inner instructions, including decoded program IDs, accounts,
+//! and data.
+
 use solana_sdk::{
     bs58,
     message::compiled_instruction::CompiledInstruction,

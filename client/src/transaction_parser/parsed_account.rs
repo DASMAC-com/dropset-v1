@@ -1,3 +1,5 @@
+//! Typed wrapper for transaction accounts, including signer and writable metadata.
+
 use derive_more::{
     AsRef,
     Deref,

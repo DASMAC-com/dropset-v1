@@ -1,3 +1,5 @@
+//! Interprets RPC and on-chain errors into readable `dropset`/Solana instruction error messages.
+
 use std::fmt::Display;
 
 use dropset_interface::{

@@ -1,3 +1,6 @@
+//! Parses Solana transactions, logs, and account data into structured types used by `dropset`
+//! tooling.
+
 mod parse;
 mod parsed_account;
 mod parsed_instruction;

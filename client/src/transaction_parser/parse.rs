@@ -1,3 +1,6 @@
+//! Core parsing helpers for converting encoded transactions, inner instructions, and messages into
+//! typed structures.
+
 use solana_sdk::{
     message::MessageHeader,
     pubkey::Pubkey,

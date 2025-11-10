@@ -1,3 +1,6 @@
+//! High-level parsed transaction type that aggregates instructions, logs, balances, errors, and
+//! compute usage.
+
 use std::str::FromStr;
 
 use solana_sdk::{

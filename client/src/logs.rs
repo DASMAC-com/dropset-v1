@@ -1,3 +1,8 @@
+//! Utilities for colorized, human-readable logging and key/value formatting.
+//!
+//! Provides macros for printing colored key/value pairs, an enum for color usage across the client,
+//! and simple helpers for log dividers.
+
 use colored::Color;
 
 /// Format a key/value pair with optional color overrides.

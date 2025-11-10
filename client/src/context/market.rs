@@ -1,3 +1,6 @@
+//! Market-level context for creating markets, managing seats, and building `dropset` market
+//! instructions.
+
 use dropset_interface::{
     instructions::generated_client::*,
     state::{

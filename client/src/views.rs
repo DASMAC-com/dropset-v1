@@ -1,3 +1,6 @@
+//! Read-only view helpers for decoding `dropset` on-chain market accounts into ergonomic Rust
+//! structs.
+
 use dropset_interface::state::{
     market::MarketRef,
     market_header::MarketHeader,

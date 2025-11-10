@@ -1,3 +1,6 @@
+//! Token-level context for creating mints, ATAs, and performing common token operations in
+//! tests and examples.
+
 use std::{
     cell::RefCell,
     collections::HashMap,

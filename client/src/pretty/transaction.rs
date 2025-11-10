@@ -1,3 +1,5 @@
+//! Pretty-prints parsed transactions with filtered, indexed, and indented instruction traces.
+
 use std::{
     collections::HashSet,
     fmt::{

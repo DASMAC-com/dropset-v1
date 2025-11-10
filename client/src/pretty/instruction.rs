@@ -1,3 +1,6 @@
+//! Renders parsed instructions with program-aware names, compute unit usage, and severity-based
+//! coloring.
+
 use std::fmt::{
     self,
     Debug,

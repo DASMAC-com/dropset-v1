@@ -1,3 +1,5 @@
+//! Parses compute and program logs into structured per-instruction compute usage and log metadata.
+
 use std::str::FromStr;
 
 use anyhow::ensure;

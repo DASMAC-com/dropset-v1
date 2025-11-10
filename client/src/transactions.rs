@@ -1,3 +1,6 @@
+//! Lightweight RPC client utilities for funding accounts, sending transactions,
+//! and pretty-printing `dropset`-related transaction logs.
+
 use std::collections::HashSet;
 
 use anyhow::{

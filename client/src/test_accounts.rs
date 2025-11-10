@@ -1,3 +1,5 @@
+//! Predefined deterministic keypairs for local testing and examples.
+
 use std::sync::LazyLock;
 
 use solana_sdk::signature::Keypair;
