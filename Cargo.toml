@@ -66,6 +66,7 @@ rev = "75116550519a9ee3fdfa6c819aca91e383fffa39"
 level = "warn"
 check-cfg = [
     'cfg(target_os, values("solana"))',
+    'cfg(target_feature, values("static-syscalls"))',
     'cfg(feature, values("no-entrypoint"))',
     'cfg(feature, values("std"))',
     'cfg(feature, values("pinocchio"))',
