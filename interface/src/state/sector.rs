@@ -1,3 +1,6 @@
+//! Defines the size and sentinel constants for fixed-size storage sectors used to organize
+//! and index market data efficiently in account memory.
+
 use crate::state::U32_SIZE;
 
 pub const SECTOR_SIZE: usize = 72;
@@ -8,7 +11,7 @@ pub const SECTOR_SIZE: usize = 72;
 /// size of 10 MB would put the max sector index at ~10.5 mil — far less than u32::MAX.
 pub const NIL: SectorIndex = u32::MAX;
 
-// An alias type for a sector index stored as little-endian bytes.
+// A sector index stored as little-endian bytes.
 pub type LeSectorIndex = [u8; U32_SIZE];
 
 /// A stride-based index into an array of sectors.

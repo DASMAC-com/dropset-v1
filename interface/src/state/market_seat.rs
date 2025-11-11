@@ -1,3 +1,5 @@
+//! See [`MarketSeat`].
+
 use pinocchio::pubkey::Pubkey;
 use static_assertions::const_assert_eq;
 
@@ -10,6 +12,7 @@ use crate::state::{
     LeU64,
 };
 
+/// Represents a user's position within a market.
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MarketSeat {

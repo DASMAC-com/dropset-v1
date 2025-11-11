@@ -1,3 +1,6 @@
+//! Doubly linked list utilities for traversing, inserting, and removing nodes containing
+//! [`crate::state::market_seat::MarketSeat`] payloads.
+
 use crate::{
     error::DropsetError,
     state::{
@@ -14,7 +17,8 @@ use crate::{
     },
 };
 
-/// A sorted, doubly linked list.
+/// A sorted, doubly linked list of nodes containing [`crate::state::market_seat::MarketSeat`]
+/// payloads.
 #[derive(Debug)]
 pub struct LinkedList<'a> {
     pub header: &'a mut MarketHeader,

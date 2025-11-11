@@ -1,3 +1,6 @@
+//! Core on-chain state definitions, covering markets, seats, nodes, and low-level data structures
+//! for indexing and iteration.
+
 pub mod free_stack;
 pub mod linked_list;
 pub mod market;

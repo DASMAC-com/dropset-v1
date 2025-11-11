@@ -1,3 +1,6 @@
+//! Compact node layout used in a market account's `sectors` region for building linked structures,
+//! exposing previous/next indices and an opaque payload segment.
+
 use static_assertions::const_assert_eq;
 
 use crate::{
@@ -19,19 +22,21 @@ pub const NODE_PAYLOAD_SIZE: usize = 64;
 
 #[repr(C)]
 #[derive(Debug)]
-/// An untagged union of Solana account data as a node in a tree, where `payload` is some type `T`
-/// that implements `NodePayload`.
+/// A node stored in the sectors region, containing previous/next sector indices and a fixed-size
+/// payload buffer.
 ///
-/// In the case of a free stack node, the payload is just zeroed bytes, with `next` pointing to the
-/// sector index representing the memory address of the next free node.
+/// Higher-level structures (such as free stacks or seat lists) interpret this payload as their own
+/// logical type via [`NodePayload`] implementations.
 pub struct Node {
     /// The little endian bytes representing the `next` node's sector index.
     next: LeSectorIndex,
     /// The little endian bytes representing the `prev` node's sector index.
-    /// NOTE: This field is unused in the free stack node implementation and should be treated as
-    /// random, meaningless bytes.
+    ///
+    /// This field is unused in the free stack implementation and should be treated as garbage data
+    /// while a [`Node`] is considered freed.
     prev: LeSectorIndex,
-    /// The raw payload bytes for a Node, representing some type `T` that implements `NodePayload`.
+    /// The raw payload bytes for a `Node`, representing some type `T` that implements
+    /// [`NodePayload`].
     payload: [u8; NODE_PAYLOAD_SIZE],
 }
 
@@ -39,7 +44,8 @@ pub struct Node {
 ///
 /// # Safety
 ///
-/// Implementor guarantees that `size_of::<T>() == NODE_PAYLOAD_SIZE` for some `T: NodePayload`.
+/// Implementor guarantees that `size_of::<T>() ==`[`NODE_PAYLOAD_SIZE`] for some `T:`
+/// [`NodePayload`].
 pub unsafe trait NodePayload: Transmutable {}
 
 // Safety:

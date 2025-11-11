@@ -1,10 +1,20 @@
-// Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39,
-// Apache-2.0. Substantial modifications by DASMAC, 2025:
-// - Removed `Initializable` trait
-// - Moved `load_*` functions to trait methods with validation contract
-// - Added validate_bit_patterns requirement
-// - Made load/load_mut safe for callers
-// Original: https://github.com/solana-program/token/blob/75116550519a9ee3fdfa6c819aca91e383fffa39/p-interface/src/state/mod.rs
+//! Provides the [`Transmutable`] trait for safely viewing and mutating on-chain account data as
+//! strongly typed, zero-copy references.
+//!
+//! This trait formalizes the contract for casting raw bytes (`&[u8]`) into structured types,
+//! enforcing layout, alignment, and bit-pattern validity at load time. Implementors guarantee a
+//! stable memory layout (`#[repr(C)]` or `#[repr(transparent)]`) and define their own
+//! [`Transmutable::validate_bit_patterns`] logic.
+//!
+//! ---
+//! Derived from `pinocchio-token-interface` – commit 75116550519a9ee3fdfa6c819aca91e383fffa39,
+//! Apache-2.0. Substantial modifications by DASMAC, 2025:
+//! - Removed `Initializable` trait
+//! - Moved `load_*` functions to trait methods with validation contract
+//! - Added validate_bit_patterns requirement
+//! - Made load/load_mut safe for callers
+//!
+//! Original: https://github.com/solana-program/token/blob/75116550519a9ee3fdfa6c819aca91e383fffa39/p-interface/src/state/mod.rs
 
 use crate::error::{
     DropsetError,

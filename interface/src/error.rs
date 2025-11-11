@@ -1,3 +1,5 @@
+//! Common error types and conversion helpers to represent them as error message strings.
+
 use pinocchio::program_error::ProgramError;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

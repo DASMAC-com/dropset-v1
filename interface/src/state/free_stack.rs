@@ -1,3 +1,5 @@
+//! See [`Stack`].
+
 use static_assertions::const_assert_eq;
 
 use crate::{
@@ -20,7 +22,10 @@ use crate::{
     },
 };
 
+/// Implements a stack allocator abstraction for managing freed sectors and reusing space
+/// efficiently.
 pub struct Stack<'a> {
+    /// See [`MarketHeader`].
     header: &'a mut MarketHeader,
     /// The slab of bytes where all sector data exists, where each sector is an untagged union
     /// of (any possible sector type | FreeNodePayload).

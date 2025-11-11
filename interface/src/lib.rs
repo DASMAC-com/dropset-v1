@@ -1,3 +1,6 @@
+//! Public interface layer defining instruction schemas, program state, and shared utilities for
+//! on-chain and client integration.
+
 #![no_std]
 
 #[cfg(feature = "std")]

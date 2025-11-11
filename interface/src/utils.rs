@@ -1,3 +1,5 @@
+//! Lightweight helper functions and constants used throughout the interface and state modules.
+
 use pinocchio::{
     account_info::AccountInfo,
     pubkey::{

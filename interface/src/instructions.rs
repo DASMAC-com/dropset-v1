@@ -1,3 +1,17 @@
+//! Definitions and re-exports of all program instructions, organized for both client-side and
+//! on-chain usage.
+//!
+//! This module re-exports proc-macro generated code in multiple forms, depending on which features
+//! are enabled.
+//!
+//! The `pinocchio` feature: [`crate::instructions::generated_pinocchio`]
+//! The `client` feature: [`crate::instructions::generated_client`]
+//!
+//! The `solana-sdk` feature is disabled but enables `crate::instructions::generated_solana_sdk` for
+//! use with non-pinocchio based programs.
+//!
+//! This module also re-exports the [`DropsetInstruction_try_from_tag`] macro.
+
 use instruction_macros::ProgramInstruction;
 
 use crate::error::DropsetError;

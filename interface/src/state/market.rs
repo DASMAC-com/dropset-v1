@@ -1,3 +1,6 @@
+//! The top-level market structure tying together header, seats, and
+//! storage sectors into a unified on-chain representation.
+
 use crate::state::{
     free_stack::Stack,
     linked_list::{

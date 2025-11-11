@@ -1,3 +1,5 @@
+//! See [`MarketHeader`].
+
 use pinocchio::pubkey::Pubkey;
 use static_assertions::const_assert_eq;
 
@@ -22,6 +24,19 @@ use crate::{
 
 pub const MARKET_ACCOUNT_DISCRIMINANT: u64 = 0xd00d00b00b00f00du64;
 
+/// The lightweight header for each market account. This header contains metadata used to interpret
+/// a market's account data properly.
+///
+/// A market account’s data consists of a statically sized [`MarketHeader`] followed by its
+/// dynamically sized `sectors` region stored as raw bytes: `&[u8]`.
+///
+/// The metadata stored in the market header is central to interpreting the structures contained
+/// within the market’s `sectors` bytes. This region acts as an untagged union of data structures
+/// that share a common iterable layout, where each `Item` is a node with some payload type `T`.
+///
+/// For example, [`MarketHeader::free_stack_top`] exposes the index of the top node in the free
+/// stack, allowing traversal of all available sectors. The payload type `T` in this case is
+/// [`crate::state::free_stack::FreeNodePayload`].
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct MarketHeader {
@@ -67,7 +82,7 @@ const_assert_eq!(MarketHeader::LEN, size_of::<MarketHeader>());
 const_assert_eq!(align_of::<MarketHeader>(), 1);
 
 impl MarketHeader {
-    /// Initializes market header data to the header destination pointer with a core::ptr::write.
+    /// Initializes market header data to the header destination pointer with a `core::ptr::write`.
     ///
     /// # Safety
     ///
