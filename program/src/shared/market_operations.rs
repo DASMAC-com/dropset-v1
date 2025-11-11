@@ -1,3 +1,6 @@
+//! Core reusable logic for manipulating market data structures, including inserting, removing, and
+//! traversing market seats.
+
 use dropset_interface::{
     error::DropsetError,
     state::{

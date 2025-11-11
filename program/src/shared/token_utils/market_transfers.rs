@@ -1,3 +1,6 @@
+//! Encapsulates the logic for safely transferring tokens to/from market accounts, enforcing
+//! ownership and mint consistency guarantees.
+
 use dropset_interface::{
     error::DropsetError,
     utils::is_owned_by_spl_token,

@@ -1,3 +1,5 @@
+//! Defines PDA seed constants and helper macros for deriving PDA addresses.
+
 pub mod market {
     pub const MARKET_SEED_STR: &[u8] = b"market";
 }

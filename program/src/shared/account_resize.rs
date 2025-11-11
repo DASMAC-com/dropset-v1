@@ -1,3 +1,6 @@
+//! Handles resizing Solana accounts in-place with rent and lamport adjustments, ensuring safety
+//! when reallocating market or seat accounts.
+
 use pinocchio::{
     account_info::AccountInfo,
     sysvars::{
