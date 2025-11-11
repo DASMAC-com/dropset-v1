@@ -2,8 +2,6 @@
 
 `dropset` is an on-chain orderbook program built for Solana.
 
----
-
 ## 🧱 Workspace Overview
 
 ### **`dropset-interface`**
@@ -30,9 +28,7 @@ RPC services.
 Provides helpers for sending transactions and fetching parsed state via the JSON
 RPC API.
 
----
-
-## 🧭 Documentation
+## 📚 Documentation
 
 You can generate and open the full internal documentation (including private
 items and doc-hidden modules) using:
@@ -41,7 +37,7 @@ items and doc-hidden modules) using:
 cargo doc --open --no-deps --document-private-items
 ```
 
-### Viewing on `wsl`
+### 💻 Viewing on `wsl`
 
 If you're on Windows Subsystem for Linux `cargo doc --open` won't automatically
 work. You must convert the doc target path to a Windows path first, and then
