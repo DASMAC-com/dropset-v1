@@ -16,6 +16,7 @@ use crate::{
         },
         transmutable::Transmutable,
     },
+    syscalls,
 };
 
 pub const NODE_PAYLOAD_SIZE: usize = 64;
@@ -91,18 +92,10 @@ impl Node {
         // Safety: both payloads are exactly `NODE_PAYLOAD_SIZE` long, and the incoming payload
         // should never overlap with the existing payload due to aliasing rules.
         unsafe {
-            #[cfg(target_os = "solana")]
-            pinocchio::syscalls::sol_memcpy_(
+            syscalls::sol_memcpy_(
                 self.payload.as_mut_ptr(),
                 payload.as_ptr(),
                 NODE_PAYLOAD_SIZE as u64,
-            );
-
-            #[cfg(not(target_os = "solana"))]
-            core::ptr::copy_nonoverlapping(
-                payload.as_ptr(),
-                self.payload.as_mut_ptr(),
-                NODE_PAYLOAD_SIZE,
             );
         }
     }
@@ -111,15 +104,7 @@ impl Node {
     pub fn zero_out_payload(&mut self) {
         // Safety: `payload` is exactly `NODE_PAYLOAD_SIZE` bytes long and align 1.
         unsafe {
-            #[cfg(target_os = "solana")]
-            pinocchio::syscalls::sol_memset_(
-                self.payload.as_mut_ptr(),
-                0,
-                NODE_PAYLOAD_SIZE as u64,
-            );
-
-            #[cfg(not(target_os = "solana"))]
-            core::ptr::write_bytes(self.payload.as_mut_ptr(), 0, NODE_PAYLOAD_SIZE);
+            syscalls::sol_memset_(self.payload.as_mut_ptr(), 0, NODE_PAYLOAD_SIZE as u64);
         }
     }
 
