@@ -9,11 +9,10 @@ use syn::{
     Ident,
     Lit,
     Token,
-    Type,
 };
 
 use crate::{
-    parse::primitive_arg::PrimitiveArg,
+    parse::argument_type::ArgumentType,
     ParsingError,
 };
 
@@ -21,7 +20,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct InstructionArgument {
     pub name: Ident,
-    pub ty: PrimitiveArg,
+    pub ty: ArgumentType,
     pub description: String,
 }
 
@@ -29,7 +28,7 @@ impl Parse for InstructionArgument {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let ident: Ident = input.parse()?;
         let _colon: Token![:] = input.parse()?;
-        let ty: Type = input.parse()?;
+        let ty: ArgumentType = input.parse()?;
 
         // Optional: a single `key = value` pair as `desc = "argument description"`.
         let mut description: String = "".to_string();
@@ -44,7 +43,7 @@ impl Parse for InstructionArgument {
 
         Ok(InstructionArgument {
             name: ident.clone(),
-            ty: PrimitiveArg::try_from(&ty)?,
+            ty,
             description,
         })
     }

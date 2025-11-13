@@ -1,9 +1,6 @@
 //! See [`ParsingError`].
 
-use itertools::Itertools;
-use strum::IntoEnumIterator;
-
-use crate::parse::primitive_arg::PrimitiveArg;
+use crate::parse::argument_type::ArgumentType;
 
 /// Error types for reporting malformed macro inputs.
 ///
@@ -24,10 +21,13 @@ pub enum ParsingError {
     TooManyNames(String, String),
     TooManyDescriptions,
     IndexOutOfOrder(u8, usize),
-    InvalidPrimitiveType,
+    InvalidArgumentType,
     ExpectedArgumentDescription,
     ExpectedNameValueLiteral(String),
     ExpectedReprU8,
+    InstructionEventHasAccounts,
+    ExpectedPubkeyType,
+    InvalidPubkeyType(String, String),
 }
 
 impl From<ParsingError> for String {
@@ -52,15 +52,19 @@ impl From<ParsingError> for String {
             ParsingError::TooManyNames(a, b) => format!("Account has too many names: {a}, {b}"),
             ParsingError::TooManyIndices(a, b) => format!("Account has too many indices: {a}, {b}"),
             ParsingError::IndexOutOfOrder(idx, pos) => format!("Account index {idx} doesn't match position {pos}"),
-            ParsingError::InvalidPrimitiveType => format!(
-                "Invalid argument type, valid types include: {}",
-                PrimitiveArg::iter().join(", ")
+            ParsingError::InvalidArgumentType => format!(
+                "Invalid argument type, valid types are: {}",
+                ArgumentType::all_valid_types(),
             ),
             ParsingError::ExpectedArgumentDescription =>
                 "Expected a string literal for the argument description".into(),
             ParsingError::ExpectedNameValueLiteral(value) =>
                 format!("Expected name = \"value\" literal, got: {value}"),
             ParsingError::ExpectedReprU8 => "Enum does not have the attribute `#[repr(u8)]`".into(),
+            ParsingError::InstructionEventHasAccounts => "Instruction event should not have any accounts".into(),
+            ParsingError::ExpectedPubkeyType => "Expected a pubkey bytes array: `[u8; 32]`".into(),
+            ParsingError::InvalidPubkeyType(ty, len) =>
+                format!("The pubkey argument type can only be: `[u8; 32]`, got: [{ty}; {len}]"),
         }
     }
 }

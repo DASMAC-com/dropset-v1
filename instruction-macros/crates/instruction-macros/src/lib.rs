@@ -15,9 +15,8 @@ mod derive;
 use derive::{
     derive_accounts,
     derive_instruction_data,
+    DeriveInstructionData,
 };
-
-use crate::derive::DeriveInstructionData;
 
 #[proc_macro_derive(ProgramInstruction, attributes(account, args, program_id))]
 pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

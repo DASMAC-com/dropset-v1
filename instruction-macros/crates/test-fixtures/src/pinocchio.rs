@@ -1,5 +1,4 @@
 #[cfg(feature = "pinocchio")]
-#[cfg(test)]
 pub mod test {
     use instruction_macros::ProgramInstruction;
 

@@ -1,5 +1,4 @@
 #[cfg(feature = "client")]
-#[cfg(test)]
 mod test {
     use instruction_macros::ProgramInstruction;
 

@@ -11,7 +11,10 @@ use syn::{
     Type,
 };
 
-use crate::parse::instruction_argument::InstructionArgument;
+use crate::parse::{
+    argument_type::ParsedPackableType,
+    instruction_argument::InstructionArgument,
+};
 
 /// Information about each instruction argument, as well as the total size of the instruction data
 /// (not including the tag byte).

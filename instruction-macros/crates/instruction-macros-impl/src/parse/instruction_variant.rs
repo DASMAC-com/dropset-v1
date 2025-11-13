@@ -7,7 +7,6 @@
 use syn::{
     spanned::Spanned,
     Attribute,
-    DataEnum,
     Ident,
     Variant,
 };
@@ -17,6 +16,8 @@ use crate::{
         instruction_account::InstructionAccount,
         instruction_argument::InstructionArgument,
         instruction_discriminant::try_parse_instruction_discriminant,
+        parsed_enum::ParsedEnum,
+        parsing_error::ParsingError,
         validation::{
             validate_accounts,
             validate_args,
@@ -39,11 +40,21 @@ pub struct InstructionVariant {
     pub discriminant: u8,
 }
 
-impl TryFrom<(u8, &Variant)> for InstructionVariant {
+struct VariantInfo<'a> {
+    pub discriminant: u8,
+    pub variant: &'a Variant,
+    pub as_instruction_events: bool,
+}
+
+impl TryFrom<VariantInfo<'_>> for InstructionVariant {
     type Error = syn::Error;
 
-    fn try_from(discriminant_and_variant: (u8, &Variant)) -> syn::Result<Self> {
-        let (discriminant, variant) = discriminant_and_variant;
+    fn try_from(variant_info: VariantInfo) -> syn::Result<Self> {
+        let VariantInfo {
+            discriminant,
+            variant,
+            as_instruction_events,
+        } = variant_info;
         let arguments = variant
             .attrs
             .iter()
@@ -67,6 +78,11 @@ impl TryFrom<(u8, &Variant)> for InstructionVariant {
             validate_accounts(&accounts, variant.span())?;
         }
 
+        // If this variant is parsed as an instruction event, it must have zero accounts.
+        if as_instruction_events && !accounts.is_empty() {
+            return Err(ParsingError::InstructionEventHasAccounts.new_err(variant.span()));
+        }
+
         Ok(Self {
             variant_name: variant.ident.clone(),
             arguments,
@@ -79,7 +95,15 @@ impl TryFrom<(u8, &Variant)> for InstructionVariant {
 
 /// Parses all variants of an instruction enum, assigning discriminants (explicit or implicit)
 /// and converting them into validated instruction representations.
-pub fn parse_instruction_variants(data_enum: &DataEnum) -> syn::Result<Vec<InstructionVariant>> {
+///
+/// The variants can be parsed as one of the following:
+/// - instruction data:       the arguments passed to an instruction, plus the instruction accounts
+/// - instruction event data: the arguments passed to an instruction, no instruction accounts
+pub fn parse_instruction_variants(
+    parsed_enum: &ParsedEnum,
+) -> syn::Result<Vec<InstructionVariant>> {
+    let (data_enum, as_instruction_events) =
+        (&parsed_enum.data_enum, parsed_enum.as_instruction_events);
     // Implicit discriminants either start at 0 or the last variant that was explicitly set + 1.
     let mut implicit_discriminant = 0;
 
@@ -88,7 +112,12 @@ pub fn parse_instruction_variants(data_enum: &DataEnum) -> syn::Result<Vec<Instr
         .iter()
         .map(|variant| {
             let discriminant = try_parse_instruction_discriminant(implicit_discriminant, variant)?;
-            let instruction_variant = InstructionVariant::try_from((discriminant, variant))?;
+            let variant_info = VariantInfo {
+                discriminant,
+                variant,
+                as_instruction_events,
+            };
+            let instruction_variant = InstructionVariant::try_from(variant_info)?;
             implicit_discriminant = discriminant + 1;
 
             Ok(instruction_variant)

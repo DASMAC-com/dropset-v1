@@ -2,6 +2,7 @@
 //! unpacking, and documentation helpers.
 
 mod pack_and_unpack;
+mod packable_type;
 mod struct_doc_comment;
 mod unzipped_argument_infos;
 
