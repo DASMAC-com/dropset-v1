@@ -7,6 +7,7 @@ use pinocchio::program_error::ProgramError;
 #[repr(u8)]
 pub enum DropsetError {
     InvalidInstructionTag,
+    InvalidInstructionEventTag,
     InsufficientByteLength,
     InvalidSectorIndex,
     NoFreeNodesLeft,
@@ -44,6 +45,7 @@ impl From<DropsetError> for &'static str {
     fn from(value: DropsetError) -> Self {
         match value {
             DropsetError::InvalidInstructionTag => "Invalid instruction tag",
+            DropsetError::InvalidInstructionEventTag => "Invalid instruction event tag",
             DropsetError::InsufficientByteLength => "Not enough bytes passed",
             DropsetError::InvalidSectorIndex => "Invalid sector index passed",
             DropsetError::NoFreeNodesLeft => "There are no free stack nodes left",

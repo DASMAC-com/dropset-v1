@@ -13,18 +13,17 @@ use crate::parse::argument_type::{
 impl ArgumentType {
     pub fn pack_statement(&self, arg_name: &Ident, offset: usize) -> TokenStream {
         let size_lit = Literal::usize_unsuffixed(self.size());
-        let start_lit = Literal::usize_unsuffixed(offset);
-        let end_lit = Literal::usize_unsuffixed(offset + self.size());
+        let offset_lit = Literal::usize_unsuffixed(offset);
 
         let src_bytes_slice_expression = match self {
-            Self::PrimitiveArg(_) => quote! { &self.#arg_name.to_le_bytes() },
-            Self::PubkeyBytes => quote! { &self.#arg_name },
+            Self::PrimitiveArg(_) => quote! { self.#arg_name.to_le_bytes() },
+            Self::PubkeyBytes => quote! { self.#arg_name },
         };
 
         quote! {
             ::core::ptr::copy_nonoverlapping(
                 (#src_bytes_slice_expression).as_ptr(),
-                (&mut data[#start_lit..#end_lit]).as_mut_ptr() as *mut u8,
+                (data.as_mut_ptr() as *mut u8).add(#offset_lit),
                 #size_lit,
             );
         }

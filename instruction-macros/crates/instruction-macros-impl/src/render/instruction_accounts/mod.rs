@@ -41,7 +41,7 @@ pub fn render(
     instruction_variants
         .into_iter()
         // Don't render anything for instructions that have no accounts/arguments.
-        .filter(|instruction_variant| !instruction_variant.no_accounts_or_args)
+        .filter(|instruction_variant| instruction_variant.at_least_one_account_or_arg)
         .flat_map(|instruction_variant| {
             Feature::iter().map(move |feature| NamespacedTokenStream {
                 tokens: render_variant(parsed_enum, &instruction_variant, feature),

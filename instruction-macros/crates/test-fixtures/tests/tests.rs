@@ -16,3 +16,8 @@ pub fn expand_pinocchio() {
 pub fn expand_solana_program() {
     macrotest::expand_args("src/solana_program.rs", ["--features", "solana-program"]);
 }
+
+#[test]
+pub fn expand_events() {
+    macrotest::expand_args("src/events.rs", ["--features", "client"]);
+}

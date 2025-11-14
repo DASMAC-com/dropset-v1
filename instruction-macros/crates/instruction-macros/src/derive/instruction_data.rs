@@ -21,7 +21,7 @@ pub struct DeriveInstructionData {
 }
 
 pub fn derive_instruction_data(input: DeriveInput) -> syn::Result<DeriveInstructionData> {
-    let parsed_enum = ParsedEnum::try_from(input)?;
+    let parsed_enum = ParsedEnum::try_from((false, input))?;
     let instruction_variants = parse_instruction_variants(&parsed_enum)?;
 
     let try_from_u8_macro = render_try_from_tag_macro(&parsed_enum, &instruction_variants);

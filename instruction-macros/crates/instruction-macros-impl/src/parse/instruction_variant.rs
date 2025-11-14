@@ -36,7 +36,7 @@ pub struct InstructionVariant {
     pub variant_name: Ident,
     pub arguments: Vec<InstructionArgument>,
     pub accounts: Vec<InstructionAccount>,
-    pub no_accounts_or_args: bool,
+    pub at_least_one_account_or_arg: bool,
     pub discriminant: u8,
 }
 
@@ -72,10 +72,11 @@ impl TryFrom<VariantInfo<'_>> for InstructionVariant {
             .map(InstructionAccount::try_from)
             .collect::<syn::Result<Vec<InstructionAccount>>>()?;
 
-        // Don't validate empty instructions, because they won't generate any code.
-        let no_accounts_or_args = arguments.is_empty() && accounts.is_empty();
-        if !no_accounts_or_args {
-            validate_accounts(&accounts, variant.span())?;
+        // Only validate instructions with at least one account or argument, since instructions
+        // with neither won't generate any code.
+        let at_least_one_account_or_arg = !arguments.is_empty() || !accounts.is_empty();
+        if at_least_one_account_or_arg {
+            validate_accounts(as_instruction_events, &accounts, variant.span())?;
         }
 
         // If this variant is parsed as an instruction event, it must have zero accounts.
@@ -87,7 +88,7 @@ impl TryFrom<VariantInfo<'_>> for InstructionVariant {
             variant_name: variant.ident.clone(),
             arguments,
             accounts,
-            no_accounts_or_args,
+            at_least_one_account_or_arg,
             discriminant,
         })
     }

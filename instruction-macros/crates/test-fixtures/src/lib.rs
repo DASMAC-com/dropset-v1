@@ -8,6 +8,7 @@
 #![allow(unused_imports)]
 
 mod client;
+mod events;
 mod pinocchio;
 mod solana_program;
 

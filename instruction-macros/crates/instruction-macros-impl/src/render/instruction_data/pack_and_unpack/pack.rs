@@ -19,12 +19,14 @@ pub fn render(
     size_with_tag: Literal,
 ) -> TokenStream {
     let discriminant_description =
-        format!(" - [0]: the discriminant `{enum_ident}::{tag_variant}` (u8, 1 byte)");
+        format!(" - `[0]` the **discriminant** `{enum_ident}::{tag_variant}` (`u8`, 1 byte)");
 
     let pack_statements_tokens = match pack_statements.len() {
         0 => quote! {},
         _ => quote! { unsafe { #(#pack_statements)* } },
     };
+
+    let buf_len_check_line = format!(" - `buf.len() >= offset + {}`.", size_with_tag);
 
     quote! {
         #[doc = " Instruction data layout:"]
@@ -39,6 +41,29 @@ pub fn render(
 
             // All bytes initialized during the construction above.
             unsafe { *(data.as_ptr() as *const [u8; #size_with_tag]) }
+        }
+
+        #[doc = " Instruction data layout:"]
+        #[doc = #discriminant_description]
+        #(#layout_docs)*
+        #[doc = ""]
+        /// # Safety
+        ///
+        /// Caller must guarantee:
+        ///
+        #[doc = #buf_len_check_line]
+        ///
+        /// The caller is also responsible for tracking how much of `buf` is
+        /// considered initialized after the call.
+        #[inline(always)]
+        pub unsafe fn pack_into_slice(&self, buf: &mut [::core::mem::MaybeUninit<u8>], offset: usize) {
+            use ::core::{mem::MaybeUninit, slice};
+
+            let ptr = buf.as_mut_ptr().add(offset);
+            let data: &mut [MaybeUninit<u8>] = slice::from_raw_parts_mut(ptr, #size_with_tag);
+
+            data[0].write(super::#enum_ident::#tag_variant as u8);
+            #pack_statements_tokens
         }
     }
 }

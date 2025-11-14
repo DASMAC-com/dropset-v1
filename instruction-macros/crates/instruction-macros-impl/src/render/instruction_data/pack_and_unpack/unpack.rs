@@ -49,10 +49,16 @@ pub fn render(
         },
     };
 
+    // `unpack` must be marked with the feature flag cfg because it's exposed at the top-level
+    // module without one when it's parsed as an instruction event. For the default parsing
+    // case, it's just a redundant flag.
+    let feature_flag = quote! { #[cfg(feature = #feature)] };
+
     quote! {
         /// This method unpacks the instruction data that comes *after* the discriminant has
         /// already been peeled off of the front of the slice.
         /// Trailing bytes are ignored; the length must be sufficient, not exact.
+        #feature_flag
         #[inline(always)]
         pub fn unpack(instruction_data: &[u8]) -> Result<Self, #base> {
             #unpack_body
