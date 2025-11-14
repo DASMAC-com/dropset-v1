@@ -24,7 +24,7 @@ strum_macros.workspace = true
 workspace = true
 
 [features]
-default = ["pinocchio", "client"]
+default = ["pinocchio"]
 std = []
 pinocchio = []
 client = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk", "dep:strum", "dep:strum_macros"]

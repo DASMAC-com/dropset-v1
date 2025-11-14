@@ -5,6 +5,7 @@
 use solana_sdk::pubkey::Pubkey;
 
 pub mod context;
+pub mod events;
 pub mod logs;
 pub mod pda;
 pub mod pretty;

@@ -38,10 +38,3 @@ impl TryFrom<u8> for DropsetEventTag {
         DropsetEventTag_try_from_tag!(tag, DropsetError::InvalidInstructionEventTag)
     }
 }
-
-#[cfg(feature = "client")]
-pub enum DropsetEvent {
-    Header(HeaderInstructionData),
-    Deposit(DepositInstructionData),
-    Withdraw(WithdrawInstructionData),
-}
