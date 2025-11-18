@@ -6,6 +6,7 @@ mod statements;
 mod statements_and_layout_info;
 mod unpack;
 
+pub use pack::Packs;
 use proc_macro2::TokenStream;
 use statements_and_layout_info::*;
 use syn::Ident;
@@ -24,7 +25,7 @@ pub fn render(
     instruction_variant: &InstructionVariant,
     field_names: &[Ident],
     feature: Feature,
-) -> (TokenStream, TokenStream) {
+) -> (Packs, TokenStream) {
     let enum_ident = &parsed_enum.enum_ident;
     let tag_variant = &instruction_variant.variant_name;
     let StatementsAndLayoutInfo {
@@ -37,6 +38,7 @@ pub fn render(
 
     let pack = pack::render(
         enum_ident,
+        &instruction_variant.instruction_data_struct_ident(),
         tag_variant,
         layout_docs,
         pack_statements,

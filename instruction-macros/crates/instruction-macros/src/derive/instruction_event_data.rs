@@ -16,6 +16,7 @@ use instruction_macros_impl::{
     render::{
         merge_namespaced_token_streams,
         render_instruction_data,
+        render_pack_into_slice_trait,
         render_try_from_tag_macro,
         Feature,
         FeatureNamespace,
@@ -26,6 +27,7 @@ use syn::DeriveInput;
 
 pub struct DeriveInstructionEventData {
     pub try_from_u8_macro: TokenStream,
+    pub pack_into_slice_trait: TokenStream,
     pub client_instruction_data: TokenStream,
 }
 
@@ -36,7 +38,7 @@ pub fn derive_instruction_event_data(
     let instruction_variants = parse_instruction_variants(&parsed_enum)?;
 
     let try_from_u8_macro = render_try_from_tag_macro(&parsed_enum, &instruction_variants);
-    let instruction_data = render_instruction_data(&parsed_enum, instruction_variants);
+    let instruction_data: Vec<instruction_macros_impl::render::NamespacedTokenStream> = render_instruction_data(&parsed_enum, instruction_variants);
 
     // Only use the client-side implementations to simplify and reduce the code generated. See the
     // module-level doc comment as to why.
@@ -47,8 +49,11 @@ pub fn derive_instruction_event_data(
         .unwrap()
         .1;
 
+    let pack_into_slice_trait = render_pack_into_slice_trait();
+
     Ok(DeriveInstructionEventData {
         try_from_u8_macro,
+        pack_into_slice_trait,
         client_instruction_data: quote::quote! { #(#client_streams)* },
     })
 }

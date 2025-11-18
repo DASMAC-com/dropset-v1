@@ -27,7 +27,10 @@ use crate::{
             FeatureNamespace,
             NamespacedTokenStream,
         },
-        instruction_data::unzipped_argument_infos::InstructionArgumentInfo,
+        instruction_data::{
+            pack_and_unpack::Packs,
+            unzipped_argument_infos::InstructionArgumentInfo,
+        },
         Feature,
     },
 };
@@ -78,9 +81,15 @@ fn render_variant(
 
     let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
     let size_without_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag);
+    let size_with_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag + 1);
 
-    let (pack_fn, unpack_fn) =
-        pack_and_unpack::render(parsed_enum, instruction_variant, &names, feature);
+    let (
+        Packs {
+            pack: pack_fn,
+            pack_into_slice,
+        },
+        unpack_fn,
+    ) = pack_and_unpack::render(parsed_enum, instruction_variant, &names, feature);
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -105,7 +114,7 @@ fn render_variant(
 
             /// This is the byte length **including** the tag byte; i.e., the size of the full event
             /// instruction data in an `instruction_data: &[u8]` slice with the tag.
-            pub const LEN_WITH_TAG: usize = #size_without_tag_unsuffixed;
+            pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
 
             #struct_doc
             #[inline(always)]
@@ -119,6 +128,8 @@ fn render_variant(
 
             #unpack_fn
         }
+
+        #pack_into_slice
     }
 }
 
