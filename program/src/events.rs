@@ -26,6 +26,10 @@ use pinocchio::{
     program::invoke_signed_unchecked,
     pubkey::Pubkey,
 };
+use static_assertions::{
+    const_assert,
+    const_assert_eq,
+};
 
 use crate::event_authority_signer;
 
@@ -186,14 +190,8 @@ impl<'a> EventBuffer<'a> {
     /// The simplest way to enforce this is to immediately use and drop the pointer.
     #[inline(always)]
     unsafe fn emitted_count_slice_mut_ptr(&mut self) -> *mut [u8; 2] {
-        // Sanity check to ensure that there's no way the `.add` call below could ever result in UB.
-        debug_assert!(
-            size_of::<DropsetInstruction>() + EMITTED_COUNT_OFFSET + EMITTED_COUNT_SIZE
-                <= EVENT_BUFFER_LEN
-        );
-        // Safety: `&mut` requires aliasing rules to be upheld. The `.add` call
-        // can't result in undefined behavior because the slice size is always much larger
-        // than the offset computed.
+        // Safety: The `.add` call can't result in undefined behavior because the slice size is
+        // always much larger than the offset computed. This is checked in const assertions.
         unsafe {
             self.data
                 .as_mut_ptr()
@@ -240,8 +238,10 @@ impl<'a> EventBuffer<'a> {
     #[inline(always)]
     fn set_nonce(&mut self, new_nonce: u64) {
         // Safety:
-        // The first 1 + `HeaderInstructionData::LEN_WITH_TAG` bytes are always initialized.
-        // No other reference to this data is currently held.
+        // - The `.add` call can't result in undefined behavior because the slice size is always
+        //   much larger than the offset computed. This is checked in const assertions.
+        // - `&mut` enforces aliasing rules to be upheld and the resulting slice pointer is used and
+        //   immediately droped.
         unsafe {
             let nonce_slice = self
                 .data
@@ -267,6 +267,16 @@ const _: () = {
         let _: [u8; NONCE_SIZE] = [0; size_of::<u64>()];
     }
 };
+
+// Compile time check to ensure the header slice length is always sufficiently large to safely
+// dereference the emitted count's raw pointer offset.
+const_assert!(
+    size_of::<DropsetInstruction>() + EMITTED_COUNT_OFFSET + EMITTED_COUNT_SIZE <= EVENT_BUFFER_LEN
+);
+
+// Compile time check to ensure the header slice length is always sufficiently large to safely
+// dereference the nonce's raw pointer offset.
+const_assert!(size_of::<DropsetInstruction>() + NONCE_OFFSET + NONCE_SIZE <= EVENT_BUFFER_LEN);
 
 #[test]
 fn test_max_cpi_len() {
