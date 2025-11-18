@@ -901,6 +901,7 @@ dependencies = [
  "pinocchio-token-2022",
  "pinocchio-token-interface",
  "solana-pubkey",
+ "solana-sdk",
  "static_assertions",
 ]
 

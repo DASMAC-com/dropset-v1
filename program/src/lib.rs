@@ -7,6 +7,7 @@ extern crate std;
 
 mod context;
 mod debug;
+mod events;
 mod instructions;
 mod shared;
 mod validation;

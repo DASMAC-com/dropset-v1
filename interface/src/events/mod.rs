@@ -1,8 +1,6 @@
-mod buffer;
 #[cfg(test)]
 mod tests;
 
-use buffer::*;
 use instruction_macros::ProgramInstructionEvent;
 
 use crate::error::DropsetError;

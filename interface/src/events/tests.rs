@@ -38,11 +38,3 @@ fn test_ixn_tag_try_from_u8_exhaustive() {
         }
     }
 }
-
-#[test]
-fn test_max_cpi_len() {
-    assert_eq!(
-        solana_sdk::syscalls::MAX_CPI_INSTRUCTION_DATA_LEN as usize,
-        crate::events::MAX_CPI_INSTRUCTION_DATA_LEN
-    );
-}
