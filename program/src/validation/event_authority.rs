@@ -6,7 +6,7 @@ use pinocchio::account_info::AccountInfo;
 
 #[derive(Clone)]
 pub struct EventAuthorityInfo<'a> {
-    pub info: &'a AccountInfo,
+    pub _info: &'a AccountInfo,
 }
 
 impl<'a> EventAuthorityInfo<'a> {
@@ -21,7 +21,7 @@ impl<'a> EventAuthorityInfo<'a> {
         }
 
         Ok(Self {
-            info: event_authority_account,
+            _info: event_authority_account,
         })
     }
 }

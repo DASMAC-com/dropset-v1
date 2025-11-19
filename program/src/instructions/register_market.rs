@@ -2,6 +2,7 @@
 
 use dropset_interface::{
     error::DropsetError,
+    events::RegisterMarketEventInstructionData,
     instructions::generated_pinocchio::*,
     state::{
         market_header::MarketHeader,
@@ -11,19 +12,24 @@ use dropset_interface::{
 };
 use pinocchio::{
     account_info::AccountInfo,
+    program_error::ProgramError,
     pubkey::try_find_program_address,
     sysvars::{
         rent::Rent,
         Sysvar,
     },
-    ProgramResult,
 };
 
 use crate::{
-    context::register_market_context::RegisterMarketContext,
+    context::{
+        register_market_context::RegisterMarketContext,
+        EventBufferContext,
+    },
+    events::EventBuffer,
     market_seeds,
     market_signer,
     shared::market_operations::initialize_market_account_data,
+    validation::market_account_info::MarketAccountInfo,
 };
 
 /// Instruction handler logic for initializing a new market account and its header metadata.
@@ -32,10 +38,11 @@ use crate::{
 ///
 /// Caller guarantees the safety contract detailed in [`RegisterMarket`].
 #[inline(never)]
-pub unsafe fn process_register_market(
-    accounts: &[AccountInfo],
+pub unsafe fn process_register_market<'a>(
+    accounts: &'a [AccountInfo],
     instruction_data: &[u8],
-) -> ProgramResult {
+    event_buffer: &mut EventBuffer,
+) -> Result<EventBufferContext<'a>, ProgramError> {
     let num_sectors = RegisterMarketInstructionData::unpack(instruction_data)?.num_sectors;
     let ctx = RegisterMarketContext::load(accounts)?;
 
@@ -95,5 +102,17 @@ pub unsafe fn process_register_market(
         market_bump,
     )?;
 
-    Ok(())
+    // Safety: `ctx.market_account.info` was just initialized as a market account.
+    let market_account = unsafe { MarketAccountInfo::new_unchecked(ctx.market_account.info) };
+
+    event_buffer.add_to_buffer(
+        RegisterMarketEventInstructionData::new(*market_account.info().key()),
+        ctx.event_authority,
+        market_account.clone(),
+    )?;
+
+    Ok(EventBufferContext {
+        event_authority: ctx.event_authority,
+        market_account,
+    })
 }

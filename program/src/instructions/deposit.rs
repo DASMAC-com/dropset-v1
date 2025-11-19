@@ -1,6 +1,7 @@
 //! See [`process_deposit`].
 
 use dropset_interface::{
+    events::DepositEventInstructionData,
     instructions::generated_pinocchio::*,
     state::{
         market_seat::MarketSeat,
@@ -11,11 +12,14 @@ use dropset_interface::{
 use pinocchio::{
     account_info::AccountInfo,
     program_error::ProgramError,
-    ProgramResult,
 };
 
 use crate::{
-    context::deposit_withdraw_context::DepositWithdrawContext,
+    context::{
+        deposit_withdraw_context::DepositWithdrawContext,
+        EventBufferContext,
+    },
+    events::EventBuffer,
     shared::{
         market_operations::{
             find_mut_seat_with_hint,
@@ -42,7 +46,11 @@ use crate::{
 ///
 /// Caller guarantees the safety contract detailed in [`Deposit`].
 #[inline(never)]
-pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+pub unsafe fn process_deposit<'a>(
+    accounts: &'a [AccountInfo],
+    instruction_data: &[u8],
+    event_buffer: &mut EventBuffer,
+) -> Result<EventBufferContext<'a>, ProgramError> {
     let DepositInstructionData {
         amount,
         sector_index_hint,
@@ -52,7 +60,7 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
     let amount_deposited = unsafe { deposit_non_zero_to_market(&ctx, amount) }?;
 
     // 1) Update an existing seat.
-    if sector_index_hint != NIL {
+    let sector_index = if sector_index_hint != NIL {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };
         Node::check_in_bounds(market.sectors, sector_index_hint)?;
@@ -82,6 +90,8 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
                     .ok_or(ProgramError::ArithmeticOverflow)?,
             );
         }
+
+        sector_index_hint
     } else {
         // 2) Register a new seat.
         // Safety: Scoped immutable borrow of the market account, checks the number of free sectors.
@@ -105,8 +115,17 @@ pub unsafe fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8])
         };
 
         // Attempts to insert the user into the linked list. If the user already exists, this fails.
-        insert_market_seat(&mut market.seat_list(), seat)?;
-    }
+        insert_market_seat(&mut market.seat_list(), seat)?
+    };
 
-    Ok(())
+    event_buffer.add_to_buffer(
+        DepositEventInstructionData::new(amount_deposited, ctx.mint.is_base_mint, sector_index),
+        ctx.event_authority,
+        ctx.market_account.clone(),
+    )?;
+
+    Ok(EventBufferContext {
+        event_authority: ctx.event_authority,
+        market_account: ctx.market_account,
+    })
 }

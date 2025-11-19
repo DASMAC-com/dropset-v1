@@ -13,7 +13,7 @@ use crate::context::flush_events_context::FlushEventsContext;
 /// instruction data is performed off-chain, so the instruction data is unused here.
 #[inline(never)]
 pub fn process_flush_events(accounts: &[AccountInfo], _instruction_data: &[u8]) -> ProgramResult {
-    let _ = FlushEventsContext::load(accounts)?;
+    FlushEventsContext::load(accounts)?;
 
     Ok(())
 }

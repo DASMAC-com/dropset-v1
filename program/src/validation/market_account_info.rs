@@ -71,6 +71,13 @@ impl<'a> MarketAccountInfo<'a> {
         Ok(Self { info })
     }
 
+    /// Safety:
+    ///
+    /// Caller guarantees that `info` is a valid, initialized market account.
+    pub unsafe fn new_unchecked(info: &'a AccountInfo) -> MarketAccountInfo<'a> {
+        Self { info }
+    }
+
     /// Helper function to load market data given the owner-validated and initialized account.
     ///
     /// # Safety

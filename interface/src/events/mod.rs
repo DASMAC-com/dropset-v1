@@ -14,20 +14,20 @@ use crate::error::DropsetError;
 pub enum DropsetEventTag {
     #[args(instruction_tag: u8, "The tag of the instruction that emitted the following events.")]
     #[args(emitted_count: u16, "The number of events in the following event buffer.")]
-    #[args(nonce: u64, "The market nonce.")]
+    #[args(num_events: u64, "The market's final, total number of events.")]
     #[args(market: [u8; 32], "The market's pubkey.")]
-    Header,
+    HeaderEvent,
     #[args(amount: u64, "The amount deposited.")]
     #[args(is_base: bool, "Which token, i.e., `true` => base token, `false` => quote token.")]    
     #[args(seat_sector_index: u32, "The user's (possibly newly registered) market seat sector index.")]
-    Deposit,
+    DepositEvent,
     #[args(amount: u64, "The amount withdrawn.")]
     #[args(is_base: bool, "Which token, i.e., `true` => base token, `false` => quote token.")]    
-    Withdraw,
+    WithdrawEvent,
     #[args(market: [u8; 32], "The newly registered market.")]
-    RegisterMarket,
+    RegisterMarketEvent,
     #[args(seat_sector_index: u32, "The user's market seat sector index.")]
-    CloseSeat,
+    CloseSeatEvent,
 }
 
 impl TryFrom<u8> for DropsetEventTag {

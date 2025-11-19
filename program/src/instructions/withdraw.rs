@@ -2,16 +2,21 @@
 
 use dropset_interface::{
     error::DropsetError,
+    events::WithdrawEventInstructionData,
     instructions::generated_pinocchio::*,
     state::node::Node,
 };
 use pinocchio::{
     account_info::AccountInfo,
-    ProgramResult,
+    program_error::ProgramError,
 };
 
 use crate::{
-    context::deposit_withdraw_context::DepositWithdrawContext,
+    context::{
+        deposit_withdraw_context::DepositWithdrawContext,
+        EventBufferContext,
+    },
+    events::EventBuffer,
     shared::{
         market_operations::find_mut_seat_with_hint,
         token_utils::market_transfers::withdraw_non_zero_from_market,
@@ -24,7 +29,11 @@ use crate::{
 ///
 /// Caller guarantees the safety contract detailed in [`Withdraw`].
 #[inline(never)]
-pub unsafe fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+pub unsafe fn process_withdraw<'a>(
+    accounts: &'a [AccountInfo],
+    instruction_data: &[u8],
+    event_buffer: &mut EventBuffer,
+) -> Result<EventBufferContext<'a>, ProgramError> {
     let WithdrawInstructionData {
         amount,
         sector_index_hint,
@@ -68,5 +77,14 @@ pub unsafe fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]
         );
     }
 
-    Ok(())
+    event_buffer.add_to_buffer(
+        WithdrawEventInstructionData::new(amount, ctx.mint.is_base_mint),
+        ctx.event_authority,
+        ctx.market_account.clone(),
+    )?;
+
+    Ok(EventBufferContext {
+        event_authority: ctx.event_authority,
+        market_account: ctx.market_account,
+    })
 }
