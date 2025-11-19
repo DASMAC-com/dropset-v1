@@ -32,9 +32,9 @@ nostd_panic_handler!();
 pub fn process_instruction(
     _program_id: &Pubkey,
     accounts: &[AccountInfo],
-    data_with_tag: &[u8],
+    instruction_data_with_tag: &[u8],
 ) -> ProgramResult {
-    let [tag, instruction_data @ ..] = data_with_tag else {
+    let [tag, instruction_data @ ..] = instruction_data_with_tag else {
         return Err(DropsetError::InvalidInstructionTag.into());
     };
 
