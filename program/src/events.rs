@@ -28,9 +28,8 @@ use crate::{
     validation::market_account_info::MarketAccountInfo,
 };
 
-/// The event buffer length, also exactly the max CPI instruction data length.
-/// That value is checked below in unit tests.
-pub const EVENT_BUFFER_LEN: usize = 10 * 1024;
+/// The stack-allocated event buffer length.
+pub const EVENT_BUFFER_LEN: usize = 1024;
 
 /// The stack-based, buffer of event data emitted through self-CPIs.
 ///
@@ -77,30 +76,30 @@ const HEADER_SIZE_WITH_TAGS: usize =
     size_of::<DropsetInstruction>() + HeaderEventInstructionData::LEN_WITH_TAG;
 
 impl EventBuffer {
+    #[inline(never)] // The compiler inlines this otherwise and doubles the stack frame size.
     pub fn new(instruction_tag: DropsetInstruction) -> Self {
-        let mut data: [MaybeUninit<u8>; 10240] = [MaybeUninit::uninit(); EVENT_BUFFER_LEN];
+        let mut buf = Self {
+            data: [MaybeUninit::uninit(); EVENT_BUFFER_LEN],
+            emitted_count: 0,
+            // The length after writing to the first byte + all the header data bytes.
+            len: HEADER_SIZE_WITH_TAGS,
+            instruction_tag,
+        };
+
         // Manually pack the instruction tag for the CPI invocation.
-        data[0].write(DropsetInstruction::FlushEvents as u8);
-        let mut len = HEADER_DATA_OFFSET;
+        buf.data[0].write(DropsetInstruction::FlushEvents as u8);
+
         // Zero out the space reserved for the header event data.
         // Safety: `data` is valid for EVENT_BUFFER_LEN - HEADER_DATA_OFFSET bytes and is align 1.
         unsafe {
             syscalls::sol_memset_(
-                data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8,
+                buf.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8,
                 0,
                 HeaderEventInstructionData::LEN_WITH_TAG as u64,
             )
         };
-        len += HeaderEventInstructionData::LEN_WITH_TAG;
 
-        debug_assert_eq!(len, HEADER_SIZE_WITH_TAGS);
-
-        Self {
-            data,
-            emitted_count: 0,
-            len,
-            instruction_tag,
-        }
+        buf
     }
 
     /// Flush the event buffer by invoking a CPI with the buffer data.
@@ -193,10 +192,12 @@ impl EventBuffer {
 
 #[test]
 fn test_max_cpi_len() {
-    let _: [u8; solana_sdk::syscalls::MAX_CPI_INSTRUCTION_DATA_LEN as usize] =
-        [0u8; EVENT_BUFFER_LEN];
+    pub const MAX_CPI_INSTRUCTION_DATA_LEN: usize = 10 * 1024;
+
+    static_assertions::const_assert!(EVENT_BUFFER_LEN <= MAX_CPI_INSTRUCTION_DATA_LEN);
+
     assert_eq!(
         solana_sdk::syscalls::MAX_CPI_INSTRUCTION_DATA_LEN as usize,
-        EVENT_BUFFER_LEN
+        MAX_CPI_INSTRUCTION_DATA_LEN
     );
 }
