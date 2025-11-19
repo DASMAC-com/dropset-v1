@@ -22,7 +22,9 @@ program_entrypoint!(process_instruction);
 no_allocator!();
 nostd_panic_handler!();
 
-#[inline(always)]
+// `inline(never)` because the event buffer + batch instruction data causes the program to exceed
+// the 4096 stack frame size very quickly.
+#[inline(never)]
 pub fn process_instruction(
     _program_id: &Pubkey,
     accounts: &[AccountInfo],

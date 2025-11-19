@@ -21,6 +21,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in [`CloseSeat`].
+#[inline(never)]
 pub fn process_close_seat(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let sector_index_hint = CloseSeatInstructionData::unpack(instruction_data)?.sector_index_hint;
     let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;

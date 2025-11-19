@@ -42,6 +42,7 @@ impl<'a> CloseSeatContext<'a> {
             quote_mint,
             base_token_program: _,
             quote_token_program: _,
+            dropset_program: _,
         } = CloseSeat::load_accounts(accounts)?;
 
         // Safety: Scoped borrow of market account data.

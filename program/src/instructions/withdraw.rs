@@ -23,6 +23,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in [`Withdraw`].
+#[inline(never)]
 pub unsafe fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     let WithdrawInstructionData {
         amount,

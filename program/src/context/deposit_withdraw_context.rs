@@ -57,6 +57,7 @@ impl<'a> DepositWithdrawContext<'a> {
             market_ata,
             mint,
             token_program: _,
+            dropset_program: _,
         } = Deposit::load_accounts(accounts)?;
 
         // Safety: Scoped borrow of market account data.
@@ -112,6 +113,7 @@ fn debug_assert_deposit_withdraw(accounts: &[AccountInfo]) {
         market_ata,
         mint,
         token_program,
+        dropset_program,
     } = w.unwrap();
 
     let d = d.unwrap();
@@ -124,4 +126,5 @@ fn debug_assert_deposit_withdraw(accounts: &[AccountInfo]) {
     debug_assert_eq!(d.market_ata.key(), market_ata.key());
     debug_assert_eq!(d.mint.key(), mint.key());
     debug_assert_eq!(d.token_program.key(), token_program.key());
+    debug_assert_eq!(d.dropset_program.key(), dropset_program.key());
 }
