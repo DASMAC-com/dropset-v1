@@ -34,8 +34,11 @@ async fn main() -> anyhow::Result<()> {
 
     let withdraw = market_ctx.withdraw_base(payer.pubkey(), 100, user_seat.index);
 
-    rpc.send_and_confirm_txn(&payer, &[&payer], &[withdraw])
+    let res = rpc
+        .send_and_confirm_txn(&payer, &[&payer], &[withdraw])
         .await?;
+
+    println!("Transaction signature: {res}");
 
     Ok(())
 }

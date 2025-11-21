@@ -115,7 +115,7 @@ impl Display for PrettyInstructionError {
             ),
         };
 
-        let message = format!("{instruction}, {error})");
+        let message = format!("error code: {instruction}, message: {error}");
         let error_message = fmt_kv!(error_type, message, LogColor::Error);
         writeln!(f, "{error_message}")
     }

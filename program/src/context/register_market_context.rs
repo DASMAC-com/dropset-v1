@@ -22,7 +22,6 @@ pub struct RegisterMarketContext<'a> {
     pub quote_mint: &'a AccountInfo,
     pub base_token_program: &'a AccountInfo,
     pub quote_token_program: &'a AccountInfo,
-    pub _ata_program: &'a AccountInfo,
     pub system_program: &'a AccountInfo,
 }
 
@@ -38,8 +37,9 @@ impl<'a> RegisterMarketContext<'a> {
             quote_mint,
             base_token_program,
             quote_token_program,
-            ata_program,
+            ata_program: _,
             system_program,
+            dropset_program: _,
         } = RegisterMarket::load_accounts(accounts)?;
 
         // Since the market PDA and both of its associated token accounts are created atomically
@@ -61,7 +61,6 @@ impl<'a> RegisterMarketContext<'a> {
             quote_mint,
             base_token_program,
             quote_token_program,
-            _ata_program: ata_program,
             system_program,
         })
     }

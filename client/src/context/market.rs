@@ -80,6 +80,7 @@ impl MarketContext {
             quote_token_program: self.quote.token_program,
             ata_program: spl_associated_token_account_interface::program::ID,
             system_program: SYSTEM_PROGRAM_ID.into(),
+            dropset_program: dropset::ID.into(),
         }
         .create_instruction(RegisterMarketInstructionData::new(num_sectors))
     }
@@ -110,6 +111,7 @@ impl MarketContext {
             quote_mint: self.quote.mint,
             base_token_program: self.base.token_program,
             quote_token_program: self.quote.token_program,
+            dropset_program: dropset::ID.into(),
         }
         .create_instruction(CloseSeatInstructionData::new(sector_index_hint))
     }
@@ -144,6 +146,7 @@ impl MarketContext {
                 market_ata: self.base_market_ata,
                 mint: self.base.mint,
                 token_program: self.base.token_program,
+                dropset_program: dropset::ID.into(),
             },
             false => Deposit {
                 event_authority: event_authority::ID.into(),
@@ -153,6 +156,7 @@ impl MarketContext {
                 market_ata: self.quote_market_ata,
                 mint: self.quote.mint,
                 token_program: self.quote.token_program,
+                dropset_program: dropset::ID.into(),
             },
         }
         .create_instruction(data)
@@ -168,6 +172,7 @@ impl MarketContext {
                 market_ata: self.base_market_ata,
                 mint: self.base.mint,
                 token_program: self.base.token_program,
+                dropset_program: dropset::ID.into(),
             },
             false => Withdraw {
                 event_authority: event_authority::ID.into(),
@@ -177,6 +182,7 @@ impl MarketContext {
                 market_ata: self.quote_market_ata,
                 mint: self.quote.mint,
                 token_program: self.quote.token_program,
+                dropset_program: dropset::ID.into(),
             },
         }
         .create_instruction(data)

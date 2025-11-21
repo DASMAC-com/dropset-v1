@@ -31,6 +31,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in [`RegisterMarket`].
+#[inline(never)]
 pub unsafe fn process_register_market(
     accounts: &[AccountInfo],
     instruction_data: &[u8],

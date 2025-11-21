@@ -23,7 +23,7 @@ use crate::error::DropsetError;
 #[program_id(crate::program::ID)]
 #[rustfmt::skip]
 pub enum DropsetInstruction {
-    #[account(0, signer,   name = "event_authority",      desc = "The event authority PDA signer.")]
+    #[account(0,           name = "event_authority",      desc = "The event authority PDA signer.")]
     #[account(1, signer,   name = "user",                 desc = "The user closing their seat.")]
     #[account(2, writable, name = "market_account",       desc = "The market account PDA.")]
     #[account(3, writable, name = "base_user_ata",        desc = "The user's associated base mint token account.")]
@@ -34,21 +34,23 @@ pub enum DropsetInstruction {
     #[account(8,           name = "quote_mint",           desc = "The quote token mint account.")]
     #[account(9,           name = "base_token_program",   desc = "The base mint's token program.")]
     #[account(10,          name = "quote_token_program",  desc = "The quote mint's token program.")]
+    #[account(11,          name = "dropset_program",      desc = "The dropset program itself, used for the self-CPI.")]
     #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
     CloseSeat,
 
-    #[account(0, signer,   name = "event_authority", desc = "The event authority PDA signer.")]
+    #[account(0,           name = "event_authority", desc = "The event authority PDA signer.")]
     #[account(1, signer,   name = "user",            desc = "The user depositing or registering their seat.")]
     #[account(2, writable, name = "market_account",  desc = "The market account PDA.")]
     #[account(3, writable, name = "user_ata",        desc = "The user's associated token account.")]
     #[account(4, writable, name = "market_ata",      desc = "The market's associated token account.")]
     #[account(5,           name = "mint",            desc = "The token mint account.")]
     #[account(6,           name = "token_program",   desc = "The mint's token program.")]
+    #[account(7,           name = "dropset_program", desc = "The dropset program itself, used for the self-CPI.")]
     #[args(amount: u64, "The amount to deposit.")]
     #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in (pass `NIL` when registering a new seat).")]
     Deposit,
 
-    #[account(0, signer,   name = "event_authority",     desc = "The event authority PDA signer.")]
+    #[account(0,   name = "event_authority",     desc = "The event authority PDA signer.")]
     #[account(1, signer, writable, name = "user",        desc = "The user registering the market.")]
     #[account(2, writable, name = "market_account",      desc = "The market account PDA.")]
     #[account(3, writable, name = "base_market_ata",     desc = "The market's associated token account for the base mint.")]
@@ -59,16 +61,18 @@ pub enum DropsetInstruction {
     #[account(8,           name = "quote_token_program", desc = "The quote mint's token program.")]
     #[account(9,           name = "ata_program",         desc = "The associated token account program.")]
     #[account(10,          name = "system_program",      desc = "The system program.")]
+    #[account(11,          name = "dropset_program",     desc = "The dropset program itself, used for the self-CPI.")]
     #[args(num_sectors: u16, "The number of sectors to preallocate for the market.")]
     RegisterMarket,
 
-    #[account(0, signer,   name = "event_authority", desc = "The event authority PDA signer.")]
+    #[account(0,           name = "event_authority", desc = "The event authority PDA signer.")]
     #[account(1, signer,   name = "user",            desc = "The user withdrawing.")]
     #[account(2, writable, name = "market_account",  desc = "The market account PDA.")]
     #[account(3, writable, name = "user_ata",        desc = "The user's associated token account.")]
     #[account(4, writable, name = "market_ata",      desc = "The market's associated token account.")]
     #[account(5,           name = "mint",            desc = "The token mint account.")]
     #[account(6,           name = "token_program",   desc = "The mint's token program.")]
+    #[account(7,           name = "dropset_program", desc = "The dropset program itself, used for the self-CPI.")]
     #[args(amount: u64, "The amount to withdraw.")]
     #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
     Withdraw,
