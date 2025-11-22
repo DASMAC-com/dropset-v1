@@ -1,5 +1,5 @@
-//! Helpers for pretty-printing `dropset` transactions, instructions, and errors in a readable,
-//! colorized format.
+//! Helpers for pretty-printing parsed `dropset` transactions, instructions, and errors in a
+//! readable, colorized format.
 
 pub mod instruction;
 pub mod instruction_error;

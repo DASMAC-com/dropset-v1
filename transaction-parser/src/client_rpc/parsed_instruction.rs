@@ -11,9 +11,12 @@ use solana_transaction_status::{
     UiParsedInstruction,
 };
 
-use crate::transaction_parser::{
-    ParsedAccounts,
-    ParsedLogs,
+use crate::{
+    client_rpc::{
+        ParsedAccounts,
+        ParsedLogs,
+    },
+    ParseDropsetEvents,
 };
 
 #[derive(Debug)]
@@ -90,5 +93,15 @@ impl ParsedInstruction {
             // It's unclear how to parse already parsed ui transactions.
             UiInstruction::Parsed(UiParsedInstruction::Parsed(_)) => unimplemented!(),
         }
+    }
+}
+
+impl ParseDropsetEvents for ParsedInstruction {
+    fn program_id(&self) -> &[u8; 32] {
+        self.program_id.as_array()
+    }
+
+    fn instruction_data(&self) -> &[u8] {
+        &self.data
     }
 }

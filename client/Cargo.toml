@@ -8,7 +8,6 @@ anyhow.workspace = true
 bincode.workspace = true
 borsh.workspace = true
 colored.workspace = true
-derive_more = { workspace = true, features = ["into_iterator", "index", "as_ref", "deref"]}
 dropset = { path = "../program" }
 dropset-interface = { path = "../interface", features = ["client", "solana-program"], default-features = false }
 itertools.workspace = true
@@ -32,6 +31,7 @@ spl-token-2022-interface.workspace = true
 strum.workspace = true
 strum_macros.workspace = true
 tokio.workspace = true
+transaction-parser = { path = "../transaction-parser" }
 
 [dev-dependencies]
 serde = { version = "1.0.228" }

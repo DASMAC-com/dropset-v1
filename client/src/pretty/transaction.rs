@@ -14,12 +14,12 @@ use solana_sdk::{
     pubkey::Pubkey,
     signature::Signature,
 };
+use transaction_parser::client_rpc::ParsedTransaction;
 
 use crate::{
     fmt_kv,
     logs::LogColor,
     pretty::instruction::PrettyInstruction,
-    transaction_parser::ParsedTransaction,
 };
 
 pub struct PrettyTransaction<'a> {

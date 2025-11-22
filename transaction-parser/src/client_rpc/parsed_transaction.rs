@@ -18,7 +18,7 @@ use solana_transaction_status::{
 };
 use solana_transaction_status_client_types::UiTransactionError;
 
-use crate::transaction_parser::{
+use crate::client_rpc::{
     add_infos_to_outer_instructions,
     parse::{
         parse_inner_instructions,
@@ -166,7 +166,7 @@ mod tests {
 
     use solana_sdk::pubkey::Pubkey;
 
-    use crate::transaction_parser::{
+    use crate::client_rpc::{
         parse_logs_for_compute,
         GroupedParsedLogs,
         ParsedLogs,

@@ -7,6 +7,7 @@ members = [
   "instruction-macros/crates/test-fixtures",
   "interface",
   "program",
+  "transaction-parser",
 ]
 
 [workspace.package]
@@ -52,6 +53,8 @@ static_assertions = "1.1.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
 tokio = "1.47.1"
+yellowstone-grpc-client = "10.1.1"
+yellowstone-grpc-proto = "10.1.1"
 
 # proc-macro dependencies
 quote = "1.0.41"

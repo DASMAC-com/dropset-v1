@@ -22,15 +22,12 @@ use solana_system_interface::instruction::SystemInstruction;
 use spl_associated_token_account_interface::instruction::AssociatedTokenAccountInstruction;
 use spl_token_2022_interface::instruction::TokenInstruction as Token2022Instruction;
 use spl_token_interface::instruction::TokenInstruction;
-
-use crate::{
-    logs::LogColor,
-    transaction_parser::ParsedInstruction,
-    COMPUTE_BUDGET_ID,
-    SPL_ASSOCIATED_TOKEN_ACCOUNT_ID,
-    SPL_TOKEN_2022_ID,
-    SPL_TOKEN_ID,
+use transaction_parser::{
+    client_rpc::ParsedInstruction,
+    program_ids::*,
 };
+
+use crate::logs::LogColor;
 
 pub struct PrettyInstruction<'a> {
     pub instruction: &'a ParsedInstruction,

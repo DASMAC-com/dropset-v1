@@ -17,14 +17,16 @@ use solana_transaction_status::{
     UiRawMessage,
 };
 
-use crate::transaction_parser::{
-    parsed_account::ParsedAccount,
+use crate::client_rpc::{
+    parsed_account::{
+        ParsedAccount,
+        ParsedAccounts,
+    },
     parsed_instruction::{
         ParsedInnerInstruction,
         ParsedInstruction,
     },
     parsed_transaction::ParsedTransaction,
-    ParsedAccounts,
 };
 
 // Re-export the main parsing entry function for clarity.

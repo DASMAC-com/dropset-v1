@@ -9,8 +9,8 @@ use lazy_regex::*;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::{
-    transaction_parser::ParsedOuterInstruction,
-    COMPUTE_BUDGET_ID,
+    client_rpc::ParsedOuterInstruction,
+    program_ids::COMPUTE_BUDGET_ID,
 };
 
 /// A struct that represents information extracted from a transaction's parsed program logs.
