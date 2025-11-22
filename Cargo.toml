@@ -6,6 +6,7 @@ members = [
   "instruction-macros/crates/instruction-macros-impl",
   "instruction-macros/crates/test-fixtures",
   "interface",
+  "grpc-stream",
   "program",
   "transaction-parser",
 ]

@@ -1,0 +1,17 @@
+[package]
+name = "grpc-stream"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+dropset-interface = { path = "../interface", features = ["client", "solana-program"], default-features = false }
+futures.workspace = true
+solana-sdk.workspace = true
+tokio = { workspace = true, features = ["full"] }
+transaction-parser = { path = "../transaction-parser" }
+yellowstone-grpc-client.workspace = true
+yellowstone-grpc-proto.workspace = true
+
+[lints]
+workspace = true
