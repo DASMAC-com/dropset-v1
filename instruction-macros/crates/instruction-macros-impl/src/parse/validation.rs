@@ -9,8 +9,26 @@ use crate::{
     ParsingError,
 };
 
-/// Validate the vector of instruction accounts to ensure no duplicate names, indices, etc.
-pub fn validate_accounts(accs: &[InstructionAccount], span: proc_macro2::Span) -> syn::Result<()> {
+/// Validate the vector of instruction accounts.
+pub fn validate_accounts(
+    as_instruction_events: bool,
+    accs: &[InstructionAccount],
+    span: proc_macro2::Span,
+) -> syn::Result<()> {
+    // Validate the accounts for an instruction that's parsed as an instruction event.
+    // It should not have any accounts, since it's entirely just instruction data.
+    if as_instruction_events {
+        let events_res = if accs.is_empty() {
+            Ok(())
+        } else {
+            Err(ParsingError::InstructionEventHasAccounts.new_err(span))
+        };
+
+        return events_res;
+    }
+
+    // Otherwise, validate as a typical instruction, where there is at least one signing account
+    // and each account has a unique name.
     if accs.is_empty() {
         return Err(ParsingError::ZeroAccounts.new_err(span));
     };

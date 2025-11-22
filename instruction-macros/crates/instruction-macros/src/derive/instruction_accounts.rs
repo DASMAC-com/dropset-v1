@@ -14,7 +14,7 @@ use instruction_macros_impl::{
 use syn::DeriveInput;
 
 pub fn derive_accounts(input: DeriveInput) -> syn::Result<Vec<NamespacedTokenStream>> {
-    let parsed_enum = ParsedEnum::try_from(input)?;
+    let parsed_enum = ParsedEnum::try_from((false, input))?;
     let instruction_variants = parse_instruction_variants(&parsed_enum)?;
     let accounts = render_instruction_accounts(&parsed_enum, instruction_variants);
 

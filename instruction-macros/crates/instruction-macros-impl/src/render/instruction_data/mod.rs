@@ -2,7 +2,6 @@
 //! unpacking, and documentation helpers.
 
 mod pack_and_unpack;
-mod packable_type;
 mod struct_doc_comment;
 mod unzipped_argument_infos;
 
@@ -28,7 +27,10 @@ use crate::{
             FeatureNamespace,
             NamespacedTokenStream,
         },
-        instruction_data::unzipped_argument_infos::InstructionArgumentInfo,
+        instruction_data::{
+            pack_and_unpack::Packs,
+            unzipped_argument_infos::InstructionArgumentInfo,
+        },
         Feature,
     },
 };
@@ -46,7 +48,7 @@ pub fn render(
     instruction_variants
         .into_iter()
         // Don't render anything for instructions that have no accounts/arguments.
-        .filter(|instruction_variant| !instruction_variant.no_accounts_or_args)
+        .filter(|instruction_variant| instruction_variant.at_least_one_account_or_arg)
         .flat_map(|instruction_variant| {
             Feature::iter().map(move |feature| NamespacedTokenStream {
                 tokens: render_variant(parsed_enum, &instruction_variant, feature),
@@ -78,9 +80,16 @@ fn render_variant(
     } = InstructionArgumentInfo::new(instruction_args);
 
     let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
+    let size_without_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag);
+    let size_with_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag + 1);
 
-    let (pack_fn, unpack_fn) =
-        pack_and_unpack::render(parsed_enum, instruction_variant, &names, feature);
+    let (
+        Packs {
+            pack: pack_fn,
+            pack_into_slice,
+        },
+        unpack_fn,
+    ) = pack_and_unpack::render(parsed_enum, instruction_variant, &names, feature);
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -100,6 +109,13 @@ fn render_variant(
         #const_assertion
 
         impl #struct_name {
+            /// This is the byte length **not including** the tag byte; i.e., the size of `Self`.
+            pub const LEN: usize = #size_without_tag_unsuffixed;
+
+            /// This is the byte length **including** the tag byte; i.e., the size of the full event
+            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
+            pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
+
             #struct_doc
             #[inline(always)]
             pub fn new(
@@ -112,6 +128,8 @@ fn render_variant(
 
             #unpack_fn
         }
+
+        #pack_into_slice
     }
 }
 

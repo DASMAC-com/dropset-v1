@@ -16,7 +16,7 @@ use crate::{
         },
         instruction_variant::InstructionVariant,
     },
-    render::instruction_data::packable_type::RenderedPackableType,
+    render::Feature,
 };
 
 pub struct StatementsAndLayoutInfo {
@@ -33,7 +33,10 @@ pub struct StatementsAndLayoutInfo {
 }
 
 impl StatementsAndLayoutInfo {
-    pub fn new(instruction_variant: &InstructionVariant) -> StatementsAndLayoutInfo {
+    pub fn new(
+        instruction_variant: &InstructionVariant,
+        feature: Feature,
+    ) -> StatementsAndLayoutInfo {
         let instruction_args = &instruction_variant.arguments;
         let (size_without_tag, layout_docs, pack_statements, unpack_assignments) =
             instruction_args.iter().fold(
@@ -49,9 +52,9 @@ impl StatementsAndLayoutInfo {
                     let arg_type = &arg.ty;
                     let size = arg.ty.size();
 
-                    let pack = arg_type.pack_statement(arg_name, pack_offset);
-                    let unpack = arg_type.unpack_statement(arg_name, unpack_offset);
                     let layout_comment = layout_doc_comment(arg_name, arg_type, pack_offset, size);
+                    let pack = arg_type.pack_statement(arg_name, pack_offset);
+                    let unpack = arg_type.unpack_statement(arg_name, unpack_offset, feature);
 
                     layout_docs.push(layout_comment);
                     pack_statements.push(pack);
@@ -86,11 +89,11 @@ fn layout_doc_comment(
     let end = pack_offset + size;
     let layout_doc_string = match size {
         1 => format!(
-            " - [{}]: the `{}` ({}, 1 byte)",
+            " - `[{}]` **{}** (`{}`, 1 byte)",
             pack_offset, arg_name, arg_type
         ),
         size => format!(
-            " - [{}..{}]: the `{}` ({}, {} bytes)",
+            " - `[{}..{}]` **{}** (`{}`, {} bytes)",
             pack_offset, end, arg_name, arg_type, size
         ),
     };

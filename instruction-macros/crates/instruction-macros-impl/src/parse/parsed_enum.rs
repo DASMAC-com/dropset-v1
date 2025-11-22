@@ -8,13 +8,10 @@ use syn::{
     Path,
 };
 
-use crate::{
-    parse::{
-        data_enum::require_data_enum,
-        program_id::ProgramID,
-        require_repr_u8::require_repr_u8,
-    },
-    PROGRAM_EVENT_IDENTIFIER,
+use crate::parse::{
+    data_enum::require_data_enum,
+    program_id::ProgramID,
+    require_repr_u8::require_repr_u8,
 };
 
 /// The validated, in-memory model of the instruction enum used by parsing and rendering functions.
@@ -25,19 +22,15 @@ pub struct ParsedEnum {
     pub as_instruction_events: bool,
 }
 
-impl TryFrom<DeriveInput> for ParsedEnum {
+impl TryFrom<(bool, DeriveInput)> for ParsedEnum {
     type Error = syn::Error;
 
-    fn try_from(input: DeriveInput) -> Result<Self, Self::Error> {
+    fn try_from(
+        parse_as_events_and_derive_input: (bool, DeriveInput),
+    ) -> Result<Self, Self::Error> {
+        let (as_instruction_events, input) = parse_as_events_and_derive_input;
         let enum_ident = input.ident.clone();
         let program_id = ProgramID::try_from(&input)?;
-        let as_instruction_events = input.attrs.iter().any(|attr| {
-            attr.path()
-                .get_ident()
-                .map(|v| v.to_string())
-                .unwrap_or_default()
-                == PROGRAM_EVENT_IDENTIFIER
-        });
         require_repr_u8(&input)?;
         let data_enum = require_data_enum(input)?;
 

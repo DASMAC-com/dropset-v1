@@ -8,25 +8,33 @@ use proc_macro2::{
 use quote::quote;
 use syn::Ident;
 
+pub struct Packs {
+    pub pack: TokenStream,
+    pub pack_into_slice: TokenStream,
+}
+
 /// Render the `pack` function for an instruction data variant.
 ///
 /// `pack` serializes instruction arguments into their on-chain binary layout.
 pub fn render(
     enum_ident: &Ident,
+    struct_name: &Ident,
     tag_variant: &Ident,
     layout_docs: Vec<TokenStream>,
     pack_statements: Vec<TokenStream>,
     size_with_tag: Literal,
-) -> TokenStream {
+) -> Packs {
     let discriminant_description =
-        format!(" - [0]: the discriminant `{enum_ident}::{tag_variant}` (u8, 1 byte)");
+        format!(" - `[0]` **the discriminant** `{enum_ident}::{tag_variant}` (`u8`, 1 byte)");
 
     let pack_statements_tokens = match pack_statements.len() {
         0 => quote! {},
         _ => quote! { unsafe { #(#pack_statements)* } },
     };
 
-    quote! {
+    let buf_len_check_line = format!(" - `buf.len() >= offset + {}`.", size_with_tag);
+
+    let pack = quote! {
         #[doc = " Instruction data layout:"]
         #[doc = #discriminant_description]
         #(#layout_docs)*
@@ -40,5 +48,41 @@ pub fn render(
             // All bytes initialized during the construction above.
             unsafe { *(data.as_ptr() as *const [u8; #size_with_tag]) }
         }
+    };
+
+    let pack_into_slice = quote! {
+        impl super::PackIntoSlice for #struct_name {
+            /// This is the byte length **including** the tag byte; i.e., the size of the full event
+            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
+            const LEN_WITH_TAG: usize = #size_with_tag;
+
+            #[doc = " Instruction data layout:"]
+            #[doc = #discriminant_description]
+            #(#layout_docs)*
+            #[doc = ""]
+            /// # Safety
+            ///
+            /// Caller must guarantee:
+            ///
+            #[doc = #buf_len_check_line]
+            ///
+            /// The caller is also responsible for tracking how much of `buf` is
+            /// considered initialized after the call.
+            #[inline(always)]
+            unsafe fn pack_into_slice(&self, buf: &mut [::core::mem::MaybeUninit<u8>], offset: usize) {
+                use ::core::{mem::MaybeUninit, slice};
+
+                let ptr = buf.as_mut_ptr().add(offset);
+                let data: &mut [MaybeUninit<u8>] = slice::from_raw_parts_mut(ptr, #size_with_tag);
+
+                data[0].write(super::#enum_ident::#tag_variant as u8);
+                #pack_statements_tokens
+            }
+        }
+    };
+
+    Packs {
+        pack,
+        pack_into_slice,
     }
 }

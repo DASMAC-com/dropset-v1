@@ -16,6 +16,7 @@ use crate::parse::{
 #[derive(Debug, Clone, strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum PrimitiveArg {
+    Bool,
     U8,
     U16,
     U32,
@@ -26,6 +27,7 @@ pub enum PrimitiveArg {
 impl ParsedPackableType for PrimitiveArg {
     fn size(&self) -> usize {
         match self {
+            Self::Bool => size_of::<bool>(),
             Self::U8 => size_of::<u8>(),
             Self::U16 => size_of::<u16>(),
             Self::U32 => size_of::<u32>(),

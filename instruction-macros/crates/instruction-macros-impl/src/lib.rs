@@ -7,7 +7,6 @@ pub mod render;
 use parse::parsing_error::ParsingError;
 
 const PROGRAM_ID_IDENTIFIER: &str = "program_id";
-const PROGRAM_EVENT_IDENTIFIER: &str = "program_event";
 const ACCOUNT_IDENTIFIER: &str = "account";
 const ACCOUNT_NAME: &str = "name";
 const ACCOUNT_WRITABLE: &str = "writable";
