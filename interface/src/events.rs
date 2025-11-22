@@ -1,7 +1,5 @@
 use instruction_macros::ProgramInstruction;
 
-use crate::error::DropsetError;
-
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, ProgramInstruction)]
 #[cfg_attr(test, derive(strum_macros::FromRepr, strum_macros::EnumIter))]
@@ -26,22 +24,4 @@ pub enum DropsetEvent {
     #[args(transfer_type: u8, "The token type: base or quote.")]    
     #[account(0, signer, name = "event_authority", desc = "The event authority account.")]
     Withdraw,
-}
-
-#[repr(u8)]
-pub enum BaseOrQuote {
-    Base,
-    Quote,
-}
-
-impl TryFrom<u8> for BaseOrQuote {
-    type Error = DropsetError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::Base),
-            1 => Ok(Self::Quote),
-            _ => Err(DropsetError::InvalidTransferType),
-        }
-    }
 }

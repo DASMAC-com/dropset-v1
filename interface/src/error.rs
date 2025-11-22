@@ -31,7 +31,6 @@ pub enum DropsetError {
     MissingIndexHint,
     InvalidNonZeroInteger,
     InvalidInstructionData,
-    InvalidTransferType,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -69,9 +68,6 @@ impl From<DropsetError> for &'static str {
             DropsetError::MissingIndexHint => "Instruction data must include an index hint",
             DropsetError::InvalidNonZeroInteger => "Value passed must be greater than zero",
             DropsetError::InvalidInstructionData => "Instruction data is invalid",
-            DropsetError::InvalidTransferType => {
-                "Transfer type must be 0 or 1 (deposit or withdraw)"
-            }
         }
     }
 }
