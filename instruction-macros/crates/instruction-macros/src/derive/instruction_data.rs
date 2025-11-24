@@ -10,6 +10,7 @@ use instruction_macros_impl::{
         render_instruction_data,
         render_pack_into_slice_trait,
         render_try_from_tag_macro,
+        render_unpack_trait,
         NamespacedTokenStream,
     },
 };
@@ -19,7 +20,7 @@ use syn::DeriveInput;
 pub struct DeriveInstructionData {
     pub try_from_u8_macro: TokenStream,
     pub pack_into_slice_trait: TokenStream,
-
+    pub unpack_trait: TokenStream,
     pub instruction_data: Vec<NamespacedTokenStream>,
 }
 
@@ -30,10 +31,12 @@ pub fn derive_instruction_data(input: DeriveInput) -> syn::Result<DeriveInstruct
     let try_from_u8_macro = render_try_from_tag_macro(&parsed_enum, &instruction_variants);
     let instruction_data = render_instruction_data(&parsed_enum, instruction_variants);
     let pack_into_slice_trait = render_pack_into_slice_trait();
+    let unpack_trait = render_unpack_trait();
 
     Ok(DeriveInstructionData {
         try_from_u8_macro,
         pack_into_slice_trait,
+        unpack_trait,
         instruction_data,
     })
 }

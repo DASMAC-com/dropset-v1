@@ -3,10 +3,6 @@
 //!
 //! Notably, the structs for these instruction event data types do *not* implement invoke methods,
 //! since they are solely for emitting event data inside a self-CPI instruction.
-//!
-//! Since `unpack` is only intended to be read client-side and `pack` is SDK-agnostic, in order to
-//! simplify the generated code, the generated code is not namespaced and instead simply uses the
-//! `solana_sdk` for `unpack`.
 
 use instruction_macros_impl::{
     parse::{
@@ -18,6 +14,7 @@ use instruction_macros_impl::{
         render_instruction_data,
         render_pack_into_slice_trait,
         render_try_from_tag_macro,
+        render_unpack_trait,
         Feature,
         FeatureNamespace,
     },
@@ -28,6 +25,7 @@ use syn::DeriveInput;
 pub struct DeriveInstructionEventData {
     pub try_from_u8_macro: TokenStream,
     pub pack_into_slice_trait: TokenStream,
+    pub unpack_trait: TokenStream,
     pub client_instruction_data: TokenStream,
 }
 
@@ -38,7 +36,8 @@ pub fn derive_instruction_event_data(
     let instruction_variants = parse_instruction_variants(&parsed_enum)?;
 
     let try_from_u8_macro = render_try_from_tag_macro(&parsed_enum, &instruction_variants);
-    let instruction_data: Vec<instruction_macros_impl::render::NamespacedTokenStream> = render_instruction_data(&parsed_enum, instruction_variants);
+    let instruction_data: Vec<instruction_macros_impl::render::NamespacedTokenStream> =
+        render_instruction_data(&parsed_enum, instruction_variants);
 
     // Only use the client-side implementations to simplify and reduce the code generated. See the
     // module-level doc comment as to why.
@@ -50,10 +49,12 @@ pub fn derive_instruction_event_data(
         .1;
 
     let pack_into_slice_trait = render_pack_into_slice_trait();
+    let unpack_trait = render_unpack_trait();
 
     Ok(DeriveInstructionEventData {
         try_from_u8_macro,
         pack_into_slice_trait,
+        unpack_trait,
         client_instruction_data: quote::quote! { #(#client_streams)* },
     })
 }

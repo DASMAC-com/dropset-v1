@@ -6,6 +6,7 @@ mod instruction_accounts;
 mod instruction_data;
 mod pack_into_slice_trait;
 mod try_from_tag_macro;
+mod unpack_trait;
 
 pub use feature::*;
 pub use feature_namespace::*;
@@ -13,3 +14,4 @@ pub use instruction_accounts::render as render_instruction_accounts;
 pub use instruction_data::render as render_instruction_data;
 pub use pack_into_slice_trait::render as render_pack_into_slice_trait;
 pub use try_from_tag_macro::render as render_try_from_tag_macro;
+pub use unpack_trait::render as render_unpack_trait;

@@ -75,7 +75,7 @@ pub fn render(
                 let ptr = buf.as_mut_ptr().add(offset);
                 let data: &mut [MaybeUninit<u8>] = slice::from_raw_parts_mut(ptr, #size_with_tag);
 
-                data[0].write(super::#enum_ident::#tag_variant as u8);
+                data[0].write(Self::TAG_BYTE);
                 #pack_statements_tokens
             }
         }

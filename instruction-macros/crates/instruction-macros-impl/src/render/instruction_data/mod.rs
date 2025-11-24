@@ -117,6 +117,9 @@ fn render_variant(
             /// instruction data in an `instruction_data: &[u8]` slice with the tag.
             pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
 
+            /// This is the instruction variant discriminant as a `u8` byte.
+            pub const TAG_BYTE: u8 = super::#enum_ident::#tag_variant as u8;
+
             #struct_doc
             #[inline(always)]
             pub fn new(
