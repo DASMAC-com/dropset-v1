@@ -7,7 +7,11 @@ use dropset_interface::{
     state::market_header::MARKET_ACCOUNT_DISCRIMINANT,
 };
 use futures::StreamExt;
-use grpc_stream::parse_update::parse_update;
+use grpc_stream::parse_update::{
+    parse_update,
+    InstructionEventsWithIndices,
+    ParsedUpdate,
+};
 use solana_sdk::pubkey::Pubkey;
 use tokio::time::{
     sleep,
@@ -77,7 +81,34 @@ async fn main() -> anyhow::Result<()> {
         match message {
             Ok(msg) => {
                 if let Some(update) = msg.update_oneof {
-                    parse_update(update);
+                    let update = parse_update(update);
+
+                    match update {
+                        Some(ParsedUpdate::Market(market)) => {
+                            println!("{:?}", market);
+                        }
+                        Some(ParsedUpdate::EmittedEvents { logs, events }) => {
+                            if !logs.is_empty() {
+                                for log in logs.iter().filter(|s| s.contains("[DEBUG]: ")) {
+                                    println!("------ LOGS -------");
+                                    println!("{:?}", log);
+                                }
+                            }
+                            for inner_ixn_with_events in events {
+                                let InstructionEventsWithIndices {
+                                    parent_index,
+                                    inner_index: _,
+                                    events,
+                                } = inner_ixn_with_events;
+                                if !events.is_empty() {
+                                    println!("----- EVENTS ------");
+                                    println!("Parent index: {}", parent_index);
+                                    println!("{:?}", events);
+                                }
+                            }
+                        }
+                        None => {}
+                    }
                 }
             }
             Err(error) => {

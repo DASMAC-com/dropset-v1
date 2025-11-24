@@ -3,6 +3,11 @@
 use solana_sdk::pubkey::Pubkey;
 use transaction_parser::{
     events::dropset_event::DropsetEvent,
+    views::{
+        market_view_try_from_owner_and_data,
+        MarketSeatView,
+        MarketView,
+    },
     ParseDropsetEvents,
 };
 use yellowstone_grpc_proto::{
@@ -46,17 +51,41 @@ impl ParsedInnerInstruction {
     }
 }
 
-struct ParsedUpdate {
-    pub logs: Vec<String>,
+// struct ParsedUpdate {
+//     pub market_view: Vec<MarketView<MarketSeatView>>,
+//     pub logs: Vec<String>,
+//     pub events: Vec<DropsetEvent>,
+// }
+
+pub enum ParsedUpdate {
+    Market(MarketView<MarketSeatView>),
+    EmittedEvents {
+        logs: Vec<String>,
+        events: Vec<InstructionEventsWithIndices>,
+    },
+}
+
+pub struct InstructionEventsWithIndices {
+    pub parent_index: u32,
+    pub inner_index: usize,
     pub events: Vec<DropsetEvent>,
 }
 
 /// Parses the `dropset` market account updates and events emitted in inner instruction data.
-pub fn parse_update(update: UpdateOneof) {
+pub fn parse_update(update: UpdateOneof) -> Option<ParsedUpdate> {
     match update {
         UpdateOneof::Account(acc) => {
             if let Some(account_info) = acc.account {
-                // account_info.data
+                let owner: Pubkey = account_info
+                    .owner
+                    .try_into()
+                    .expect("Should be a valid pubkey");
+                let market_view = market_view_try_from_owner_and_data(owner, &account_info.data)
+                    .expect(
+                    "The account filter should ensure only valid market accounts are passed here",
+                );
+
+                return Some(ParsedUpdate::Market(market_view));
             }
         }
         UpdateOneof::Transaction(update) => {
@@ -81,26 +110,25 @@ pub fn parse_update(update: UpdateOneof) {
                     (vec![], vec![])
                 };
 
-                if !logs.is_empty() {
-                    for log in logs.iter().filter(|s| s.contains("[DEBUG]: ")) {
-                        println!("------ LOGS -------");
-                        println!("{:?}", log);
-                    }
-                }
-                for inner_ixn in parsed_inner_instructions.iter() {
-                    let events = inner_ixn
-                        .parse_events()
-                        .expect("Should be able to parse events");
-                    if !events.is_empty() {
-                        println!("----- EVENTS ------");
-                        println!("Parent index: {}", inner_ixn.parent_index);
-                        println!("{:?}", events);
-                    }
-                }
+                let events = parsed_inner_instructions
+                    .iter()
+                    .enumerate()
+                    .map(|(i, inner)| InstructionEventsWithIndices {
+                        parent_index: inner.parent_index,
+                        inner_index: i,
+                        events: inner
+                            .parse_events()
+                            .expect("Should be able to parse events"),
+                    })
+                    .collect::<Vec<_>>();
+
+                return Some(ParsedUpdate::EmittedEvents { logs, events });
             }
         }
         _ => (),
     }
+
+    None
 }
 
 fn get_flattened_accounts_in_txn_update(txn: &SubscribeUpdateTransactionInfo) -> Vec<Pubkey> {
