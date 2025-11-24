@@ -16,8 +16,7 @@ use crate::parse::{
     parsed_enum::ParsedEnum,
 };
 
-/// Renders an enum instruction variant's `pack` function and each feature-based `Unpack` trait
-/// implementation.
+/// Renders an enum instruction variant's `pack` function and each feature-based `unpack_*` method.
 pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variant: &InstructionVariant,

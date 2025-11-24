@@ -36,7 +36,7 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Err(e) => return e.into_compile_error().into(),
     };
 
-    let accounts_render = match derive_accounts(input.clone()) {
+    let accounts_render = match derive_accounts(input) {
         Ok(render) => render,
         Err(e) => return e.into_compile_error().into(),
     };
