@@ -1,3 +1,5 @@
+//! Exports common program ID pubkeys as `[u8; 32]` arrays.
+
 use solana_sdk::pubkey::Pubkey;
 
 /// The SPL Token program ID as a `[u8; 32]`.

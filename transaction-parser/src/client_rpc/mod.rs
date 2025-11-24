@@ -1,3 +1,6 @@
+//! Utilities for parsing RPC client-based solana transactions. More specifically, parses the data
+//! in [`solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta`].
+
 mod parse;
 mod parsed_account;
 mod parsed_instruction;
