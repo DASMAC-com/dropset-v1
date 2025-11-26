@@ -7,8 +7,9 @@ members = [
   "instruction-macros/crates/test-fixtures",
   "interface",
   "grpc-stream",
+  "price",
   "program",
-  "transaction-parser", "price",
+  "transaction-parser",
 ]
 
 [workspace.package]
