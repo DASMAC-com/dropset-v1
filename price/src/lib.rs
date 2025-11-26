@@ -3,6 +3,7 @@ pub const SIGNIFICANT_DIGITS: u8 = 9;
 
 const MAX_SIGNIFICAND: u64 = 999_999_999;
 const MIN_SIGNIFICAND: u64 = 100_000_000;
+const BIAS: u8 = 15;
 
 #[repr(C)]
 pub struct Price {
@@ -19,6 +20,7 @@ pub enum PriceError {
     LotMinusTickUnderflow,
     ArithmeticOverflow,
     InvalidSignificand,
+    InvalidBiasedExponent,
 }
 
 pub fn to_price(
@@ -27,6 +29,16 @@ pub fn to_price(
     lot_exp: u8,
     tick_exp: u8,
 ) -> Result<Price, PriceError> {
+    // TODO: Implement bias for these values (these values represent bias factored in)
+    // 1: this means making sure these checks are correct (the checks below)
+    // 2: and factoring in negative exponents in the pow10 calculations..?
+    let lot_exp = lot_exp
+        .checked_sub(BIAS)
+        .ok_or(PriceError::InvalidBiasedExponent)?;
+    let tick_exp = tick_exp
+        .checked_sub(BIAS)
+        .ok_or(PriceError::InvalidBiasedExponent)?;
+
     let significand = significand as u64;
 
     let base = lots
