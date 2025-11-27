@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 static_assertions.workspace = true
+pinocchio.workspace = true
 
 [dev-dependencies]
 strum.workspace = true
