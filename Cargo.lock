@@ -2513,6 +2513,7 @@ dependencies = [
 name = "price"
 version = "0.1.0"
 dependencies = [
+ "pinocchio",
  "static_assertions",
  "strum",
  "strum_macros",
