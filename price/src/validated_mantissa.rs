@@ -34,6 +34,7 @@ impl ValidatedPriceMantissa {
 }
 
 impl ValidatedPriceMantissa {
+    /// Returns the validated price mantissa as a u32.
     #[inline(always)]
     pub fn get(&self) -> u32 {
         self.0

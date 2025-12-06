@@ -30,6 +30,7 @@ impl EncodedPrice {
         Self(exponent_bits | price_mantissa.get())
     }
 
+    /// Returns the inner encoded price as a u32.
     #[inline(always)]
     pub fn get(&self) -> u32 {
         self.0
