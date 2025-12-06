@@ -15,7 +15,7 @@ impl TryFrom<u32> for ValidatedPriceMantissa {
 
     #[inline(always)]
     fn try_from(price_mantissa: u32) -> Result<Self, Self::Error> {
-        if (MANTISSA_DIGITS_LOWER_BOUND..MANTISSA_DIGITS_UPPER_BOUND).contains(&price_mantissa) {
+        if (MANTISSA_DIGITS_LOWER_BOUND..=MANTISSA_DIGITS_UPPER_BOUND).contains(&price_mantissa) {
             Ok(Self(price_mantissa))
         } else {
             hint::cold_path();
@@ -37,5 +37,30 @@ impl ValidatedPriceMantissa {
     #[inline(always)]
     pub fn get(&self) -> u32 {
         self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_mantissas() {
+        for mantissa in [
+            MANTISSA_DIGITS_LOWER_BOUND,
+            MANTISSA_DIGITS_LOWER_BOUND + 1,
+            MANTISSA_DIGITS_UPPER_BOUND,
+            MANTISSA_DIGITS_UPPER_BOUND - 1,
+        ] {
+            let validated_mantissa = ValidatedPriceMantissa::try_from(mantissa);
+            assert!(validated_mantissa.is_ok());
+            assert_eq!(validated_mantissa.unwrap().0, mantissa);
+        }
+    }
+
+    #[test]
+    fn invalid_mantissas() {
+        assert!(ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_LOWER_BOUND - 1).is_err());
+        assert!(ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_UPPER_BOUND + 1).is_err());
     }
 }
