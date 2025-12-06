@@ -15,7 +15,7 @@ use crate::{
 /// |--------------------------------|
 ///                 32
 /// ```
-pub struct EncodedPrice(pub u32);
+pub struct EncodedPrice(u32);
 
 pub const ENCODED_PRICE_INFINITY: u32 = u32::MAX;
 pub const ENCODED_PRICE_ZERO: u32 = 0;
@@ -28,6 +28,11 @@ impl EncodedPrice {
         // No need to mask the price mantissa since it has already been range checked/validated.
         // Thus it's guaranteed it will only occupy the lower M bits where M = PRICE_MANTISSA_BITS.
         Self(exponent_bits | price_mantissa.get())
+    }
+
+    #[inline(always)]
+    pub fn get(&self) -> u32 {
+        self.0
     }
 
     /// The encoded price representation of a market buy/taker order with no constraints on the

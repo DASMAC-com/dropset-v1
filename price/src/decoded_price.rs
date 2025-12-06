@@ -36,7 +36,7 @@ impl DecodedPrice {
 
 impl From<EncodedPrice> for DecodedPrice {
     fn from(encoded: EncodedPrice) -> Self {
-        match encoded.0 {
+        match encoded.get() {
             ENCODED_PRICE_ZERO => Self::Zero,
             ENCODED_PRICE_INFINITY => Self::Infinity,
             value => {
