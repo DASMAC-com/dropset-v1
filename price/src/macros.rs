@@ -49,12 +49,14 @@ macro_rules! pow10_u64 {
 /// *NOTE: This is only intended for usage with **unsigned** integer types.*
 ///
 /// # Example
-/// ```rust,ignore
-/// let res: Result<u8, MyError> = checked_sub!(5, 4, MyError::BadSub);
-/// assert_eq!(res, Ok(1));
+/// ```rust
+/// enum MyError { BadSub }
 ///
-/// let res: Result<u8, MyError> = checked_sub!(5, 6, MyError::BadSub);
-/// assert_eq!(res, Err(MyError::BadSub));
+/// let res: Result<u8, MyError> = price::checked_sub!(5, 4, MyError::BadSub);
+/// assert!(matches!(res, Ok(1)));
+///
+/// let res: Result<u8, MyError> = price::checked_sub!(5, 6, MyError::BadSub);
+/// assert!(matches!(res, Err(MyError::BadSub)));
 /// ```
 #[macro_export]
 macro_rules! checked_sub {
@@ -75,12 +77,14 @@ macro_rules! checked_sub {
 /// *NOTE: This is only intended for usage with **unsigned** integer types.*
 ///
 /// # Example
-/// ```rust,ignore
-/// let res: Result<u8, MyError> = checked_mul!(255, 1, MyError::BadMul);
-/// assert_eq!(res, Ok(255));
+/// ```rust
+/// enum MyError { BadMul }
 ///
-/// let res: Result<u8, MyError> = checked_mul!(255, 2, MyError::BadMul);
-/// assert_eq!(res, Err(MyError::BadMul));
+/// let res: Result<u8, MyError> = price::checked_mul!(255u8, 1, MyError::BadMul);
+/// assert!(matches!(res, Ok(255)));
+///
+/// let res: Result<u8, MyError> = price::checked_mul!(255u8, 2, MyError::BadMul);
+/// assert!(matches!(res, Err(MyError::BadMul)));
 /// ```
 #[macro_export]
 macro_rules! checked_mul {
@@ -91,31 +95,6 @@ macro_rules! checked_mul {
                 ::pinocchio::hint::cold_path();
                 Err($err)
             }
-        }
-    }};
-}
-
-/// A checked divide with a custom error return value and the error path marked as cold.
-///
-/// Only errors on division by zero.
-///
-/// # Example
-/// ```rust,ignore
-/// let res: Result<u8, MyError> = checked_div!(255, 1, MyError::DivideByZero);
-/// assert_eq!(res, Ok(255));
-///
-/// let res: Result<u8, MyError> = checked_div!(255, 0, MyError::DivideByZero);
-/// assert_eq!(res, Err(MyError::DivideByZero));
-/// ```
-#[macro_export]
-macro_rules! checked_div {
-    ($lhs:expr, $rhs:expr, $err:expr $(,)?) => {{
-        match $rhs {
-            0 => {
-                ::pinocchio::hint::cold_path();
-                Err($err)
-            }
-            _ => $lhs / $rhs,
         }
     }};
 }
