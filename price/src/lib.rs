@@ -31,6 +31,14 @@ const EXPONENT_RANGE: u8 = (1 << (EXPONENT_BITS)) - 1;
 /// difference in orders of magnitude for the smallest and largest exponent values.
 pub const BIAS: u8 = 16;
 
+/// The minimum unbiased exponent value.
+#[cfg(test)]
+const UNBIASED_MIN: i16 = 0 - crate::BIAS as i16;
+
+/// The maximum unbiased exponent value.
+#[cfg(test)]
+const UNBIASED_MAX: i16 = (crate::BIAS as i16) - 1;
+
 /// The bitmask for the price mantissa calculated from the number of bits it uses.
 pub const PRICE_MANTISSA_MASK: u32 = u32::MAX >> ((U32_BITS - PRICE_MANTISSA_BITS) as usize);
 

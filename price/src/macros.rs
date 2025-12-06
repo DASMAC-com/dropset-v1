@@ -106,8 +106,43 @@ macro_rules! to_biased_exponent {
     ($unbiased_exponent:expr) => {{
         let unbiased_signed = $unbiased_exponent as i16;
         match unbiased_signed {
-            -15..=16 => (unbiased_signed + $crate::BIAS as i16) as u8,
+            $crate::UNBIASED_MIN..=$crate::UNBIASED_MAX => {
+                (unbiased_signed + $crate::BIAS as i16) as u8
+            }
             _ => panic!("Invalid unbiased exponent."),
         }
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        BIAS,
+        UNBIASED_MAX,
+        UNBIASED_MIN,
+    };
+
+    #[test]
+    fn biased_exponent_happy_paths() {
+        let expected_min = (UNBIASED_MIN + BIAS as i16) as u8;
+        assert_eq!(to_biased_exponent!(UNBIASED_MIN), expected_min);
+
+        let expected_mid = BIAS;
+        assert_eq!(to_biased_exponent!(0), expected_mid);
+
+        let expected_max = (UNBIASED_MAX + BIAS as i16) as u8;
+        assert_eq!(to_biased_exponent!(UNBIASED_MAX), expected_max);
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid unbiased exponent.")]
+    fn below_minimum_unbiased() {
+        to_biased_exponent!(UNBIASED_MIN - 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid unbiased exponent.")]
+    fn above_maximum_unbiased() {
+        to_biased_exponent!(UNBIASED_MAX + 1);
+    }
 }
