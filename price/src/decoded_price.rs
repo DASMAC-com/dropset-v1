@@ -21,6 +21,8 @@ pub enum DecodedPrice {
 }
 
 impl DecodedPrice {
+    /// Return the optional tuple of exponent and mantissa from a decoded price.
+    /// If the decoded price is not a [`DecodedPrice::ExponentAndMantissa`], this returns `None`.
     pub fn as_exponent_and_mantissa(&self) -> Option<(&u8, &ValidatedPriceMantissa)> {
         if let DecodedPrice::ExponentAndMantissa {
             price_exponent_biased,
