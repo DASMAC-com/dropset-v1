@@ -4,7 +4,7 @@
 pub enum OrderInfoError {
     InvalidBaseExponent,
     InvalidQuoteExponent,
-    BaseMinusQuoteUnderflow,
+    ExponentUnderflow,
     ArithmeticOverflow,
     InvalidPriceMantissa,
     InvalidBiasedExponent,

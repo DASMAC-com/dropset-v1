@@ -100,7 +100,7 @@ pub fn to_order_info(
         // that `MAX_BIASED_EXPONENT + BIAS` is always less than `u8::MAX`.
         unsafe { quote_exponent_biased.unchecked_add(BIAS) },
         base_exponent_biased,
-        OrderInfoError::BaseMinusQuoteUnderflow
+        OrderInfoError::ExponentUnderflow
     )?;
 
     Ok(OrderInfo {
