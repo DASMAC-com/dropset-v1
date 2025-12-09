@@ -9,8 +9,8 @@ pub use encoded_price::*;
 pub use error::*;
 pub use validated_mantissa::*;
 
-const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
-const MANTISSA_DIGITS_UPPER_BOUND: u32 = 99_999_999;
+pub const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
+pub const MANTISSA_DIGITS_UPPER_BOUND: u32 = 99_999_999;
 
 const U32_BITS: u8 = 32;
 const PRICE_MANTISSA_BITS: u8 = 27;
