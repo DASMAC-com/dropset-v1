@@ -211,6 +211,29 @@ mod tests {
     }
 
     #[test]
+    fn ensure_price_mantissa_times_base_scalar_arithmetic_overflow() {
+        const PRICE_MANTISSA: u32 = 10_000_000;
+
+        assert!(to_order_info(
+            PRICE_MANTISSA,
+            u64::MAX / PRICE_MANTISSA as u64,
+            to_biased_exponent!(0),
+            to_biased_exponent!(0),
+        )
+        .is_ok());
+
+        assert!(matches!(
+            to_order_info(
+                PRICE_MANTISSA + 1,
+                u64::MAX / PRICE_MANTISSA as u64,
+                to_biased_exponent!(0),
+                to_biased_exponent!(0)
+            ),
+            Err(OrderInfoError::ArithmeticOverflow)
+        ));
+    }
+
+    #[test]
     fn ensure_invalid_quote_exponent_fails() {
         let e_base = to_biased_exponent!(0);
         let e_quote = MAX_BIASED_EXPONENT + 1;
