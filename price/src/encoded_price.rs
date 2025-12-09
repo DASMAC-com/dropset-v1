@@ -6,14 +6,15 @@ use crate::{
 #[derive(Copy, Clone, Debug)]
 /// The encoded price as a u32.
 ///
-/// If `N` = the number of exponent bits and `M` = the number of price bits, the u32 bit layout is:
+/// If `N` = the number of exponent bits and `M` = the number of price mantissa bits, the u32 bit
+/// layout is:
 ///
 /// ```text
 ///          N                M
-/// |-----------------|--------------|
-/// [ exponent_bits ] | [ price_bits ]
-/// |--------------------------------|
-///                 32
+/// |-------------------|-------------------|
+///   [ exponent_bits ] | [ mantissa_bits ]
+/// |---------------------------------------|
+///                    32
 /// ```
 pub struct EncodedPrice(u32);
 
@@ -76,7 +77,7 @@ mod tests {
     };
 
     #[test]
-    fn encoded_price_bits() {
+    fn encoded_price_mantissa_bits() {
         let exponent = 0b0_1111;
         let price_mantissa = 0b000_1111_0000_1111_0000_1111_0000;
         let encoded_price = EncodedPrice::new(
