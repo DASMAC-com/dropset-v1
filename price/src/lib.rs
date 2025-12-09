@@ -15,14 +15,14 @@ pub const MANTISSA_DIGITS_UPPER_BOUND: u32 = 99_999_999;
 const U32_BITS: u8 = 32;
 const PRICE_MANTISSA_BITS: u8 = 27;
 
-#[allow(dead_code)]
 /// The number of exponent bits is simply the remaining bits in a u32 after storing the price
 /// mantissa bits.
+#[allow(dead_code)]
 const EXPONENT_BITS: u8 = U32_BITS - PRICE_MANTISSA_BITS;
 
-#[allow(dead_code)]
 /// The max biased exponent. This also determines the range of valid exponents.
 /// I.e., 0 <= biased_exponent <= [`MAX_BIASED_EXPONENT`].
+#[allow(dead_code)]
 const MAX_BIASED_EXPONENT: u8 = (1 << (EXPONENT_BITS)) - 1;
 
 /// [`BIAS`] is the number that satisfies: `BIAS + SMALLEST_POSSIBLE_EXPONENT == 0`.

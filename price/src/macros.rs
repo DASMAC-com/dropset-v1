@@ -1,11 +1,40 @@
+use static_assertions::const_assert_eq;
+
 /// Macro utility for calculating the value of an operation given a biased exponent, where a biased
 /// exponent represents the base 10 positive or negative exponent value without using negative
 /// values.
+
+// Static assertions for macro invariants.
+static_assertions::const_assert_eq!(crate::BIAS - 16, 0);
+static_assertions::const_assert_eq!(crate::MAX_BIASED_EXPONENT, 31);
+
+/// Documentation for `pow10_64` relies on [`BIAS`] == 16. If that changes, this and the
+/// documentation needs to be updated.
+const _: () = {
+    const_assert_eq!(crate::BIAS, 16);
+};
+
+/// Performs base-10 exponentiation on a value using a biased exponent.
+///
+/// # Parameters
+/// - `$value`: The `u64` to be scaled by a power of 10.
+/// - `$biased_exponent`: A biased exponent in the range `0..=31`.
+///
+/// # Biased Exponent Concept
+/// The actual exponent is:
+///
+///     `exponent = $biased_exponent - BIAS`
+///
+/// With the current `BIAS = 16`, this means:
+/// - `0`  → exponent `-16` (division by 10^16)
+/// - `16` → exponent `0`   (multiplication by 1 aka 10^0)
+/// - `31` → exponent `+15` (multiplication by 10^15)
+/// 
+/// Errors on an invalid biased exponent or on arithmetic overflow.
 #[macro_export]
 #[rustfmt::skip]
 macro_rules! pow10_u64 {
     ($value:expr, $biased_exponent:expr) => {{
-        ::static_assertions::const_assert_eq!($crate::BIAS - 16, 0);
         match $biased_exponent {
             /* BIAS - 16 */  0 => Ok($value / 10000000000000000u64),
             /* BIAS - 15 */  1 => Ok($value / 1000000000000000),
