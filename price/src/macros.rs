@@ -4,7 +4,7 @@ use static_assertions::const_assert_eq;
 static_assertions::const_assert_eq!(crate::BIAS - 16, 0);
 static_assertions::const_assert_eq!(crate::MAX_BIASED_EXPONENT, 31);
 
-/// Documentation for `pow10_64` relies on [`BIAS`] == 16. If that changes, this and the
+/// Documentation for [`pow10_u64`] relies on [`crate::BIAS`] == 16. If that changes, this and the
 /// documentation needs to be updated.
 const _: () = {
     const_assert_eq!(crate::BIAS, 16);
