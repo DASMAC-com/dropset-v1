@@ -37,9 +37,11 @@ impl DecodedPrice {
     }
 }
 
-impl From<EncodedPrice> for DecodedPrice {
-    fn from(encoded: EncodedPrice) -> Self {
-        match encoded.get() {
+impl TryFrom<EncodedPrice> for DecodedPrice {
+    type Error = OrderInfoError;
+
+    fn try_from(encoded: EncodedPrice) -> Result<Self, Self::Error> {
+        let res = match encoded.get() {
             ENCODED_PRICE_ZERO => Self::Zero,
             ENCODED_PRICE_INFINITY => Self::Infinity,
             value => {
@@ -48,10 +50,12 @@ impl From<EncodedPrice> for DecodedPrice {
 
                 Self::ExponentAndMantissa {
                     price_exponent_biased,
-                    price_mantissa: ValidatedPriceMantissa::new_unchecked(validated_mantissa),
+                    price_mantissa: ValidatedPriceMantissa::try_from(validated_mantissa)?,
                 }
             }
-        }
+        };
+
+        Ok(res)
     }
 }
 

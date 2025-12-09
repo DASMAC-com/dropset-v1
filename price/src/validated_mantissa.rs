@@ -25,15 +25,6 @@ impl TryFrom<u32> for ValidatedPriceMantissa {
 }
 
 impl ValidatedPriceMantissa {
-    /// Creates a new [`ValidatedPriceMantissa`] without range checking the passed value.
-    /// This should only be used when the price mantissa has definitively already been validated.
-    #[inline(always)]
-    pub(crate) fn new_unchecked(price_mantissa: u32) -> Self {
-        Self(price_mantissa)
-    }
-}
-
-impl ValidatedPriceMantissa {
     /// Returns the validated price mantissa as a u32.
     #[inline(always)]
     pub fn get(&self) -> u32 {

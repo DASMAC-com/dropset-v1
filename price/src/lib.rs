@@ -129,7 +129,8 @@ mod tests {
         assert_eq!(order.base_atoms, 1);
         assert_eq!(order.quote_atoms, 1234);
 
-        let decoded_price: f64 = DecodedPrice::from(order.encoded_price)
+        let decoded_price: f64 = DecodedPrice::try_from(order.encoded_price)
+            .expect("Should decode")
             .try_into()
             .expect("Should be a valid f64");
         assert_eq!(decoded_price, "1234".parse().unwrap());
@@ -142,7 +143,8 @@ mod tests {
         assert_eq!(order.base_atoms, 1);
         assert_eq!(order.quote_atoms, 12345678);
 
-        let decoded_price: f64 = DecodedPrice::from(order.encoded_price)
+        let decoded_price: f64 = DecodedPrice::try_from(order.encoded_price)
+            .expect("Should decode")
             .try_into()
             .expect("Should be a valid f64");
         assert_eq!(decoded_price, "12345678".parse().unwrap());
@@ -156,7 +158,7 @@ mod tests {
         assert_eq!(order.quote_atoms, 12345678);
         assert_eq!(order.base_atoms, 100000000);
 
-        let decoded_price = DecodedPrice::from(order.encoded_price);
+        let decoded_price = DecodedPrice::try_from(order.encoded_price).expect("Should decode");
 
         let (decoded_exponent, decoded_mantissa) = decoded_price
             .as_exponent_and_mantissa()
