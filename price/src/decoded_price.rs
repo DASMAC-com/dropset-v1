@@ -9,6 +9,7 @@ use crate::{
     PRICE_MANTISSA_MASK,
 };
 
+/// An enum representing a decoded `EncodedPrice`.
 #[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub enum DecodedPrice {
