@@ -26,11 +26,13 @@ const EXPONENT_BITS: u8 = U32_BITS - PRICE_MANTISSA_BITS;
 const MAX_BIASED_EXPONENT: u8 = (1 << (EXPONENT_BITS)) - 1;
 
 /// [`BIAS`] is the number that satisfies: `BIAS + SMALLEST_POSSIBLE_EXPONENT == 0`.
-/// That is, if the exponent range is 32 values from -16 <= n <= 15, the smallest possible exponent
+/// It facilitates the expression of negative exponents with only unsigned integers.
+///
+/// The exponent range is 32 values from -16 <= n <= 15 and the smallest possible exponent
 /// is -16, so the BIAS must be 16.
-/// Note the decision to use a larger negative range instead of a larger positive range (i.e.,
-/// [-16, 15] instead of [-15, 16]) is because [-16, 15] has a tighter range in terms of the
-/// difference in orders of magnitude for the smallest and largest exponent values.
+///
+/// See [`pow10_u64`] for more information on the reasoning behind the exponent range.
+/// ```
 pub const BIAS: u8 = 16;
 
 /// The minimum unbiased exponent value.
@@ -38,7 +40,7 @@ pub const BIAS: u8 = 16;
 const UNBIASED_MIN: i16 = 0 - BIAS as i16;
 /// The maximum unbiased exponent value.
 #[cfg(test)]
-const UNBIASED_MAX: i16 = (BIAS as i16) - 1;
+const UNBIASED_MAX: i16 = MAX_BIASED_EXPONENT as i16 - BIAS as i16;
 
 // Ensure that adding the bias to the max biased exponent never overflows.
 static_assertions::const_assert!((MAX_BIASED_EXPONENT as u16) + (BIAS as u16) <= (u8::MAX as u16));

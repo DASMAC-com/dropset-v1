@@ -4,8 +4,8 @@ use static_assertions::const_assert_eq;
 static_assertions::const_assert_eq!(crate::BIAS - 16, 0);
 static_assertions::const_assert_eq!(crate::MAX_BIASED_EXPONENT, 31);
 
-/// Documentation for [`pow10_u64`] relies on [`crate::BIAS`] == 16. If that changes, this and the
-/// documentation needs to be updated.
+/// Documentation for [`pow10_u64`] relies on [`crate::BIAS`] == 16. If that changes,
+/// [`crate::BIAS`] and the [`pow10_u64`] documentation needs to be updated.
 const _: () = {
     const_assert_eq!(crate::BIAS, 16);
 };
@@ -29,7 +29,41 @@ const _: () = {
 /// - `16` → exponent `0`   (multiplication by 1 aka 10^0)
 /// - `31` → exponent `+15` (multiplication by 10^15)
 /// 
-/// Errors on an invalid biased exponent or on arithmetic overflow.
+/// The code output from the macro will error on an invalid biased exponent or arithmetic overflow.
+/// 
+/// # Reasoning behind exponent range
+/// 
+/// The decision to use a larger negative range instead of a larger positive range is because
+/// a larger negative range results in the price mantissa * exponent product forming in a tighter
+/// range around `1`.
+///
+/// For example, with `[-2, 1] vs [-1, 2]`:
+///
+/// ```markdown
+/// # With [-2, 1] as the smallest/largest exponents
+/// |                      | Smallest exponent   | Largest exponent    |
+/// | -------------------- | ----------------------------------------- |
+/// | Smallest mantissa    | 1.00 * 10^-2 = 0.01 | 1.00 * 10^1 =   10  |
+/// | Largest mantissa     | 9.99 * 10^-2 = ~0.1 | 9.99 * 10^1 = ~100  |
+/// | -------------------- | ----------------------------------------- |
+///
+/// Both the smallest and largest products (0.01 and 100) are 2 orders
+/// of magnitude below/above `1`.
+///
+/// # With [-1, 2] as the smallest/largest exponents
+/// |                      | Smallest exponent   | Largest exponent    |
+/// | -------------------- | ----------------------------------------- |
+/// | Smallest mantissa    | 1.00 * 10^-1 = 0.1 | 1.00 * 10^2 =   100  |
+/// | Largest mantissa     | 9.99 * 10^-1 =  ~1 | 9.99 * 10^2 = ~1000  |
+/// | -------------------- | ----------------------------------------- |
+///
+/// The lower product (0.1) is 1 order of magnitude below `1` and the higher
+/// product (1000) is 3 orders of magnitude above `1`.
+///
+/// The first option is preferable because it offers a more dynamic,
+/// symmetrical range in terms of orders of magnitude below/above `1`.
+/// 
+/// Therefore, [-16, 15] is used as the exponent range instead of [-15, 16].
 #[macro_export]
 #[rustfmt::skip]
 macro_rules! pow10_u64 {
