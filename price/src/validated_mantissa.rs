@@ -52,7 +52,13 @@ mod tests {
 
     #[test]
     fn invalid_mantissas() {
-        assert!(ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_LOWER_BOUND - 1).is_err());
-        assert!(ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_UPPER_BOUND + 1).is_err());
+        assert!(matches!(
+            ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_LOWER_BOUND - 1),
+            Err(OrderInfoError::InvalidPriceMantissa)
+        ));
+        assert!(matches!(
+            ValidatedPriceMantissa::try_from(MANTISSA_DIGITS_UPPER_BOUND + 1),
+            Err(OrderInfoError::InvalidPriceMantissa)
+        ));
     }
 }
