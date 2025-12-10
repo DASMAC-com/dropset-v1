@@ -274,4 +274,22 @@ mod tests {
         #[rustfmt::skip]
         assert!(matches!(invalid_biased_exponent, Err(OrderInfoError::InvalidBiasedExponent)));
     }
+
+    #[test]
+    fn max_and_max_plus_one_base() {
+        let e_base = MAX_BIASED_EXPONENT;
+        let e_quote = to_biased_exponent!(0);
+
+        // Ensure the quote exponent is valid so that it can't be the trigger for the error.
+        let _one_to_the_quote_expoent = pow10_u64!(1u64, e_quote).unwrap();
+
+        let all_good = to_order_info(10_000_000, 1, e_base, e_quote);
+        let invalid_quote_exponent = to_order_info(10_000_000, 1, e_base + 1, e_quote);
+
+        assert!(all_good.is_ok());
+        assert!(matches!(
+            invalid_quote_exponent,
+            Err(OrderInfoError::InvalidBiasedExponent)
+        ));
+    }
 }
