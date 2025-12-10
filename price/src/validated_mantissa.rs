@@ -6,7 +6,7 @@ use crate::{
     MANTISSA_DIGITS_UPPER_BOUND,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[cfg_attr(test, derive(Debug))]
 pub struct ValidatedPriceMantissa(u32);
 
