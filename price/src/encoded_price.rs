@@ -3,7 +3,6 @@ use crate::{
     PRICE_MANTISSA_BITS,
 };
 
-#[derive(Copy, Clone, Debug)]
 /// The encoded price as a u32.
 ///
 /// If `N` = the number of exponent bits and `M` = the number of price mantissa bits, the u32 bit
@@ -16,6 +15,8 @@ use crate::{
 /// |---------------------------------------|
 ///                    32
 /// ```
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
 pub struct EncodedPrice(u32);
 
 pub const ENCODED_PRICE_INFINITY: u32 = u32::MAX;
