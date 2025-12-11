@@ -11,7 +11,7 @@ const _: () = {
 };
 
 /// Performs base-10 exponentiation on a value using a biased exponent.
-/// 
+///
 /// This facilitates representing negative exponent values with unsigned integers by ensuring the
 /// biased exponent is never negative. The unbiased exponent is therefore the real exponent value.
 ///
@@ -28,11 +28,11 @@ const _: () = {
 /// - `0`  → exponent `-16` (division by 10^16)
 /// - `16` → exponent `0`   (multiplication by 1 aka 10^0)
 /// - `31` → exponent `+15` (multiplication by 10^15)
-/// 
+///
 /// The code output from the macro will error on an invalid biased exponent or arithmetic overflow.
-/// 
+///
 /// # Reasoning behind exponent range
-/// 
+///
 /// The decision to use a larger negative range instead of a larger positive range is because
 /// a larger negative range results in the price mantissa * exponent product forming in a tighter
 /// range around `1`.
@@ -62,7 +62,7 @@ const _: () = {
 ///
 /// The first option is preferable because it offers a more dynamic,
 /// symmetrical range in terms of orders of magnitude below/above `1`.
-/// 
+///
 /// Therefore, [-16, 15] is used as the exponent range instead of [-15, 16].
 #[macro_export]
 #[rustfmt::skip]
