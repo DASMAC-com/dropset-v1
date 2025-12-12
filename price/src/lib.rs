@@ -281,7 +281,7 @@ mod tests {
         let e_quote = to_biased_exponent!(0);
 
         // Ensure the quote exponent is valid so that it can't be the trigger for the error.
-        let _one_to_the_quote_expoent = pow10_u64!(1u64, e_quote).unwrap();
+        let _one_to_the_quote_exponent = pow10_u64!(1u64, e_quote).unwrap();
 
         let all_good = to_order_info(10_000_000, 1, e_base, e_quote);
         let invalid_quote_exponent = to_order_info(10_000_000, 1, e_base + 1, e_quote);
