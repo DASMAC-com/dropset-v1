@@ -292,4 +292,47 @@ mod tests {
             Err(OrderInfoError::InvalidBiasedExponent)
         ));
     }
+
+    #[test]
+    fn quote_atoms_overflow() {
+        let mantissa: u32 = 10_000_000;
+        let base_scalar: u64 = 1;
+
+        let quote_exponent = 12;
+        assert!((mantissa as u64).checked_mul(base_scalar).is_some());
+
+        // No overflow with quote exponent using core rust operations.
+        assert!((mantissa as u64)
+            .checked_mul(base_scalar)
+            .unwrap()
+            .checked_mul(10u64.checked_pow(quote_exponent as u32).unwrap())
+            .is_some());
+
+        // Overflow with quote exponent + 1 using core rust operations.
+        assert!((mantissa as u64)
+            .checked_mul(base_scalar)
+            .unwrap()
+            .checked_mul(10u64.checked_pow((quote_exponent + 1) as u32).unwrap())
+            .is_none());
+
+        // No overflow with quote exponent in `to_order_info`.
+        assert!(to_order_info(
+            mantissa,
+            base_scalar,
+            to_biased_exponent!(0),
+            to_biased_exponent!(quote_exponent)
+        )
+        .is_ok());
+
+        // Overflow with quote exponent + 1 in `to_order_info`.
+        assert!(matches!(
+            to_order_info(
+                mantissa,
+                base_scalar,
+                to_biased_exponent!(0),
+                to_biased_exponent!(quote_exponent + 1)
+            ),
+            Err(OrderInfoError::ArithmeticOverflow)
+        ));
+    }
 }
