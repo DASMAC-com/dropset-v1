@@ -77,6 +77,11 @@ pub struct LeEncodedPrice([u8; U32_SIZE]);
 
 impl LeEncodedPrice {
     #[inline(always)]
+    pub fn as_array(&self) -> [u8; U32_SIZE] {
+        self.0
+    }
+
+    #[inline(always)]
     pub fn as_slice(&self) -> &[u8; U32_SIZE] {
         &self.0
     }
