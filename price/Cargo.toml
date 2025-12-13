@@ -13,3 +13,7 @@ strum_macros.workspace = true
 
 [lints]
 workspace = true
+
+[features]
+default = []
+std = []

@@ -1,10 +1,21 @@
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(test)]
+extern crate std;
+
+#[cfg(any(feature = "std", test))]
 mod decoded_price;
+#[cfg(any(feature = "std", test))]
+pub use decoded_price::*;
+
 mod encoded_price;
 mod error;
 mod macros;
 mod validated_mantissa;
 
-pub use decoded_price::*;
 pub use encoded_price::*;
 pub use error::*;
 pub use validated_mantissa::*;
@@ -209,6 +220,8 @@ pub fn to_order_info(
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
+
     use std::ops::Mul;
 
     use static_assertions::*;

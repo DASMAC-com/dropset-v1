@@ -19,72 +19,45 @@ use crate::{
     },
 };
 
-/// The max number of orders a single user/address can have for a single market.
-const MAX_ORDERS: u8 = 10;
+/// The max number of orders a single user/address can have for a single market for bids or asks.
+/// That is, each user can have [`MAX_ORDERS`] bids and [`MAX_ORDERS`] asks for a single market.
+const MAX_ORDERS: u8 = 5;
 
-/// A lookup structure that indexes all of the user's unique order prices to the sector index of the
-/// corresponding order.
+/// The [`OrderSectors`] that maps the prices of a user's bids and asks to their corresponding
+/// sector indices in the market account data.
+///
+/// `bids` and `asks` both have a maximum [`MAX_ORDERS`] orders.
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UserOrderSectors {
-    pub orders: [PriceIndexNode; MAX_ORDERS as usize],
+    pub bids: OrderSectors,
+    pub asks: OrderSectors,
 }
 
-impl Default for UserOrderSectors {
+/// An array of [`MAX_ORDERS`] [`PriceIndexNode`]s that maps unique prices to a sector index.
+/// By default, [`PriceIndexNode`]s are free orders and map an encoded price u32 value of `0`
+/// to the [`LE_NIL`] sector index.
+#[repr(transparent)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrderSectors([PriceToIndex; MAX_ORDERS as usize]);
+
+impl Default for OrderSectors {
     fn default() -> Self {
-        Self::new()
+        Self([PriceToIndex::new_free(); MAX_ORDERS as usize])
     }
 }
 
-impl UserOrderSectors {
-    /// Creates a new collection of user orders to sector indices with all freed nodes.
-    pub fn new() -> Self {
-        Self {
-            orders: [
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-            ],
-        }
-    }
-
-    /// Create a new collection of user orders to sector indices with only one valid price to index
-    /// node and [`MAX_ORDERS`] - 1 freed nodes.
-    pub fn new_from_order(encoded_price: EncodedPrice, sector_index: &SectorIndex) -> Self {
-        Self {
-            orders: [
-                PriceIndexNode::new(encoded_price, sector_index),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-                PriceIndexNode::new_free(),
-            ],
-        }
-    }
-
-    /// Attempt to retrieve the sector index of an encoded price in a user's orders.
+impl OrderSectors {
+    /// Attempt to find and return the sector index for the order corresponding to the passed
+    /// encoded price.
     #[inline(always)]
     pub fn get(&self, target_le_encoded_price: &LeEncodedPrice) -> Option<SectorIndex> {
-        // Compare each price against the encoded price passed in.
-        // Returns Some(sector_index) if it exists, otherwise None.
-        self.orders.iter().find_map(
-            |PriceIndexNode {
+        self.0.iter().find_map(
+            |PriceToIndex {
                  le_encoded_price,
                  le_sector_index,
              }| {
-                match le_encoded_price.get() == target_le_encoded_price.get() {
+                match le_encoded_price.as_slice() == target_le_encoded_price.as_slice() {
                     true => Some(u32::from_le_bytes(*le_sector_index)),
                     false => None,
                 }
@@ -106,15 +79,13 @@ impl UserOrderSectors {
     ) -> DropsetResult {
         // Check if the price already exists in a node and fail early if it does.
         if self
-            .orders
             .iter()
-            .any(|node| node.le_encoded_price.get() == target_le_encoded_price.get())
+            .any(|node| node.le_encoded_price.as_slice() == target_le_encoded_price.as_slice())
         {
             return Err(DropsetError::OrderWithPriceAlreadyExists);
         }
 
         let node = self
-            .orders
             .iter_mut()
             .find(|node| node.is_free())
             .ok_or(DropsetError::UserHasMaxOrders)?;
@@ -131,15 +102,25 @@ impl UserOrderSectors {
     #[inline(always)]
     pub fn remove(&mut self, le_encoded_price: &LeEncodedPrice) -> DropsetResult {
         let node = self
-            .orders
+            .0
             .iter_mut()
-            .find(|node| node.le_encoded_price.get() == le_encoded_price.get())
+            .find(|node| node.le_encoded_price.as_slice() == le_encoded_price.as_slice())
             .ok_or(DropsetError::OrderNotFound)?;
 
         node.le_encoded_price = LeEncodedPrice::zero();
         node.le_sector_index = LE_NIL;
 
         Ok(())
+    }
+
+    #[inline(always)]
+    pub fn iter(&self) -> core::slice::Iter<'_, PriceToIndex> {
+        self.0.iter()
+    }
+
+    #[inline(always)]
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, PriceToIndex> {
+        self.0.iter_mut()
     }
 }
 
@@ -149,12 +130,12 @@ impl UserOrderSectors {
 /// existing, valid pair of encoded price to sector index.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PriceIndexNode {
+pub struct PriceToIndex {
     pub le_encoded_price: LeEncodedPrice,
     pub le_sector_index: LeSectorIndex,
 }
 
-impl PriceIndexNode {
+impl PriceToIndex {
     /// Create a new free node.
     #[inline(always)]
     pub fn new_free() -> Self {
@@ -185,7 +166,7 @@ impl PriceIndexNode {
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
 unsafe impl Transmutable for UserOrderSectors {
-    const LEN: usize = size_of::<PriceIndexNode>() * MAX_ORDERS as usize;
+    const LEN: usize = size_of::<PriceToIndex>() * (MAX_ORDERS * 2) as usize;
 
     #[inline(always)]
     fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
@@ -202,8 +183,8 @@ const_assert_eq!(align_of::<UserOrderSectors>(), 1);
 // - Stable layout with `#[repr(C)]`.
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
-unsafe impl Transmutable for PriceIndexNode {
-    const LEN: usize = size_of::<PriceIndexNode>();
+unsafe impl Transmutable for OrderSectors {
+    const LEN: usize = size_of::<PriceToIndex>() * MAX_ORDERS as usize;
 
     #[inline(always)]
     fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
@@ -212,5 +193,330 @@ unsafe impl Transmutable for PriceIndexNode {
     }
 }
 
-const_assert_eq!(PriceIndexNode::LEN, size_of::<PriceIndexNode>());
-const_assert_eq!(align_of::<PriceIndexNode>(), 1);
+// Safety:
+//
+// - Stable layout with `#[repr(C)]`.
+// - `size_of` and `align_of` are checked below.
+// - All bit patterns are valid.
+unsafe impl Transmutable for PriceToIndex {
+    const LEN: usize = size_of::<PriceToIndex>();
+
+    #[inline(always)]
+    fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
+        // All bit patterns are valid.
+        Ok(())
+    }
+}
+
+const_assert_eq!(PriceToIndex::LEN, size_of::<PriceToIndex>());
+const_assert_eq!(align_of::<PriceToIndex>(), 1);
+
+#[cfg(test)]
+mod tests {
+    use price::{
+        to_biased_exponent,
+        EncodedPrice,
+        LeEncodedPrice,
+        ValidatedPriceMantissa,
+    };
+
+    use crate::{
+        error::DropsetError,
+        state::{
+            sector::{
+                LeSectorIndex,
+                SectorIndex,
+                LE_NIL,
+            },
+            transmutable::Transmutable,
+            user_orders::{
+                OrderSectors,
+                PriceToIndex,
+                UserOrderSectors,
+                MAX_ORDERS,
+            },
+            U32_SIZE,
+        },
+    };
+
+    extern crate std;
+
+    #[test]
+    fn new_all_free() {
+        let order_sectors = UserOrderSectors::default();
+        // All bids and asks should be free.
+        assert!(order_sectors.asks.iter().all(|ask| ask.is_free()));
+        assert!(order_sectors.bids.iter().all(|bid| bid.is_free()));
+    }
+
+    #[test]
+    fn free_node_transmutable_bytes() {
+        let free_bytes_vec = [[0; U32_SIZE], LE_NIL].concat();
+        let free_bytes: &[u8; U32_SIZE * 2] = free_bytes_vec.as_slice().try_into().unwrap();
+        let new_freed_from_transmute = PriceToIndex::load(free_bytes);
+        assert!(new_freed_from_transmute.is_ok());
+        let new_freed = new_freed_from_transmute.expect("Should transmute");
+        assert!(new_freed.is_free());
+        assert_eq!(new_freed.le_encoded_price.as_slice(), &[0u8; 4]);
+        assert_eq!(new_freed.le_sector_index, LE_NIL);
+        assert_eq!(new_freed, &PriceToIndex::new_free());
+    }
+
+    #[test]
+    fn free_orders_transmutable_bytes() {
+        let free_bytes_vec = [[0; U32_SIZE], LE_NIL].concat();
+        let max_orders_all_freed: [u8; PriceToIndex::LEN * MAX_ORDERS as usize] = (0..MAX_ORDERS)
+            .flat_map(|_| free_bytes_vec.iter().cloned())
+            .collect::<std::vec::Vec<u8>>()
+            .try_into()
+            .unwrap();
+
+        let new_max_orders_all_freed_from_transmute =
+            OrderSectors::load(&max_orders_all_freed).expect("Should transmute");
+
+        assert_eq!(
+            new_max_orders_all_freed_from_transmute,
+            &OrderSectors::default()
+        );
+    }
+
+    #[test]
+    fn happy_path_free_orders() {
+        let order_sectors = UserOrderSectors::default();
+        assert_eq!(order_sectors.bids, OrderSectors::default());
+        assert_eq!(order_sectors.asks, OrderSectors::default());
+    }
+
+    #[test]
+    fn happy_path_one_bid_one_ask() {
+        let mut order_sectors = UserOrderSectors::default();
+        let bid_encoded_price = EncodedPrice::new(
+            to_biased_exponent!(1),
+            ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
+        );
+        let (bid_index, ask_index): (SectorIndex, SectorIndex) = (10, 11);
+        let bid_index_le_bytes = &bid_index.to_le_bytes();
+        let ask_encoded_price = EncodedPrice::new(
+            to_biased_exponent!(2),
+            ValidatedPriceMantissa::try_from(87_654_321).unwrap(),
+        );
+        let ask_index_le_bytes = &ask_index.to_le_bytes();
+
+        let bid_encoded_le_price: &LeEncodedPrice = &bid_encoded_price.into();
+        let ask_encoded_le_price: &LeEncodedPrice = &ask_encoded_price.into();
+
+        order_sectors
+            .bids
+            .add(bid_encoded_le_price, bid_index_le_bytes)
+            .expect("Should add the mapping");
+        order_sectors
+            .asks
+            .add(ask_encoded_le_price, ask_index_le_bytes)
+            .expect("Should add the mapping");
+        assert_eq!(
+            order_sectors.bids.get(bid_encoded_le_price).unwrap(),
+            bid_index
+        );
+        assert_eq!(
+            order_sectors.asks.get(ask_encoded_le_price).unwrap(),
+            ask_index
+        );
+    }
+
+    #[test]
+    fn duplicate_bid_error() {
+        let mut order_sectors = UserOrderSectors::default();
+        let bid_encoded_price = EncodedPrice::new(
+            to_biased_exponent!(1),
+            ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
+        );
+        let bid_index = 10u32;
+        let bid_index_le_bytes = &bid_index.to_le_bytes();
+        let bid_encoded_le_price: &LeEncodedPrice = &bid_encoded_price.into();
+        order_sectors
+            .bids
+            .add(bid_encoded_le_price, bid_index_le_bytes)
+            .expect("Should add the mapping");
+
+        let failed_add = order_sectors
+            .bids
+            .add(bid_encoded_le_price, bid_index_le_bytes);
+
+        assert!(matches!(
+            failed_add,
+            Err(DropsetError::OrderWithPriceAlreadyExists)
+        ));
+    }
+
+    #[test]
+    fn remove_nonexistent_order_error() {
+        let mut order_sectors = UserOrderSectors::default();
+        let bid_encoded_price = EncodedPrice::new(
+            to_biased_exponent!(1),
+            ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
+        );
+        let failed_remove = order_sectors.bids.remove(&bid_encoded_price.into());
+        assert!(matches!(failed_remove, Err(DropsetError::OrderNotFound)));
+    }
+
+    #[test]
+    fn remove_order() {
+        let mut order_sectors = UserOrderSectors::default();
+        // All bids should be free.
+        assert!(order_sectors.bids.iter().all(|bid| bid.is_free()));
+        let bid_encoded_price = EncodedPrice::new(
+            to_biased_exponent!(1),
+            ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
+        );
+        let bid_index = 10u32;
+        assert!(order_sectors
+            .bids
+            .add(&bid_encoded_price.into(), &bid_index.to_le_bytes())
+            .is_ok());
+        // Count the number of orders that are in use (not free).
+        let num_orders_in_use = order_sectors
+            .bids
+            .iter()
+            .fold(0, |acc, p| match p.is_free() {
+                true => acc,
+                false => acc + 1,
+            });
+        assert_eq!(num_orders_in_use, 1);
+
+        assert!(order_sectors.bids.remove(&bid_encoded_price.into()).is_ok());
+        assert!(order_sectors.bids.iter().all(|bid| bid.is_free()));
+    }
+
+    #[test]
+    fn too_many_orders_error() {
+        let mut order_sectors = UserOrderSectors::default();
+        for i in 0..=MAX_ORDERS as u32 {
+            let encoded_price = EncodedPrice::new(
+                to_biased_exponent!(0),
+                ValidatedPriceMantissa::try_from(10_000_000 + i).unwrap(),
+            );
+
+            if i != MAX_ORDERS as u32 {
+                // Add each new price to both bids and asks and assert it is successful.
+                assert!(order_sectors
+                    .bids
+                    .add(&encoded_price.into(), &i.to_le_bytes())
+                    .is_ok());
+                assert!(order_sectors
+                    .asks
+                    .add(&encoded_price.into(), &i.to_le_bytes())
+                    .is_ok());
+            } else {
+                // If this is the last order, it should fail, since it's one beyond the max amount.
+                assert!(matches!(
+                    order_sectors
+                        .bids
+                        .add(&encoded_price.into(), &i.to_le_bytes()),
+                    Err(DropsetError::UserHasMaxOrders)
+                ));
+                assert!(matches!(
+                    order_sectors
+                        .asks
+                        .add(&encoded_price.into(), &i.to_le_bytes()),
+                    Err(DropsetError::UserHasMaxOrders)
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn replace_arbitrary_order() {
+        let mut order_sectors = UserOrderSectors::default();
+        let index_and_mantissa_pairs: [(u32, ValidatedPriceMantissa); MAX_ORDERS as usize] = [
+            (1, ValidatedPriceMantissa::try_from(11_111_111).unwrap()),
+            (2, ValidatedPriceMantissa::try_from(22_222_222).unwrap()),
+            (3, ValidatedPriceMantissa::try_from(33_333_333).unwrap()),
+            (4, ValidatedPriceMantissa::try_from(44_444_444).unwrap()),
+            (5, ValidatedPriceMantissa::try_from(55_555_555).unwrap()),
+        ];
+
+        let index_and_encoded_price_pairs: [(u32, EncodedPrice); MAX_ORDERS as usize] =
+            index_and_mantissa_pairs
+                .into_iter()
+                .map(|(i, mantissa)| (i, EncodedPrice::new(to_biased_exponent!(0), mantissa)))
+                .collect::<std::vec::Vec<_>>()
+                .try_into()
+                .unwrap();
+
+        for (i, encoded_price) in index_and_encoded_price_pairs.iter() {
+            order_sectors
+                .bids
+                .add(&(*encoded_price).into(), &i.to_le_bytes())
+                .unwrap();
+        }
+
+        // All bids should be in use.
+        assert!(order_sectors.bids.iter().all(|bid| !bid.is_free()));
+
+        let (old_sector_index, old_price) = *index_and_encoded_price_pairs.get(1).unwrap();
+
+        let new_sector_index = 7;
+        let new_mantissa = 77_777_777;
+        let new_price = EncodedPrice::new(
+            to_biased_exponent!(0),
+            ValidatedPriceMantissa::try_from(new_mantissa).unwrap(),
+        );
+
+        // Ensure the new price doesn't exist in the bids yet.
+        assert!(order_sectors.bids.get(&new_price.into()).is_none());
+
+        // Ensure the old sector index doesn't equal the new index it's being updated to so the
+        // final check is meaningful and not a misleading equality check.
+        assert_ne!(old_sector_index, new_sector_index);
+
+        // Remove the old price.
+        assert!(order_sectors.bids.remove(&old_price.into()).is_ok());
+
+        // Add the new price.
+        assert!(order_sectors
+            .bids
+            .add(&new_price.into(), &new_sector_index.to_le_bytes())
+            .is_ok());
+
+        // Ensure the old price has been removed and the new price exists and is mapped to the new
+        // sector index.
+        assert!(order_sectors.bids.get(&old_price.into()).is_none());
+        assert!(order_sectors.bids.get(&new_price.into()).is_some());
+        assert_eq!(
+            order_sectors.bids.get(&new_price.into()).unwrap(),
+            new_sector_index
+        );
+
+        // Ensure there are no free bids.
+        assert!(order_sectors.bids.iter().all(|bid| !bid.is_free()));
+
+        // Check the final result in whole.
+        let expected_index_and_encoded_price_pairs: [(u32, EncodedPrice); MAX_ORDERS as usize] = [
+            (1, ValidatedPriceMantissa::try_from(11_111_111).unwrap()),
+            (
+                new_sector_index,
+                ValidatedPriceMantissa::try_from(new_mantissa).unwrap(),
+            ),
+            (3, ValidatedPriceMantissa::try_from(33_333_333).unwrap()),
+            (4, ValidatedPriceMantissa::try_from(44_444_444).unwrap()),
+            (5, ValidatedPriceMantissa::try_from(55_555_555).unwrap()),
+        ]
+        .into_iter()
+        .map(|(i, mantissa)| (i, EncodedPrice::new(to_biased_exponent!(0), mantissa)))
+        .collect::<std::vec::Vec<_>>()
+        .try_into()
+        .unwrap();
+
+        for (expected, result) in expected_index_and_encoded_price_pairs
+            .iter()
+            .zip(order_sectors.bids.iter())
+        {
+            let (expected_le_sector_index, expected_le_encoded_price): (
+                &LeSectorIndex,
+                &LeEncodedPrice,
+            ) = (&expected.0.to_le_bytes(), &expected.1.into());
+            assert_eq!(&result.le_sector_index, expected_le_sector_index);
+            assert_eq!(&result.le_encoded_price, expected_le_encoded_price);
+        }
+    }
+}

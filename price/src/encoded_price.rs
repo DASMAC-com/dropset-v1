@@ -82,7 +82,7 @@ impl LeEncodedPrice {
     }
 
     #[inline(always)]
-    pub fn get(&self) -> &[u8; U32_SIZE] {
+    pub fn as_slice(&self) -> &[u8; U32_SIZE] {
         &self.0
     }
 
