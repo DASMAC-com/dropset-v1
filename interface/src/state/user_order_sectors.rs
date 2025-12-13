@@ -51,14 +51,14 @@ impl OrderSectors {
     /// Attempt to find and return the sector index for the order corresponding to the passed
     /// encoded price.
     #[inline(always)]
-    pub fn get(&self, target_le_encoded_price: &LeEncodedPrice) -> Option<SectorIndex> {
+    pub fn get(&self, target_price: &LeEncodedPrice) -> Option<SectorIndex> {
         self.0.iter().find_map(
             |PriceToIndex {
-                 le_encoded_price,
-                 le_sector_index,
+                 encoded_price,
+                 sector_index,
              }| {
-                match le_encoded_price.as_slice() == target_le_encoded_price.as_slice() {
-                    true => Some(u32::from_le_bytes(*le_sector_index)),
+                match encoded_price.as_slice() == target_price.as_slice() {
+                    true => Some(u32::from_le_bytes(*sector_index)),
                     false => None,
                 }
             },
@@ -72,15 +72,11 @@ impl OrderSectors {
     /// The `sector_index` passed to this method should be non-NIL or the node after mutation will
     /// continue be treated as a free node.
     #[inline(always)]
-    pub fn add(
-        &mut self,
-        target_le_encoded_price: &LeEncodedPrice,
-        le_sector_index: &LeSectorIndex,
-    ) -> DropsetResult {
+    pub fn add(&mut self, new_price: &LeEncodedPrice, new_index: &LeSectorIndex) -> DropsetResult {
         // Check if the price already exists in a node and fail early if it does.
         if self
             .iter()
-            .any(|node| node.le_encoded_price.as_slice() == target_le_encoded_price.as_slice())
+            .any(|node| node.encoded_price.as_slice() == new_price.as_slice())
         {
             return Err(DropsetError::OrderWithPriceAlreadyExists);
         }
@@ -90,8 +86,8 @@ impl OrderSectors {
             .find(|node| node.is_free())
             .ok_or(DropsetError::UserHasMaxOrders)?;
 
-        node.le_encoded_price = *target_le_encoded_price;
-        node.le_sector_index = *le_sector_index;
+        node.encoded_price = *new_price;
+        node.sector_index = *new_index;
 
         Ok(())
     }
@@ -100,15 +96,15 @@ impl OrderSectors {
     ///
     /// Fails if the user does not have an order corresponding to the passed encoded price.
     #[inline(always)]
-    pub fn remove(&mut self, le_encoded_price: &LeEncodedPrice) -> DropsetResult {
+    pub fn remove(&mut self, new_price: &LeEncodedPrice) -> DropsetResult {
         let node = self
             .0
             .iter_mut()
-            .find(|node| node.le_encoded_price.as_slice() == le_encoded_price.as_slice())
+            .find(|node| node.encoded_price.as_slice() == new_price.as_slice())
             .ok_or(DropsetError::OrderNotFound)?;
 
-        node.le_encoded_price = LeEncodedPrice::zero();
-        node.le_sector_index = LE_NIL;
+        node.encoded_price = LeEncodedPrice::zero();
+        node.sector_index = LE_NIL;
 
         Ok(())
     }
@@ -131,8 +127,8 @@ impl OrderSectors {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PriceToIndex {
-    pub le_encoded_price: LeEncodedPrice,
-    pub le_sector_index: LeSectorIndex,
+    pub encoded_price: LeEncodedPrice,
+    pub sector_index: LeSectorIndex,
 }
 
 impl PriceToIndex {
@@ -140,8 +136,8 @@ impl PriceToIndex {
     #[inline(always)]
     pub fn new_free() -> Self {
         Self {
-            le_encoded_price: LeEncodedPrice::zero(),
-            le_sector_index: LE_NIL,
+            encoded_price: LeEncodedPrice::zero(),
+            sector_index: LE_NIL,
         }
     }
 
@@ -149,14 +145,14 @@ impl PriceToIndex {
     #[inline(always)]
     pub fn new(encoded_price: EncodedPrice, sector_index: &SectorIndex) -> Self {
         Self {
-            le_encoded_price: encoded_price.into(),
-            le_sector_index: sector_index.to_le_bytes(),
+            encoded_price: encoded_price.into(),
+            sector_index: sector_index.to_le_bytes(),
         }
     }
 
     #[inline(always)]
     pub fn is_free(&self) -> bool {
-        self.le_sector_index == LE_NIL
+        self.sector_index == LE_NIL
     }
 }
 
@@ -257,8 +253,8 @@ mod tests {
         assert!(new_freed_from_transmute.is_ok());
         let new_freed = new_freed_from_transmute.expect("Should transmute");
         assert!(new_freed.is_free());
-        assert_eq!(new_freed.le_encoded_price.as_slice(), &[0u8; 4]);
-        assert_eq!(new_freed.le_sector_index, LE_NIL);
+        assert_eq!(new_freed.encoded_price.as_slice(), &[0u8; 4]);
+        assert_eq!(new_freed.sector_index, LE_NIL);
         assert_eq!(new_freed, &PriceToIndex::new_free());
     }
 
@@ -295,32 +291,23 @@ mod tests {
             ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
         );
         let (bid_index, ask_index): (SectorIndex, SectorIndex) = (10, 11);
-        let bid_index_le_bytes = &bid_index.to_le_bytes();
         let ask_encoded_price = EncodedPrice::new(
             to_biased_exponent!(2),
             ValidatedPriceMantissa::try_from(87_654_321).unwrap(),
         );
-        let ask_index_le_bytes = &ask_index.to_le_bytes();
-
-        let bid_encoded_le_price: &LeEncodedPrice = &bid_encoded_price.into();
-        let ask_encoded_le_price: &LeEncodedPrice = &ask_encoded_price.into();
+        let new_bid_price: &LeEncodedPrice = &bid_encoded_price.into();
+        let new_ask_price: &LeEncodedPrice = &ask_encoded_price.into();
 
         order_sectors
             .bids
-            .add(bid_encoded_le_price, bid_index_le_bytes)
+            .add(new_bid_price, &bid_index.to_le_bytes())
             .expect("Should add the mapping");
         order_sectors
             .asks
-            .add(ask_encoded_le_price, ask_index_le_bytes)
+            .add(new_ask_price, &ask_index.to_le_bytes())
             .expect("Should add the mapping");
-        assert_eq!(
-            order_sectors.bids.get(bid_encoded_le_price).unwrap(),
-            bid_index
-        );
-        assert_eq!(
-            order_sectors.asks.get(ask_encoded_le_price).unwrap(),
-            ask_index
-        );
+        assert_eq!(order_sectors.bids.get(new_bid_price).unwrap(), bid_index);
+        assert_eq!(order_sectors.asks.get(new_ask_price).unwrap(), ask_index);
     }
 
     #[test]
@@ -508,12 +495,10 @@ mod tests {
             .iter()
             .zip(order_sectors.bids.iter())
         {
-            let (expected_le_sector_index, expected_le_encoded_price): (
-                &LeSectorIndex,
-                &LeEncodedPrice,
-            ) = (&expected.0.to_le_bytes(), &expected.1.into());
-            assert_eq!(&result.le_sector_index, expected_le_sector_index);
-            assert_eq!(&result.le_encoded_price, expected_le_encoded_price);
+            let (expected_sector_index, expected_encoded_price): (&LeSectorIndex, &LeEncodedPrice) =
+                (&expected.0.to_le_bytes(), &expected.1.into());
+            assert_eq!(&result.sector_index, expected_sector_index);
+            assert_eq!(&result.encoded_price, expected_encoded_price);
         }
     }
 }
