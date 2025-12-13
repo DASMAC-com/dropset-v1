@@ -59,7 +59,7 @@ use crate::parse::{
 /// // Use it to implement `TryFrom<u8>`:
 /// impl TryFrom<u8> for MyInstruction {
 ///     type Error = ProgramError;
-///   
+///
 ///     #[inline(always)]
 ///     fn try_from(tag: u8) -> Result<Self, Self::Error> {
 ///         MyInstruction_try_from_tag!(tag, ProgramError::InvalidInstructionData)

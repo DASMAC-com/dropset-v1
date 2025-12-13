@@ -2510,6 +2510,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "price"
+version = "0.1.0"
+dependencies = [
+ "pinocchio",
+ "static_assertions",
+ "strum",
+ "strum_macros",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

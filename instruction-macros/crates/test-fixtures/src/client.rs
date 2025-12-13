@@ -19,7 +19,7 @@ mod test {
         #[account(9,           name = "quote_token_program", desc = "The quote mint's token program.")]
         #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
         CloseSeat,
-        
+
         #[account(0, signer,   name = "user",           desc = "The user depositing or registering their seat.")]
         #[account(1, writable, name = "market_account", desc = "The market account PDA.")]
         #[account(2, writable, name = "user_ata",       desc = "The user's associated token account.")]
@@ -29,10 +29,10 @@ mod test {
         #[args(amount: u64, "The amount to deposit.")]
         #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in (pass `NIL` when registering a new seat).")]
         Deposit,
-        
+
         #[account(0, signer, name = "event_authority", desc = "Flush events.")]
         FlushEvents,
-        
+
         Batch,
     }
 }
