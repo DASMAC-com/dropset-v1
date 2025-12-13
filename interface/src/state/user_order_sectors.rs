@@ -229,7 +229,7 @@ mod tests {
                 LE_NIL,
             },
             transmutable::Transmutable,
-            user_orders::{
+            user_order_sectors::{
                 OrderSectors,
                 PriceToIndex,
                 UserOrderSectors,

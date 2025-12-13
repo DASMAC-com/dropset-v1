@@ -10,7 +10,7 @@ pub mod node;
 pub mod seats_dll;
 pub mod sector;
 pub mod transmutable;
-pub mod user_orders;
+pub mod user_order_sectors;
 
 pub const U16_SIZE: usize = core::mem::size_of::<u16>();
 pub const U32_SIZE: usize = core::mem::size_of::<u32>();
