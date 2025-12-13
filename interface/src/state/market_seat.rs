@@ -19,13 +19,14 @@ use crate::state::{
 pub struct MarketSeat {
     /// The user's public key.
     pub user: Pubkey,
-    // The amount of base the maker can withdraw
-    // Needs to be updated on place, cancel, deposit, withdraw
+    /// The amount of base the maker can withdraw
+    /// Needs to be updated on place, cancel, deposit, withdraw
     base_available: [u8; U64_SIZE],
-    // The amount of quote the maker can withdraw
-    // Needs to be updated on place, cancel, deposit, withdraw
+    /// The amount of quote the maker can withdraw
+    /// Needs to be updated on place, cancel, deposit, withdraw
     quote_available: [u8; U64_SIZE],
-    // The mapping for a user's order prices to order sector indices.
+    /// The mapping for a user's order prices to order sector indices.
+    /// This facilitates O(1) indexing from a user's seat -> their orders.
     user_order_sectors: UserOrderSectors,
 }
 
