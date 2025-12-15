@@ -1,5 +1,4 @@
-//! Doubly linked list utilities for traversing, inserting, and removing nodes containing
-//! [`crate::state::market_seat::MarketSeat`] payloads.
+use core::marker::PhantomData;
 
 use crate::{
     error::DropsetError,
@@ -17,17 +16,37 @@ use crate::{
     },
 };
 
-/// A sorted, doubly linked list of nodes containing [`crate::state::market_seat::MarketSeat`]
-/// payloads.
-#[derive(Debug)]
-pub struct LinkedList<'a> {
-    pub header: &'a mut MarketHeader,
-    pub sectors: &'a mut [u8],
+pub trait LinkedListOperations {
+    fn head(header: &MarketHeader) -> SectorIndex;
+
+    fn set_head(header: &mut MarketHeader, new_index: SectorIndex);
+
+    fn tail(header: &MarketHeader) -> SectorIndex;
+
+    fn set_tail(header: &mut MarketHeader, new_index: SectorIndex);
+
+    fn increment_num_nodes(header: &mut MarketHeader);
+
+    fn decrement_num_nodes(header: &mut MarketHeader);
 }
 
-impl<'a> LinkedList<'a> {
+/// A doubly linked list of nodes containing arbitrary payloads of size
+/// [`crate::state::node::NODE_PAYLOAD_SIZE`].
+///
+/// Each node exists as a union of the traversable payload type and a free node.
+pub struct LinkedList<'a, T: LinkedListOperations> {
+    pub header: &'a mut MarketHeader,
+    pub sectors: &'a mut [u8],
+    _list_type: PhantomData<T>,
+}
+
+impl<'a, T: LinkedListOperations> LinkedList<'a, T> {
     pub fn new_from_parts(header: &'a mut MarketHeader, sectors: &'a mut [u8]) -> Self {
-        LinkedList { header, sectors }
+        Self {
+            header,
+            sectors,
+            _list_type: PhantomData,
+        }
     }
 
     /// Helper method to pop a node from the free stack.
@@ -44,7 +63,7 @@ impl<'a> LinkedList<'a> {
         payload: &[u8; NODE_PAYLOAD_SIZE],
     ) -> Result<SectorIndex, DropsetError> {
         let new_index = self.acquire_free_node()?;
-        let head_index = self.header.seat_dll_head();
+        let head_index = T::head(self.header);
 
         // Safety: `acquire_free_node` guarantees `new_index` is in-bounds and non-NIL.
         let new_node = unsafe { Node::from_sector_index_mut(self.sectors, new_index) };
@@ -56,7 +75,7 @@ impl<'a> LinkedList<'a> {
 
         if head_index == NIL {
             // If the head is NIL, the new node is the only node and is thus also the tail.
-            self.header.set_seat_dll_tail(new_index);
+            T::set_tail(self.header, new_index);
         } else {
             // Safety: `head_index` is non-NIL and per the linked list impl, must be in-bounds.
             let head = unsafe { Node::from_sector_index_mut(self.sectors, head_index) };
@@ -65,8 +84,8 @@ impl<'a> LinkedList<'a> {
         }
 
         // Update the head to the new index and increment the number of seats.
-        self.header.set_seat_dll_head(new_index);
-        self.header.increment_num_seats();
+        T::set_head(self.header, new_index);
+        T::increment_num_nodes(self.header);
 
         Ok(new_index)
     }
@@ -76,7 +95,7 @@ impl<'a> LinkedList<'a> {
         payload: &[u8; NODE_PAYLOAD_SIZE],
     ) -> Result<SectorIndex, DropsetError> {
         let new_index = self.acquire_free_node()?;
-        let tail_index = self.header.seat_dll_tail();
+        let tail_index = T::tail(self.header);
 
         // Safety: `acquire_free_node` guarantees `new_index` is in-bounds and non-NIL.
         let new_node = unsafe { Node::from_sector_index_mut(self.sectors, new_index) };
@@ -88,7 +107,7 @@ impl<'a> LinkedList<'a> {
 
         if tail_index == NIL {
             // If the tail is NIL, the new node is the only node and is thus also the head.
-            self.header.set_seat_dll_head(new_index);
+            T::set_head(self.header, new_index);
         } else {
             // Safety: `tail_index` is non-NIL and per the linked list impl, must be in-bounds.
             let tail = unsafe { Node::from_sector_index_mut(self.sectors, tail_index) };
@@ -97,8 +116,8 @@ impl<'a> LinkedList<'a> {
         }
 
         // Update the tail to the new index and increment the number of seats.
-        self.header.set_seat_dll_tail(new_index);
-        self.header.increment_num_seats();
+        T::set_tail(self.header, new_index);
+        T::increment_num_nodes(self.header);
 
         Ok(new_index)
     }
@@ -132,7 +151,7 @@ impl<'a> LinkedList<'a> {
         if prev_index == NIL {
             // If `prev_index` is NIL, that means `next_index` was the head prior to this insertion,
             // so the `head` needs to be updated to the new node's index.
-            self.header.set_seat_dll_head(new_index);
+            T::set_head(self.header, new_index);
         } else {
             // Safety: `prev_index` is non-NIL and per the linked list impl, must be in-bounds.
             let prev = unsafe { Node::from_sector_index_mut(self.sectors, prev_index) };
@@ -140,7 +159,7 @@ impl<'a> LinkedList<'a> {
             prev.set_next(new_index);
         }
 
-        self.header.increment_num_seats();
+        T::increment_num_nodes(self.header);
 
         Ok(new_index)
     }
@@ -158,7 +177,7 @@ impl<'a> LinkedList<'a> {
         };
 
         match prev_index {
-            NIL => self.header.set_seat_dll_head(next_index),
+            NIL => T::set_head(self.header, next_index),
             // Safety: `prev_index` matched against non-NIL and came from a node directly.
             prev_index => unsafe {
                 Node::from_sector_index_mut(self.sectors, prev_index).set_next(next_index);
@@ -166,14 +185,14 @@ impl<'a> LinkedList<'a> {
         }
 
         match next_index {
-            NIL => self.header.set_seat_dll_tail(prev_index),
+            NIL => T::set_tail(self.header, prev_index),
             // Safety: `next_index` matched against non-NIL and came from a node directly.
             next_index => unsafe {
                 Node::from_sector_index_mut(self.sectors, next_index).set_prev(prev_index);
             },
         }
 
-        self.header.decrement_num_seats();
+        T::decrement_num_nodes(self.header);
 
         let mut free_stack = Stack::new_from_parts(self.header, self.sectors);
         free_stack.push_free_node(index);
@@ -181,7 +200,7 @@ impl<'a> LinkedList<'a> {
 
     pub fn iter(&self) -> LinkedListIter<'_> {
         LinkedListIter {
-            curr: self.header.seat_dll_head(),
+            curr: T::head(self.header),
             sectors: self.sectors,
         }
     }

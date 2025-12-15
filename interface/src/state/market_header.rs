@@ -12,7 +12,7 @@ use crate::{
         sector::{
             LeSectorIndex,
             SectorIndex,
-            NIL,
+            LE_NIL,
         },
         transmutable::Transmutable,
         LeU32,
@@ -70,7 +70,19 @@ pub struct MarketHeader {
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
 unsafe impl Transmutable for MarketHeader {
-    const LEN: usize = 104;
+    #[allow(clippy::identity_op)]
+    const LEN: usize = 0
+    /* discriminant */     + size_of::<LeU64>()
+    /* num_seats */        + size_of::<LeU32>()
+    /* num_free_sectors */ + size_of::<LeU32>()
+    /* free_stack_top */   + size_of::<LeSectorIndex>()
+    /* seat_dll_head */    + size_of::<LeSectorIndex>()
+    /* seat_dll_tail */    + size_of::<LeSectorIndex>()
+    /* base_mint */        + size_of::<Pubkey>()
+    /* quote_mint */       + size_of::<Pubkey>()
+    /* market_bump */      + size_of::<u8>()
+    /* num_events */       + size_of::<LeU64>()
+    /* _padding */         + size_of::<[u8; 3]>();
 
     fn validate_bit_patterns(_bytes: &[u8]) -> DropsetResult {
         // All bit patterns are valid: no enums, bools, or other types with invalid states.
@@ -100,9 +112,9 @@ impl MarketHeader {
             discriminant: MARKET_ACCOUNT_DISCRIMINANT.to_le_bytes(),
             num_seats: [0; U32_SIZE],
             num_free_sectors: [0; U32_SIZE],
-            free_stack_top: NIL.to_le_bytes(),
-            seat_dll_head: NIL.to_le_bytes(),
-            seat_dll_tail: NIL.to_le_bytes(),
+            free_stack_top: LE_NIL,
+            seat_dll_head: LE_NIL,
+            seat_dll_tail: LE_NIL,
             base_mint: *base_mint,
             quote_mint: *quote_mint,
             market_bump,

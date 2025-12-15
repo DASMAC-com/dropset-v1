@@ -3,14 +3,12 @@
 
 use crate::state::{
     free_stack::Stack,
-    linked_list::{
-        LinkedList,
-        LinkedListIter,
-    },
+    linked_list::LinkedListIter,
     market_header::{
         MarketHeader,
         MARKET_ACCOUNT_DISCRIMINANT,
     },
+    seats_dll::SeatsLinkedList,
     sector::SECTOR_SIZE,
     transmutable::Transmutable,
 };
@@ -76,8 +74,8 @@ impl<'a> MarketRefMut<'a> {
     }
 
     #[inline(always)]
-    pub fn seat_list(&mut self) -> LinkedList<'_> {
-        LinkedList::new_from_parts(self.header, self.sectors)
+    pub fn seat_list(&mut self) -> SeatsLinkedList {
+        SeatsLinkedList::new_from_parts(self.header, self.sectors)
     }
 }
 

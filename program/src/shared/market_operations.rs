@@ -4,7 +4,6 @@
 use dropset_interface::{
     error::DropsetError,
     state::{
-        linked_list::LinkedList,
         market::{
             Market,
             MarketRef,
@@ -13,6 +12,7 @@ use dropset_interface::{
         market_header::MarketHeader,
         market_seat::MarketSeat,
         node::Node,
+        seats_dll::SeatsLinkedList,
         sector::{
             SectorIndex,
             NIL,
@@ -27,7 +27,7 @@ use pinocchio::pubkey::{
 };
 
 pub fn insert_market_seat(
-    list: &mut LinkedList,
+    list: &mut SeatsLinkedList,
     seat: MarketSeat,
 ) -> Result<SectorIndex, DropsetError> {
     let (prev_index, insert_before_index) = find_insert_before_index(list, &seat.user);
@@ -57,7 +57,7 @@ pub fn insert_market_seat(
 /// to be inserted at as:
 ///
 /// (prev_index, insert_before_index)
-fn find_insert_before_index(list: &LinkedList, user: &Pubkey) -> (SectorIndex, SectorIndex) {
+fn find_insert_before_index(list: &SeatsLinkedList, user: &Pubkey) -> (SectorIndex, SectorIndex) {
     for (index, node) in list.iter() {
         let seat = node.load_payload::<MarketSeat>();
         if user < &seat.user {

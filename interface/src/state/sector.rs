@@ -11,6 +11,9 @@ pub const SECTOR_SIZE: usize = 72;
 /// size of 10 MB would put the max sector index at ~10.5 mil — far less than u32::MAX.
 pub const NIL: SectorIndex = u32::MAX;
 
+/// The little-endian byte representation of [`NIL`].
+pub const LE_NIL: LeSectorIndex = NIL.to_le_bytes();
+
 // A sector index stored as little-endian bytes.
 pub type LeSectorIndex = [u8; U32_SIZE];
 
