@@ -25,12 +25,12 @@ use pinocchio::pubkey::{
     Pubkey,
 };
 
-pub fn insert_market_seat(
+pub fn try_insert_market_seat(
     list: &mut SeatsLinkedList,
     seat: MarketSeat,
 ) -> Result<SectorIndex, DropsetError> {
-    let (prev_index, insert_before_index) = find_insert_before_index(list, &seat.user);
-    let seat_bytes = seat.as_array();
+    let (prev_index, next_index) = find_new_seat_prev_and_next(list, &seat.user);
+    let seat_bytes = seat.as_bytes();
 
     // Return an error early if the user already exists in the seat list at the previous index.
     if prev_index != NIL {
@@ -42,28 +42,39 @@ pub fn insert_market_seat(
         }
     }
 
-    if insert_before_index == list.header.seats_dll_head() {
+    if next_index == list.header.seats_dll_head() {
         list.push_front(seat_bytes)
-    } else if insert_before_index == NIL {
+    } else if next_index == NIL {
         list.push_back(seat_bytes)
     } else {
-        // Safety: `index` was returned by the iterator so it must be in-bounds.
-        unsafe { list.insert_before(insert_before_index, seat_bytes) }
+        // Safety: The index used here was returned by the iterator so it must be in-bounds.
+        unsafe { list.insert_before(next_index, seat_bytes) }
     }
 }
 
-/// Returns the index a node should be inserted before and the `prev_index` relative to the index
-/// to be inserted at as:
+/// This function returns the new prev and next indices for the new node. Thus the list would be
+/// updated from this:
 ///
-/// (prev_index, insert_before_index)
-fn find_insert_before_index(list: &SeatsLinkedList, user: &Pubkey) -> (SectorIndex, SectorIndex) {
+/// prev => next
+///
+/// To this:
+///
+/// prev => new => next
+///
+/// where this function returns `(prev, next)` as sector indices.
+#[inline(always)]
+fn find_new_seat_prev_and_next(
+    list: &SeatsLinkedList,
+    user: &Pubkey,
+) -> (SectorIndex, SectorIndex) {
     for (index, node) in list.iter() {
         let seat = node.load_payload::<MarketSeat>();
         if user < &seat.user {
             return (node.prev(), index);
         }
     }
-    // The `prev` index at the end of the list is the tail.
+    // If the node is to be inserted at the end of the list, the new `prev` is the current tail
+    // and the new `next` is `NIL`, since the new node is the new tail.
     (list.header.seats_dll_tail(), NIL)
 }
 
@@ -213,7 +224,7 @@ pub mod tests {
         ];
 
         seats.clone().into_iter().for_each(|seat| {
-            assert!(insert_market_seat(&mut seat_list, seat).is_ok());
+            assert!(try_insert_market_seat(&mut seat_list, seat).is_ok());
         });
 
         let resulting_seat_list: Vec<(SectorIndex, &MarketSeat)> = seat_list

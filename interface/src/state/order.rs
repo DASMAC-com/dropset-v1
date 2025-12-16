@@ -50,6 +50,11 @@ impl Order {
     }
 
     #[inline(always)]
+    pub fn le_encoded_price(&self) -> &LeEncodedPrice {
+        &self.encoded_price
+    }
+
+    #[inline(always)]
     pub fn encoded_price(&self) -> u32 {
         u32::from_le_bytes(self.encoded_price.as_array())
     }
@@ -77,6 +82,16 @@ impl Order {
     #[inline(always)]
     pub fn set_initial(&mut self, amount: u64) {
         self.initial = amount.to_le_bytes();
+    }
+
+    /// This method is sound because:
+    ///
+    /// - `Self` is exactly `Self::LEN` bytes.
+    /// - Size and alignment are verified with const assertions.
+    /// - All fields are byte-safe, `Copy`, non-pointer/reference u8 arrays.
+    #[inline(always)]
+    pub fn as_bytes(&self) -> &[u8; Self::LEN] {
+        unsafe { &*(self as *const Self as *const [u8; Self::LEN]) }
     }
 }
 
