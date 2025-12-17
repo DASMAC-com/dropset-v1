@@ -1,4 +1,4 @@
-//! See [`process_register_market`].
+//! See [`process_place_order`].
 
 use dropset_interface::{
     error::DropsetError,
