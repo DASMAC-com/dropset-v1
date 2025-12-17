@@ -40,6 +40,18 @@ pub fn insert_order(
     Ok(sector_index)
 }
 
+/// Find the insertion point for a new order by returning what the new order node's `next_index`
+/// should be after insertion.
+///
+/// That is, given some `new` order, the list would be updated from this:
+///
+/// `prev => next`
+/// To this:
+/// `prev => new => next`
+///
+/// where this function returns the `next` node's sector index.
+///
+/// ## Bids
 /// Bids are inserted in descending order so that the top of the book (first price on the book) is
 /// the highest price.
 ///
@@ -49,22 +61,12 @@ pub fn insert_order(
 ///
 /// If the bid is the lowest price on the book, it's inserted at the end.
 ///
+/// ## Asks
 /// For asks, the logic is simply inverted: asks are inserted in ascending order so that the top of
 /// the book is the lowest price. To find the insertion index, find the first price that is greater
 /// than the new bid and insert before it.
 ///
 /// If the ask is the highest price on the book, it's inserted at the end.
-///
-/// This function returns the new prev and next indices for the new node. Thus the list would be
-/// updated from this:
-///
-/// prev => next
-///
-/// To this:
-///
-/// prev => new => next
-///
-/// where this function returns the `next` node's sector index.
 #[inline(always)]
 fn find_new_order_next_index(
     list: &OrdersLinkedList,
