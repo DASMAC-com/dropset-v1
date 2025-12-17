@@ -27,10 +27,10 @@ pub struct MarketSeat {
     /// The user's public key.
     pub user: Pubkey,
     /// The u64 amount of base the maker can withdraw as LE bytes.
-    /// Updated on place, cancel, deposit, withdraw.
+    /// Updated on post, cancel, deposit, withdraw.
     base_available: [u8; U64_SIZE],
     /// The u64 amount of quote the maker can withdraw as LE bytes.
-    /// Updated on place, cancel, deposit, withdraw.
+    /// Updated on post, cancel, deposit, withdraw.
     quote_available: [u8; U64_SIZE],
     /// The mapping for a user's order prices to order sector indices.
     /// This facilitates O(1) indexing from a user's seat -> their orders.

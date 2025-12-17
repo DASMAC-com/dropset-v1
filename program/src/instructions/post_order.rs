@@ -1,10 +1,10 @@
-//! See [`process_place_order`].
+//! See [`process_post_order`].
 
 #[cfg(feature = "debug")]
-use dropset_interface::events::PlaceOrderEventInstructionData;
+use dropset_interface::events::PostOrderEventInstructionData;
 use dropset_interface::{
     error::DropsetError,
-    instructions::PlaceOrderInstructionData,
+    instructions::PostOrderInstructionData,
     state::{
         node::Node,
         order::Order,
@@ -18,7 +18,7 @@ use price::to_order_info;
 
 use crate::{
     context::{
-        place_order_context::PlaceOrderContext,
+        post_order_context::PostOrderContext,
         EventBufferContext,
     },
     events::EventBuffer,
@@ -28,27 +28,27 @@ use crate::{
     },
 };
 
-/// Instruction handler logic for placing a user's bid or ask order on the market's order book.
+/// Instruction handler logic for posting a user's bid or ask order on the market's order book.
 ///
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in
-/// [`dropset_interface::instructions::generated_pinocchio::PlaceOrder`].
+/// [`dropset_interface::instructions::generated_pinocchio::PostOrder`].
 #[inline(never)]
-pub unsafe fn process_place_order<'a>(
+pub unsafe fn process_post_order<'a>(
     accounts: &'a [AccountInfo],
     instruction_data: &[u8],
     _event_buffer: &mut EventBuffer,
 ) -> Result<EventBufferContext<'a>, ProgramError> {
-    let PlaceOrderInstructionData {
+    let PostOrderInstructionData {
         price_mantissa,
         base_scalar,
         base_exponent_biased,
         quote_exponent_biased,
         is_bid,
         user_sector_index_hint,
-    } = PlaceOrderInstructionData::unpack_pinocchio(instruction_data)?;
-    let mut ctx = PlaceOrderContext::load(accounts)?;
+    } = PostOrderInstructionData::unpack_pinocchio(instruction_data)?;
+    let mut ctx = PostOrderContext::load(accounts)?;
 
     let order_info = to_order_info(
         price_mantissa,
@@ -87,7 +87,7 @@ pub unsafe fn process_place_order<'a>(
         // 2. Update the user seat's mapped order sectors. This also checks for duplicate prices so
         //    that all of a user's orders have a unique price.
         if is_bid {
-            // 1. If the user is placing a bid, they intend to provide quote and receive base.
+            // 1. If the user is posting a bid, they intend to provide quote and receive base.
             user_seat.try_decrement_quote_available(quote_atoms)?;
             // 2. Add the order to the user's bids.
             user_seat
@@ -95,7 +95,7 @@ pub unsafe fn process_place_order<'a>(
                 .bids
                 .add(&le_encoded_price, &order_sector_index_bytes)?;
         } else {
-            // 1. If the user is placing an ask, they intend to provide base and receive quote.
+            // 1. If the user is posting an ask, they intend to provide base and receive quote.
             user_seat.try_decrement_base_available(base_atoms)?;
             // 2. Add the order to the user's asks.
             user_seat
@@ -107,7 +107,7 @@ pub unsafe fn process_place_order<'a>(
 
     #[cfg(feature = "debug")]
     _event_buffer.add_to_buffer(
-        PlaceOrderEventInstructionData::new(
+        PostOrderEventInstructionData::new(
             is_bid,
             user_sector_index_hint,
             order_sector_index,

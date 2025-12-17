@@ -1,4 +1,4 @@
-//! See [`PlaceOrderContext`].
+//! See [`PostOrderContext`].
 
 use dropset_interface::instructions::generated_pinocchio::CancelOrder;
 use pinocchio::{

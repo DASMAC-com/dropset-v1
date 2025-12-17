@@ -78,7 +78,7 @@ pub enum DropsetInstruction {
     Withdraw,
 
     #[account(0,           name = "event_authority", desc = "The event authority PDA signer.")]
-    #[account(1, signer,   name = "user",            desc = "The user placing an order.")]
+    #[account(1, signer,   name = "user",            desc = "The user posting an order.")]
     #[account(2, writable, name = "market_account",  desc = "The market account PDA.")]
     #[account(3,           name = "dropset_program", desc = "The dropset program itself, used for the self-CPI.")]
     #[args(price_mantissa: u32, "The price mantissa.")]
@@ -87,10 +87,10 @@ pub enum DropsetInstruction {
     #[args(quote_exponent_biased: u8, "The biased quote exponent.")]
     #[args(is_bid: bool, "Whether or not the order is a bid. If false, the order is an ask.")]
     #[args(user_sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
-    PlaceOrder,
+    PostOrder,
 
     #[account(0,           name = "event_authority", desc = "The event authority PDA signer.")]
-    #[account(1, signer,   name = "user",            desc = "The user placing an order.")]
+    #[account(1, signer,   name = "user",            desc = "The user posting an order.")]
     #[account(2, writable, name = "market_account",  desc = "The market account PDA.")]
     #[account(3,           name = "dropset_program", desc = "The dropset program itself, used for the self-CPI.")]
     #[args(encoded_price: u32, "The encoded price for the order to cancel.")]

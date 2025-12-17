@@ -10,7 +10,7 @@ use client::{
 use dropset_interface::{
     instructions::{
         CancelOrderInstructionData,
-        PlaceOrderInstructionData,
+        PostOrderInstructionData,
     },
     state::sector::NIL,
 };
@@ -62,11 +62,11 @@ async fn main() -> anyhow::Result<()> {
     let order_info = to_order_info(price_mantissa, base_scalar, base_exponent, quote_exponent)
         .expect("Should be a valid order");
 
-    // Place an ask so the user puts up quote as collateral with base to get filled.
+    // Post an ask so the user puts up quote as collateral with base to get filled.
     let is_bid = false;
-    let place_ask = market_ctx.place_order(
+    let post_ask = market_ctx.post_order(
         payer.pubkey(),
-        PlaceOrderInstructionData::new(
+        PostOrderInstructionData::new(
             price_mantissa,
             base_scalar,
             base_exponent,
@@ -77,19 +77,19 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let res = rpc
-        .send_and_confirm_txn(&payer, &[&payer], &[place_ask.into()])
+        .send_and_confirm_txn(&payer, &[&payer], &[post_ask.into()])
         .await?;
 
     println!(
-        "Place ask transaction signature: {}",
+        "Post ask transaction signature: {}",
         res.parsed_transaction.signature
     );
 
     let market = market_ctx.view_market(rpc)?;
-    println!("Market after placing user ask:\n{:#?}", market);
+    println!("Market after posting user ask:\n{:#?}", market);
 
     let user_seat = market_ctx.find_seat(rpc, &payer.pubkey())?.unwrap();
-    println!("User seat after placing ask: {user_seat:#?}");
+    println!("User seat after posting ask: {user_seat:#?}");
 
     let cancel_ask = market_ctx.cancel_order(
         user_seat.user,

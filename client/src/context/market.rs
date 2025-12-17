@@ -7,7 +7,7 @@ use dropset_interface::{
         CancelOrderInstructionData,
         CloseSeatInstructionData,
         DepositInstructionData,
-        PlaceOrderInstructionData,
+        PostOrderInstructionData,
         RegisterMarketInstructionData,
         WithdrawInstructionData,
     },
@@ -169,12 +169,12 @@ impl MarketContext {
         self.withdraw(user, data, false)
     }
 
-    pub fn place_order(
+    pub fn post_order(
         &self,
         user: Pubkey,
-        data: PlaceOrderInstructionData,
+        data: PostOrderInstructionData,
     ) -> SingleSignerInstruction {
-        PlaceOrder {
+        PostOrder {
             event_authority: event_authority::ID.into(),
             user,
             market_account: self.market,

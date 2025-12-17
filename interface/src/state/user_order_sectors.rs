@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn replace_arbitrary_order() {
+    fn repost_arbitrary_order() {
         let mut order_sectors = UserOrderSectors::default();
         let index_and_mantissa_pairs: [(u32, ValidatedPriceMantissa); MAX_ORDERS as usize] = [
             (1, ValidatedPriceMantissa::try_from(11_111_111).unwrap()),
