@@ -100,18 +100,25 @@ impl OrderSectors {
     /// Fallibly remove a [`PriceToIndex`] from a user's orders.
     ///
     /// Fails if the user does not have an order corresponding to the passed encoded price.
+    ///
+    /// Note that the encoded price does not have to be validated since it's doing a simple match
+    /// on equality and isn't stored anywhere.
+    ///
+    /// Returns the mapped order's sector index.
     #[inline(always)]
-    pub fn remove(&mut self, price_to_remove: &LeEncodedPrice) -> DropsetResult {
+    pub fn remove(&mut self, encoded_price: u32) -> Result<LeSectorIndex, DropsetError> {
         let node = self
             .0
             .iter_mut()
-            .find(|node| node.encoded_price.as_slice() == price_to_remove.as_slice())
+            .find(|node| node.encoded_price.as_slice() == &encoded_price.to_le_bytes())
             .ok_or(DropsetError::OrderNotFound)?;
+
+        let sector_index = node.sector_index;
 
         node.encoded_price = LeEncodedPrice::zero();
         node.sector_index = LE_NIL;
 
-        Ok(())
+        Ok(sector_index)
     }
 
     #[inline(always)]
@@ -350,7 +357,7 @@ mod tests {
             to_biased_exponent!(1),
             ValidatedPriceMantissa::try_from(12_345_678).unwrap(),
         );
-        let failed_remove = order_sectors.bids.remove(&bid_encoded_price.into());
+        let failed_remove = order_sectors.bids.remove(bid_encoded_price.as_u32());
         assert!(matches!(failed_remove, Err(DropsetError::OrderNotFound)));
     }
 
@@ -378,7 +385,10 @@ mod tests {
             });
         assert_eq!(num_orders_in_use, 1);
 
-        assert!(order_sectors.bids.remove(&bid_encoded_price.into()).is_ok());
+        assert!(order_sectors
+            .bids
+            .remove(bid_encoded_price.as_u32())
+            .is_ok());
         assert!(order_sectors.bids.iter().all(|bid| bid.is_free()));
     }
 
@@ -465,7 +475,7 @@ mod tests {
         assert_ne!(old_sector_index, new_sector_index);
 
         // Remove the old price.
-        assert!(order_sectors.bids.remove(&old_price.into()).is_ok());
+        assert!(order_sectors.bids.remove(old_price.as_u32()).is_ok());
 
         // Add the new price.
         assert!(order_sectors

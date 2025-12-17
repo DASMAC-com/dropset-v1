@@ -109,14 +109,20 @@ impl Node {
         }
     }
 
+    /// # Safety:
+    ///
+    /// Caller guarantees that all bit patterns are valid for type `T`.
     #[inline(always)]
-    pub fn load_payload<T: NodePayload>(&self) -> &T {
+    pub unsafe fn load_payload<T: NodePayload>(&self) -> &T {
         // Safety: All `NodePayload` implementations should have a length of `NODE_PAYLOAD_SIZE`.
         unsafe { T::load_unchecked(&self.payload) }
     }
 
+    /// # Safety:
+    ///
+    /// Caller guarantees that all bit patterns are valid for type `T`.
     #[inline(always)]
-    pub fn load_payload_mut<T: NodePayload>(&mut self) -> &mut T {
+    pub unsafe fn load_payload_mut<T: NodePayload>(&mut self) -> &mut T {
         // Safety: All `NodePayload` implementations should have a length of `NODE_PAYLOAD_SIZE`.
         unsafe { T::load_unchecked_mut(&mut self.payload) }
     }

@@ -2,6 +2,7 @@
 //! events or contiguous instruction data.
 
 use dropset_interface::events::{
+    CancelOrderEventInstructionData,
     CloseSeatEventInstructionData,
     DepositEventInstructionData,
     DropsetEventTag,
@@ -21,6 +22,7 @@ pub enum DropsetEvent {
     RegisterMarket(display_types::DisplayRegisterMarketData),
     CloseSeat(CloseSeatEventInstructionData),
     PlaceOrder(PlaceOrderEventInstructionData),
+    CancelOrder(CancelOrderEventInstructionData),
 }
 
 impl DropsetEvent {
@@ -32,6 +34,7 @@ impl DropsetEvent {
             Self::RegisterMarket(_) => RegisterMarketEventInstructionData::LEN_WITH_TAG,
             Self::CloseSeat(_) => CloseSeatEventInstructionData::LEN_WITH_TAG,
             Self::PlaceOrder(_) => PlaceOrderEventInstructionData::LEN_WITH_TAG,
+            Self::CancelOrder(_) => CancelOrderEventInstructionData::LEN_WITH_TAG,
         }
     }
 }
@@ -108,6 +111,9 @@ impl DropsetEvent {
             )),
             DropsetEventTag::PlaceOrderEvent => Ok(DropsetEvent::PlaceOrder(
                 PlaceOrderEventInstructionData::unpack_client(data).map_err(|_| err())?,
+            )),
+            DropsetEventTag::CancelOrderEvent => Ok(DropsetEvent::CancelOrder(
+                CancelOrderEventInstructionData::unpack_client(data).map_err(|_| err())?,
             )),
         }
     }

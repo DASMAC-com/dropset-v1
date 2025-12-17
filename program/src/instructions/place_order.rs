@@ -72,8 +72,6 @@ pub unsafe fn process_place_order<'a>(
         insert_order(&mut order_list, order, is_bid)?
     };
 
-    debug!("base atoms: {}, quote atoms: {}", base_atoms, quote_atoms);
-
     {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };

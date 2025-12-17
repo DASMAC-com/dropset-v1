@@ -90,6 +90,28 @@ impl MarketSeat {
         Ok(())
     }
 
+    #[inline(always)]
+    pub fn try_increment_base_available(&mut self, amount: u64) -> DropsetResult {
+        let new_amount = self.base_available().checked_add(amount).ok_or_else(|| {
+            pinocchio::hint::cold_path();
+            DropsetError::ArithmeticOverflow
+        })?;
+        self.set_base_available(new_amount);
+
+        Ok(())
+    }
+
+    #[inline(always)]
+    pub fn try_increment_quote_available(&mut self, amount: u64) -> DropsetResult {
+        let new_amount = self.quote_available().checked_add(amount).ok_or_else(|| {
+            pinocchio::hint::cold_path();
+            DropsetError::ArithmeticOverflow
+        })?;
+        self.set_quote_available(new_amount);
+
+        Ok(())
+    }
+
     /// This method is sound because:
     ///
     /// - `Self` is exactly `Self::LEN` bytes.

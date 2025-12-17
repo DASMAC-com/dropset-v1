@@ -65,7 +65,7 @@ impl Order {
     }
 
     #[inline(always)]
-    pub fn remaining(&self) -> u64 {
+    pub fn base_remaining(&self) -> u64 {
         u64::from_le_bytes(self.base_remaining)
     }
 
@@ -75,12 +75,12 @@ impl Order {
     }
 
     #[inline(always)]
-    pub fn initial(&self) -> u64 {
+    pub fn quote_remaining(&self) -> u64 {
         u64::from_le_bytes(self.quote_remaining)
     }
 
     #[inline(always)]
-    pub fn set_initial(&mut self, amount: u64) {
+    pub fn set_quote_remaining(&mut self, amount: u64) {
         self.quote_remaining = amount.to_le_bytes();
     }
 
