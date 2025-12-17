@@ -13,6 +13,7 @@ dropset-interface = { path = "../interface", features = ["client", "solana-progr
 itertools.workspace = true
 futures.workspace = true
 lazy-regex.workspace = true
+price = { path = "../price" }
 regex.workspace = true
 solana-client.workspace = true
 solana-commitment-config.workspace = true

@@ -20,6 +20,7 @@ use crate::{
         place_order_context::PlaceOrderContext,
         EventBufferContext,
     },
+    debug,
     events::EventBuffer,
     shared::{
         order_operations::insert_order,
@@ -70,6 +71,8 @@ pub unsafe fn process_place_order<'a>(
         let mut order_list = market.order_list();
         insert_order(&mut order_list, order, is_bid)?
     };
+
+    debug!("base atoms: {}, quote atoms: {}", base_atoms, quote_atoms);
 
     {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
