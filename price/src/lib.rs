@@ -82,14 +82,130 @@ pub struct OrderInfo {
     pub quote_atoms: u64,
 }
 
-/// # Safety note:
+/// Convert order inputs into a serializable, non-decimalized [`OrderInfo`].
 ///
-/// In the rebiased exponent calculation, there is an unchecked add that is actually safe. It's
-/// safe because the prior function body ensures the quote exponent is <= MAX_BIASED_EXPONENT, and
-/// const assertions ensure that `MAX_BIASED_EXPONENT + BIAS` is always <= `u8::MAX`.
+/// This function accepts a **price mantissa**, a **base scalar**, and **biased base/quote
+/// exponents**, and produces an order whose amounts are fully expressed in atomic units.
 ///
-/// [`tests::ensure_invalid_quote_exponent_fails_early`] ensures that the function fails early if
-/// the quote exponent isn't <= MAX_BIASED_EXPONENT prior to the unchecked add.
+/// # Example
+///
+/// The following example shows how to place an order for **0.5 SOL** at a price of
+/// **$110 SOL/USD**, assuming:
+///
+/// - SOL has **9 decimals** (`1 SOL = 10^9 lamports`)
+/// - USDC has **6 decimals** (`1 USDC = 10^6 atoms`)
+/// - USDC trades at exactly **$1.00**
+///
+/// ---
+///
+/// ## Price normalization
+///
+/// A price of `110 SOL/USD` becomes a ratio of atomic units:
+///
+/// ```text
+/// 110 USDC      110 * 10^6        110        110 USDC atoms
+/// --------  =  -----------  =  --------  =  ----------------
+///  1  SOL        1 * 10^9        10^3        1000 lamports
+/// ```
+///
+/// Which yields:
+///
+/// ```text
+/// price = 0.11 USDC atoms / lamport
+/// ```
+///
+/// The price mantissa stores significant digits within a fixed range
+/// `10_000_000 ..= 99_999_999`, so:
+///
+/// ```text
+/// price_mantissa = 11_000_000
+/// ```
+///
+/// ---
+///
+/// ## Base size
+///
+/// The order size is expressed entirely in base atoms:
+///
+/// ```text
+/// 0.5 SOL = 500_000_000 lamports
+/// ```
+///
+/// This decomposes into:
+///
+/// ```text
+/// base_atoms = base_scalar × 10^base_exponent_unbiased
+/// base_atoms = 5 × 10^8
+/// ```
+///
+/// ---
+///
+/// ## Quote size
+///
+/// By definition:
+///
+/// ```text
+/// price = quote_atoms / base_atoms
+/// ```
+///
+/// Substituting known values:
+///
+/// ```text
+/// 0.11 = quote_atoms / 500_000_000
+/// quote_atoms = 55_000_000
+/// ```
+///
+/// Internally, this function computes quote atoms as:
+///
+/// ```text
+/// quote_atoms = (price_mantissa × base_scalar) × 10^quote_exponent_biased
+/// ```
+///
+/// Substituting:
+///
+/// ```text
+/// 55_000_000 = (11_000_000 × 5) × 10^quote_exponent_biased
+/// ```
+///
+/// Which gives:
+///
+/// ```text
+/// quote_exponent_biased = 0
+/// ```
+///
+/// ---
+///
+/// ## Putting it together
+///
+/// ```rust
+/// let price_mantissa = 11_000_000;
+/// let base_scalar = 5;
+/// let base_exponent_biased = 8;
+/// let quote_exponent_biased = 0;
+///
+/// let order = price::to_order_info(
+///     price_mantissa,
+///     base_scalar,
+///     price::to_biased_exponent!(base_exponent_biased),
+///     price::to_biased_exponent!(quote_exponent_biased),
+/// ).unwrap();
+///
+/// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
+///
+/// assert_eq!(order.base_atoms, 500_000_000);
+/// assert_eq!(order.quote_atoms, 55_000_000);
+/// assert_eq!(derived_price, 0.11);
+/// ```
+///
+/// # Safety
+///
+/// This function performs an unchecked add when rebiasing the price exponent. This is safe because:
+///
+/// - The quote exponent is validated to be `<= MAX_BIASED_EXPONENT`
+/// - Compile-time assertions guarantee `MAX_BIASED_EXPONENT + BIAS <= u8::MAX`
+///
+/// The test [`tests::ensure_invalid_quote_exponent_fails_early`] ensures invalid inputs
+/// are rejected before the unchecked operation.
 #[allow(rustdoc::broken_intra_doc_links)]
 pub fn to_order_info(
     price_mantissa: u32,
