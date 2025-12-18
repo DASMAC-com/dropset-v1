@@ -1,6 +1,8 @@
 //! Core on-chain state definitions, covering markets, seats, nodes, and low-level data structures
 //! for indexing and iteration.
 
+pub mod asks_dll;
+pub mod bids_dll;
 pub mod free_stack;
 pub mod linked_list;
 pub mod market;
@@ -8,7 +10,6 @@ pub mod market_header;
 pub mod market_seat;
 pub mod node;
 pub mod order;
-pub mod orders_dll;
 pub mod seats_dll;
 pub mod sector;
 pub mod transmutable;

@@ -97,7 +97,7 @@ pub mod tests {
         )
         .expect("Should initialize market data");
 
-        let mut seat_list = market.seat_list();
+        let mut seat_list = market.seats();
 
         let [zero, one, two, three, ten, forty] = vec![
             [vec![0; 31], vec![0]].concat().try_into().unwrap(),

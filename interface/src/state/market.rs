@@ -2,13 +2,14 @@
 //! storage sectors into a unified on-chain representation.
 
 use crate::state::{
+    asks_dll::AskOrdersLinkedList,
+    bids_dll::BidOrdersLinkedList,
     free_stack::Stack,
     linked_list::LinkedListIter,
     market_header::{
         MarketHeader,
         MARKET_ACCOUNT_DISCRIMINANT,
     },
-    orders_dll::OrdersLinkedList,
     seats_dll::SeatsLinkedList,
     sector::SECTOR_SIZE,
     transmutable::Transmutable,
@@ -23,12 +24,21 @@ pub type MarketRef<'a> = Market<&'a MarketHeader, &'a [u8]>;
 pub type MarketRefMut<'a> = Market<&'a mut MarketHeader, &'a mut [u8]>;
 
 impl AsRef<MarketHeader> for &MarketHeader {
+    #[inline(always)]
+    fn as_ref(&self) -> &MarketHeader {
+        self
+    }
+}
+
+impl AsRef<MarketHeader> for &mut MarketHeader {
+    #[inline(always)]
     fn as_ref(&self) -> &MarketHeader {
         self
     }
 }
 
 impl AsMut<MarketHeader> for &mut MarketHeader {
+    #[inline(always)]
     fn as_mut(&mut self) -> &mut MarketHeader {
         self
     }
@@ -75,21 +85,34 @@ impl<'a> MarketRefMut<'a> {
     }
 
     #[inline(always)]
-    pub fn seat_list(&mut self) -> SeatsLinkedList {
+    pub fn seats(&mut self) -> SeatsLinkedList {
         SeatsLinkedList::new_from_parts(self.header, self.sectors)
     }
 
     #[inline(always)]
-    pub fn order_list(&mut self) -> OrdersLinkedList {
-        OrdersLinkedList::new_from_parts(self.header, self.sectors)
+    pub fn bids(&mut self) -> BidOrdersLinkedList {
+        BidOrdersLinkedList::new_from_parts(self.header, self.sectors)
+    }
+
+    #[inline(always)]
+    pub fn asks(&mut self) -> AskOrdersLinkedList {
+        AskOrdersLinkedList::new_from_parts(self.header, self.sectors)
     }
 }
 
 impl<H: AsRef<MarketHeader>, S: AsRef<[u8]>> Market<H, S> {
     #[inline(always)]
-    pub fn iter_orders(&self) -> LinkedListIter<'_> {
+    pub fn iter_bids(&self) -> LinkedListIter<'_> {
         LinkedListIter {
-            curr: self.header.as_ref().orders_dll_head(),
+            curr: self.header.as_ref().bids_dll_head(),
+            sectors: self.sectors.as_ref(),
+        }
+    }
+
+    #[inline(always)]
+    pub fn iter_asks(&self) -> LinkedListIter<'_> {
+        LinkedListIter {
+            curr: self.header.as_ref().asks_dll_head(),
             sectors: self.sectors.as_ref(),
         }
     }

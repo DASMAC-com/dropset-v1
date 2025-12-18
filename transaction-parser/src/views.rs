@@ -17,13 +17,16 @@ use solana_sdk::pubkey::Pubkey;
 pub struct MarketHeaderView {
     pub discriminant: u64,
     pub num_seats: u32,
-    pub num_orders: u32,
+    pub num_bids: u32,
+    pub num_asks: u32,
     pub num_free_sectors: u32,
     pub free_stack_top: SectorIndex,
     pub seats_dll_head: SectorIndex,
     pub seats_dll_tail: SectorIndex,
-    pub orders_dll_head: SectorIndex,
-    pub orders_dll_tail: SectorIndex,
+    pub bids_dll_head: SectorIndex,
+    pub bids_dll_tail: SectorIndex,
+    pub asks_dll_head: SectorIndex,
+    pub asks_dll_tail: SectorIndex,
     pub base_mint: Pubkey,
     pub quote_mint: Pubkey,
     pub market_bump: u8,
@@ -135,13 +138,16 @@ impl From<&MarketHeader> for MarketHeaderView {
         Self {
             discriminant: header.discriminant(),
             num_seats: header.num_seats(),
-            num_orders: header.num_orders(),
+            num_bids: header.num_bids(),
+            num_asks: header.num_asks(),
             num_free_sectors: header.num_free_sectors(),
             free_stack_top: header.free_stack_top(),
             seats_dll_head: header.seats_dll_head(),
             seats_dll_tail: header.seats_dll_tail(),
-            orders_dll_head: header.orders_dll_head(),
-            orders_dll_tail: header.orders_dll_tail(),
+            bids_dll_head: header.bids_dll_head(),
+            bids_dll_tail: header.bids_dll_tail(),
+            asks_dll_head: header.asks_dll_head(),
+            asks_dll_tail: header.asks_dll_tail(),
             base_mint: header.base_mint.into(),
             quote_mint: header.quote_mint.into(),
             market_bump: header.market_bump,
@@ -164,7 +170,7 @@ impl From<MarketRef<'_>> for MarketView<OrderView> {
     fn from(market: MarketRef<'_>) -> Self {
         Self {
             header: market.header.into(),
-            sectors: market.iter_orders().map(OrderView::from).collect(),
+            sectors: market.iter_bids().map(OrderView::from).collect(),
         }
     }
 }
@@ -174,7 +180,7 @@ impl From<MarketRef<'_>> for MarketViewAll {
         Self {
             header: market.header.into(),
             seats: market.iter_seats().map(MarketSeatView::from).collect(),
-            orders: market.iter_orders().map(OrderView::from).collect(),
+            orders: market.iter_bids().map(OrderView::from).collect(),
         }
     }
 }

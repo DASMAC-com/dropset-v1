@@ -43,6 +43,7 @@ pub enum DropsetError {
     InvalidPriceMantissa,
     InvalidBiasedExponent,
     InfinityIsNotAFloat,
+    PostOnlyWouldImmediatelyFill,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -104,6 +105,7 @@ impl From<DropsetError> for &'static str {
             DropsetError::InvalidPriceMantissa => "Invalid price mantissa in price calculation",
             DropsetError::InvalidBiasedExponent => "Invalid biased exponent in price calculation",
             DropsetError::InfinityIsNotAFloat => "Can't convert infinity to a float value",
+            DropsetError::PostOnlyWouldImmediatelyFill => "Post only order would immediately fill",
         }
     }
 }

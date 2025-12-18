@@ -6,8 +6,14 @@ use dropset_interface::{
     error::DropsetError,
     instructions::PostOrderInstructionData,
     state::{
+        asks_dll::AskOrders,
+        bids_dll::BidOrders,
+        market::MarketRefMut,
         node::Node,
-        order::Order,
+        order::{
+            Order,
+            OrdersCollection,
+        },
     },
 };
 use pinocchio::{
@@ -58,6 +64,8 @@ pub unsafe fn process_post_order<'a>(
     )
     .map_err(DropsetError::from)?;
 
+    {}
+
     let (base_atoms, quote_atoms) = (order_info.base_atoms, order_info.quote_atoms);
 
     // To avoid convoluted borrow checking rules, optimistically insert the order into the tree
@@ -67,10 +75,16 @@ pub unsafe fn process_post_order<'a>(
     let le_encoded_price = *order.le_encoded_price();
     let order_sector_index = {
         // Safety: Scoped mutable borrow of the market account to insert the order.
-        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
-        let mut order_list = market.order_list();
-        insert_order(&mut order_list, order, is_bid)?
-    };
+        let mut market: MarketRefMut = unsafe { ctx.market_account.load_unchecked_mut() };
+
+        if is_bid {
+            BidOrders::post_only_crossing_check(&order, &market)?;
+            insert_order(&mut market.bids(), order)
+        } else {
+            AskOrders::post_only_crossing_check(&order, &market)?;
+            insert_order(&mut market.asks(), order)
+        }
+    }?;
 
     {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.

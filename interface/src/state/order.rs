@@ -4,19 +4,53 @@ use price::{
 };
 use static_assertions::const_assert_eq;
 
-use crate::state::{
-    node::{
-        AllBitPatternsValid,
-        NodePayload,
-        NODE_PAYLOAD_SIZE,
+use crate::{
+    error::DropsetResult,
+    state::{
+        linked_list::{
+            LinkedList,
+            LinkedListOperations,
+        },
+        market::Market,
+        market_header::MarketHeader,
+        node::{
+            AllBitPatternsValid,
+            NodePayload,
+            NODE_PAYLOAD_SIZE,
+        },
+        sector::{
+            LeSectorIndex,
+            SectorIndex,
+        },
+        transmutable::Transmutable,
+        U64_SIZE,
     },
-    sector::{
-        LeSectorIndex,
-        SectorIndex,
-    },
-    transmutable::Transmutable,
-    U64_SIZE,
 };
+
+/// Marker trait to indicate that a struct represents a collection of orders.
+pub trait OrdersCollection {
+    /// Find the insertion point for a new order by returning what the new order node's `next_index`
+    /// should be after insertion.
+    ///
+    /// That is, given some `new` order, the list would be updated from this:
+    ///
+    /// `prev => next`
+    /// To this:
+    /// `prev => new => next`
+    ///
+    /// where this function returns the `next` node's sector index.
+    fn find_new_order_next_index<T: OrdersCollection + LinkedListOperations>(
+        list: &LinkedList<'_, T>,
+        new_order: &Order,
+    ) -> SectorIndex;
+
+    /// A post-only order must not execute immediately, so it must fail if it would cross the book
+    /// and match against resting liquidity.
+    fn post_only_crossing_check<H, S>(order: &Order, market: &Market<H, S>) -> DropsetResult
+    where
+        H: AsRef<MarketHeader>,
+        S: AsRef<[u8]>;
+}
 
 const ORDER_PADDING: usize = NODE_PAYLOAD_SIZE
     - (size_of::<LeEncodedPrice>() + size_of::<LeSectorIndex>() + U64_SIZE + U64_SIZE);

@@ -106,7 +106,7 @@ pub unsafe fn process_deposit<'a>(
         };
 
         // Attempts to insert the user into the linked list. If the user already exists, this fails.
-        try_insert_market_seat(&mut market.seat_list(), seat)?
+        try_insert_market_seat(&mut market.seats(), seat)?
     };
 
     event_buffer.add_to_buffer(

@@ -61,7 +61,7 @@ pub unsafe fn process_cancel_order<'a>(
         }
     };
 
-    // Remove and return the order from the orders collection.
+    // Load the order given the order sector index.
     let order = {
         // Safety: Scoped borrow of the market account.
         let market = unsafe { ctx.market_account.load_unchecked() };
@@ -93,12 +93,16 @@ pub unsafe fn process_cancel_order<'a>(
         user_seat.try_increment_base_available(order_size_remaining)?;
     }
 
-    // Remove the order at the order sector index from the orders collection.
-    {
+    // Remove the order at the order sector index from the appropriate orders collection.
+    unsafe {
         // Safety: Scoped mutable borrow of the market account.
-        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
+        let mut market = ctx.market_account.load_unchecked_mut();
         // Safety: The order sector index from the `remove` method is still in-bounds.
-        market.order_list().remove_at(order_sector_index);
+        if is_bid {
+            market.bids().remove_at(order_sector_index);
+        } else {
+            market.asks().remove_at(order_sector_index);
+        }
     }
 
     #[cfg(feature = "debug")]
