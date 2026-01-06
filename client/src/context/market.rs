@@ -207,28 +207,19 @@ impl MarketContext {
         user: Pubkey,
         data: MarketOrderInstructionData,
     ) -> SingleSignerInstruction {
-        // A market buy means the taker receives base and transfers quote
-        match data.is_buy {
-            true => MarketOrder {
-                event_authority: event_authority::ID.into(),
-                user,
-                market_account: self.market,
-                user_ata: self.get_base_ata(&user),
-                market_ata: self.base_market_ata,
-                mint: self.base.mint,
-                token_program: self.base.token_program,
-                dropset_program: dropset::ID.into(),
-            },
-            false => MarketOrder {
-                event_authority: event_authority::ID.into(),
-                user,
-                market_account: self.market,
-                user_ata: self.get_base_ata(&user),
-                market_ata: self.base_market_ata,
-                mint: self.base.mint,
-                token_program: self.base.token_program,
-                dropset_program: dropset::ID.into(),
-            },
+        MarketOrder {
+            event_authority: event_authority::ID.into(),
+            user,
+            market_account: self.market,
+            base_user_ata: self.get_base_ata(&user),
+            quote_user_ata: self.get_quote_ata(&user),
+            base_market_ata: self.base_market_ata,
+            quote_market_ata: self.quote_market_ata,
+            base_mint: self.base.mint,
+            quote_mint: self.quote.mint,
+            base_token_program: self.base.token_program,
+            quote_token_program: self.quote.token_program,
+            dropset_program: dropset::ID.into(),
         }
         .create_instruction(data)
         .try_into()
