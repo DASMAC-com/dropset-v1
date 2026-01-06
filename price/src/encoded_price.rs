@@ -1,8 +1,10 @@
 use static_assertions::const_assert_eq;
 
 use crate::{
+    OrderInfoError,
     ValidatedPriceMantissa,
     PRICE_MANTISSA_BITS,
+    PRICE_MANTISSA_MASK,
 };
 
 const U32_SIZE: usize = core::mem::size_of::<u32>();
@@ -67,6 +69,28 @@ impl EncodedPrice {
     #[inline(always)]
     pub fn is_zero(&self) -> bool {
         self.0 == ENCODED_PRICE_ZERO
+    }
+}
+
+#[cfg(debug_assertions)]
+impl TryFrom<u32> for EncodedPrice {
+    type Error = OrderInfoError;
+
+    /// Convert a raw u32 to an [`EncodedPrice`] by unshifting the proper bits and revalidating
+    /// the price mantissa.
+    fn try_from(raw_value: u32) -> Result<Self, Self::Error> {
+        let exponent_bits = raw_value >> PRICE_MANTISSA_BITS;
+        let price_mantissa = raw_value & PRICE_MANTISSA_MASK;
+        let res = Self::new(
+            exponent_bits
+                .try_into()
+                .or(Err(OrderInfoError::InvalidBiasedExponent))?,
+            ValidatedPriceMantissa::try_from(price_mantissa)?,
+        );
+
+        debug_assert_eq!(res.0, raw_value);
+
+        Ok(res)
     }
 }
 
