@@ -10,8 +10,6 @@ use crate::transactions::{
 /// simple construction and submission of single signer transactions with one instruction.
 pub struct SingleSignerInstruction(Instruction);
 
-impl SingleSignerInstruction {}
-
 impl TryFrom<Instruction> for SingleSignerInstruction {
     type Error = anyhow::Error;
 
