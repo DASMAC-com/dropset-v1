@@ -14,17 +14,11 @@ impl TryFrom<Instruction> for SingleSignerInstruction {
     type Error = anyhow::Error;
 
     fn try_from(instruction: Instruction) -> Result<Self, Self::Error> {
-        let num_signers =
-            instruction.accounts.iter().fold(
-                0,
-                |acc, meta| {
-                    if meta.is_signer {
-                        acc + 1
-                    } else {
-                        acc
-                    }
-                },
-            );
+        let num_signers = instruction
+            .accounts
+            .iter()
+            .filter(|meta| meta.is_signer)
+            .count();
         if num_signers != 1 {
             return Err(anyhow::anyhow!(
                 "Expected a single signer instruction, got {num_signers} signers."
