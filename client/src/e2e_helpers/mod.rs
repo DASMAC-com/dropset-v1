@@ -161,7 +161,7 @@ impl E2e {
         &self,
         trader: &Keypair,
         amount: u64,
-        seat: u32,
+        seat: SectorIndex,
     ) -> anyhow::Result<ParsedTransactionWithEvents> {
         let deposit = self.market.withdraw_quote(trader.pubkey(), amount, seat);
         self.rpc.send_single_signer(trader, [deposit]).await
