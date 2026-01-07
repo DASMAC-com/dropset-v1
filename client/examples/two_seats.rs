@@ -49,9 +49,9 @@ async fn main() -> anyhow::Result<()> {
         &[&payer_1, &payer_2],
         // Create payer 2's seat before payer 1 to ensure that they're inserted out of order.
         &[
-            register,
-            market_ctx.deposit_base(payer_2.pubkey(), 1000, NIL),
-            market_ctx.deposit_base(payer_1.pubkey(), 1000, NIL),
+            register.into(),
+            market_ctx.deposit_base(payer_2.pubkey(), 1000, NIL).into(),
+            market_ctx.deposit_base(payer_1.pubkey(), 1000, NIL).into(),
         ],
     )
     .await?;

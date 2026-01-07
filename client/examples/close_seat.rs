@@ -33,7 +33,10 @@ async fn main() -> anyhow::Result<()> {
 
     let e2e = E2e::new_traders_and_market(Some(rpc), [Trader::new(&trader, 10000, 10000)]).await?;
 
-    e2e.send_deposit_base(&trader, 1000, NIL).await?;
+    e2e.market
+        .deposit_base(trader.pubkey(), 1000, NIL)
+        .send_single_signer(&e2e.rpc, &trader)
+        .await?;
 
     let market = e2e.view_market()?;
     print_kv!("Seats before", market.header.num_seats, LogColor::Info);
@@ -42,7 +45,10 @@ async fn main() -> anyhow::Result<()> {
         .find_seat(&trader.pubkey())?
         .expect("User should have been registered on deposit");
 
-    e2e.send_close_seat(&trader, user_seat.index).await?;
+    e2e.market
+        .close_seat(trader.pubkey(), user_seat.index)
+        .send_single_signer(&e2e.rpc, &trader)
+        .await?;
 
     let market = e2e.view_market()?;
     print_kv!("Seats after", market.header.num_seats, LogColor::Info);

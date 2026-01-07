@@ -1,5 +1,4 @@
 use anyhow::Context;
-use dropset_interface::state::sector::SectorIndex;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::Keypair,
@@ -98,9 +97,9 @@ impl E2e {
         }
 
         // Then register the market.
-        let register_instruction = market.register_market(default_payer.pubkey(), 10);
-        let register_market_txn = rpc
-            .send_single_signer(&default_payer, [register_instruction])
+        let register_market_txn = market
+            .register_market(default_payer.pubkey(), 10)
+            .send_single_signer(&rpc, &default_payer)
             .await?;
 
         Ok(Self {
@@ -116,54 +115,5 @@ impl E2e {
 
     pub fn find_seat(&self, user: &Pubkey) -> anyhow::Result<Option<MarketSeatView>> {
         self.market.find_seat(&self.rpc, user)
-    }
-
-    pub async fn send_close_seat(
-        &self,
-        trader: &Keypair,
-        seat: SectorIndex,
-    ) -> anyhow::Result<ParsedTransactionWithEvents> {
-        let close_seat = self.market.close_seat(trader.pubkey(), seat);
-        self.rpc.send_single_signer(trader, [close_seat]).await
-    }
-
-    pub async fn send_deposit_base(
-        &self,
-        trader: &Keypair,
-        amount: u64,
-        seat: SectorIndex,
-    ) -> anyhow::Result<ParsedTransactionWithEvents> {
-        let deposit = self.market.deposit_base(trader.pubkey(), amount, seat);
-        self.rpc.send_single_signer(trader, [deposit]).await
-    }
-
-    pub async fn send_deposit_quote(
-        &self,
-        trader: &Keypair,
-        amount: u64,
-        seat: SectorIndex,
-    ) -> anyhow::Result<ParsedTransactionWithEvents> {
-        let deposit = self.market.deposit_quote(trader.pubkey(), amount, seat);
-        self.rpc.send_single_signer(trader, [deposit]).await
-    }
-
-    pub async fn send_withdraw_base(
-        &self,
-        trader: &Keypair,
-        amount: u64,
-        seat: SectorIndex,
-    ) -> anyhow::Result<ParsedTransactionWithEvents> {
-        let deposit = self.market.withdraw_base(trader.pubkey(), amount, seat);
-        self.rpc.send_single_signer(trader, [deposit]).await
-    }
-
-    pub async fn send_withdraw_quote(
-        &self,
-        trader: &Keypair,
-        amount: u64,
-        seat: SectorIndex,
-    ) -> anyhow::Result<ParsedTransactionWithEvents> {
-        let deposit = self.market.withdraw_quote(trader.pubkey(), amount, seat);
-        self.rpc.send_single_signer(trader, [deposit]).await
     }
 }

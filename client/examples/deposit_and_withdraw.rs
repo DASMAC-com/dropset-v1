@@ -13,7 +13,10 @@ async fn main() -> anyhow::Result<()> {
     let trader = Keypair::new();
     let e2e = E2e::new_traders_and_market(None, [Trader::new(&trader, 10000, 10000)]).await?;
 
-    e2e.send_deposit_base(&trader, 1000, NIL).await?;
+    e2e.market
+        .deposit_base(trader.pubkey(), 1000, NIL)
+        .send_single_signer(&e2e.rpc, &trader)
+        .await?;
 
     println!("{:#?}", e2e.view_market());
 
@@ -22,7 +25,9 @@ async fn main() -> anyhow::Result<()> {
         .expect("User should have been registered on deposit");
 
     let res = e2e
-        .send_withdraw_base(&trader, 100, user_seat.index)
+        .market
+        .withdraw_base(trader.pubkey(), 100, user_seat.index)
+        .send_single_signer(&e2e.rpc, &trader)
         .await?;
 
     println!(
