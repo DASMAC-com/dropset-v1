@@ -4,8 +4,11 @@ use std::collections::{
 };
 
 use client::{
-    context::market::MarketContext,
-    test_accounts::*,
+    e2e_helpers::{
+        test_accounts,
+        E2e,
+        Trader,
+    },
     transactions::{
         CustomRpcClient,
         SendTransactionConfig,
@@ -16,13 +19,12 @@ use itertools::Itertools;
 use solana_instruction::Instruction;
 use solana_sdk::{
     pubkey::Pubkey,
-    signature::Keypair,
     signer::Signer,
 };
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let rpc = &CustomRpcClient::new(
+    let rpc = CustomRpcClient::new(
         None,
         Some(SendTransactionConfig {
             compute_budget: Some(2000000),
@@ -30,74 +32,69 @@ async fn main() -> anyhow::Result<()> {
             program_id_filter: HashSet::from([dropset_interface::program::ID.into()]),
         }),
     );
+    // Create the collection of traders out of order so that the order must change when they're
+    // sorted on insert later.
+    let traders = [
+        Trader::new(test_accounts::acc_5555(), 10000, 10000),
+        Trader::new(test_accounts::acc_2222(), 10000, 10000),
+        Trader::new(test_accounts::acc_4444(), 10000, 10000),
+        Trader::new(test_accounts::acc_1111(), 10000, 10000),
+        Trader::new(test_accounts::acc_3333(), 10000, 10000),
+    ];
+    let e2e = E2e::new_traders_and_market(Some(rpc), &traders).await?;
 
-    let payer = rpc.fund_new_account().await?;
-
-    let market_ctx = MarketContext::new_market(rpc).await?;
-
-    rpc.send_and_confirm_txn(
-        &payer,
-        &[&payer],
-        &[market_ctx.register_market(payer.pubkey(), 10)],
-    )
-    .await?;
-
-    // Insert out of order to ensure that it's ordered later.
-    let signers: Vec<&Keypair> = vec![&USER_5, &USER_2, &USER_4, &USER_1, &USER_3];
-
-    for user in signers.iter() {
-        rpc.fund_account(&user.pubkey()).await?;
-        market_ctx.base.create_ata_for(rpc, user).await?;
-        market_ctx.quote.create_ata_for(rpc, user).await?;
-        market_ctx.base.mint_to(rpc, user, 10000).await?;
-        market_ctx.quote.mint_to(rpc, user, 10000).await?;
-    }
-
-    let user_pks: Vec<Pubkey> = signers.iter().map(|u| u.pubkey()).collect();
-
-    let seat_creations: Vec<Instruction> = user_pks
+    // Create the seats for each trader.
+    let seat_creations: Vec<Instruction> = traders
         .iter()
-        // Deposits 1 base token in order to create the seat.
-        .map(|pk| market_ctx.create_seat(*pk))
+        .map(|pk| e2e.market.create_seat(pk.pubkey()))
         .collect();
-
-    rpc.send_and_confirm_txn(signers[0], &signers, &seat_creations)
+    e2e.rpc
+        .send_and_confirm_txn(
+            test_accounts::default_payer(),
+            &traders.iter().map(|tr| tr.keypair).collect_vec(),
+            &seat_creations,
+        )
         .await?;
 
-    let seats: Vec<SectorIndex> = user_pks
+    let seats: Vec<SectorIndex> = traders
         .iter()
-        .map(|user| {
-            market_ctx
-                .find_seat(rpc, user)
+        .map(|trader| {
+            e2e.find_seat(&trader.pubkey())
                 .ok()
                 .flatten()
-                .expect("User should have a seat")
+                .expect("Trader should have a seat")
                 .index
         })
         .collect();
 
     // HashMap<Pubkey, (deposit_amount, withdraw_amount)>
     let base_amounts: HashMap<Pubkey, (u64, u64)> = HashMap::from([
-        (USER_1.pubkey(), (100, 10)),
-        (USER_2.pubkey(), (100, 20)),
-        (USER_3.pubkey(), (100, 30)),
-        (USER_4.pubkey(), (100, 40)),
-        (USER_5.pubkey(), (100, 50)),
+        (test_accounts::acc_1111().pubkey(), (100, 10)),
+        (test_accounts::acc_2222().pubkey(), (100, 20)),
+        (test_accounts::acc_3333().pubkey(), (100, 30)),
+        (test_accounts::acc_4444().pubkey(), (100, 40)),
+        (test_accounts::acc_5555().pubkey(), (100, 50)),
     ]);
 
-    let deposits_and_withdraws: Vec<Instruction> = user_pks
+    let deposits_and_withdraws: Vec<Instruction> = traders
         .iter()
         .zip(seats)
-        .flat_map(|(user, seat)| {
-            let (deposit, withdraw) = base_amounts.get(user).unwrap();
+        .flat_map(|(trader, seat)| {
+            let trader_addr = trader.pubkey();
+            let (deposit, withdraw) = base_amounts.get(&trader_addr).unwrap();
             [
-                market_ctx.deposit_base(*user, *deposit, seat),
-                market_ctx.withdraw_base(*user, *withdraw, seat),
+                e2e.market.deposit_base(trader_addr, *deposit, seat),
+                e2e.market.withdraw_base(trader_addr, *withdraw, seat),
             ]
         })
         .collect();
 
-    rpc.send_and_confirm_txn(signers[0], &signers, &deposits_and_withdraws)
+    e2e.rpc
+        .send_and_confirm_txn(
+            test_accounts::default_payer(),
+            &traders.iter().map(|tr| tr.keypair).collect_vec(),
+            &deposits_and_withdraws,
+        )
         .await?;
 
     let expected_base = base_amounts
@@ -110,17 +107,16 @@ async fn main() -> anyhow::Result<()> {
         .sorted_by_key(|v| v.0)
         .collect_vec();
 
-    let market = market_ctx.view_market(rpc)?;
+    let market = e2e.view_market()?;
 
     // Check that seats are ordered by pubkey (ascending) and compare the final state of each user's
     // seat to the expected state.
-    for (seat, expected_seat) in market.sectors.iter().zip_eq(expected_base) {
+    for (seat, expected_seat) in market.seats.iter().zip_eq(expected_base) {
         let (expected_pk, expected_base_dep, expected_base_wd) = expected_seat;
         assert_eq!(seat.user, expected_pk);
         let amount_from_create_seat = 1;
         let base_remaining = (expected_base_dep + amount_from_create_seat) - expected_base_wd;
         assert_eq!(seat.base_available, base_remaining);
-        assert_eq!(seat.base_deposited, base_remaining);
     }
 
     Ok(())

@@ -16,14 +16,11 @@ use dropset_interface::{
     },
 };
 use solana_instruction::Instruction;
-use solana_sdk::{
-    account::ReadableAccount,
-    pubkey::Pubkey,
-};
+use solana_sdk::pubkey::Pubkey;
 use transaction_parser::views::{
-    market_view_try_from_owner_and_data,
+    try_market_view_all_from_owner_and_data,
     MarketSeatView,
-    MarketView,
+    MarketViewAll,
 };
 
 use crate::{
@@ -94,9 +91,9 @@ impl MarketContext {
         .create_instruction(RegisterMarketInstructionData::new(num_sectors))
     }
 
-    pub fn view_market(&self, rpc: &CustomRpcClient) -> anyhow::Result<MarketView<MarketSeatView>> {
-        let account = rpc.client.get_account(&self.market)?;
-        market_view_try_from_owner_and_data(account.owner, account.data())
+    pub fn view_market(&self, rpc: &CustomRpcClient) -> anyhow::Result<MarketViewAll> {
+        let market_account = rpc.client.get_account(&self.market)?;
+        try_market_view_all_from_owner_and_data(market_account.owner, &market_account.data)
     }
 
     pub fn find_seat(
@@ -104,8 +101,8 @@ impl MarketContext {
         rpc: &CustomRpcClient,
         user: &Pubkey,
     ) -> anyhow::Result<Option<MarketSeatView>> {
-        let market = self.view_market(rpc)?;
-        Ok(market.sectors.into_iter().find(|seat| &seat.user == user))
+        let market_seats = self.view_market(rpc)?.seats;
+        Ok(market_seats.into_iter().find(|seat| &seat.user == user))
     }
 
     pub fn close_seat(&self, user: Pubkey, sector_index_hint: u32) -> Instruction {

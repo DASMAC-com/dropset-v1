@@ -135,6 +135,7 @@ impl TokenContext {
         )?;
         rpc.send_and_confirm_txn(owner, &[&self.mint_authority], &[mint_to])
             .await
+            .map(|txn| txn.parsed_transaction.signature)
     }
 
     pub fn get_balance_for(&self, rpc: &CustomRpcClient, owner: &Pubkey) -> anyhow::Result<u64> {

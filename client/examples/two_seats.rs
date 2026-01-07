@@ -4,21 +4,27 @@ use client::{
 };
 use dropset_interface::state::sector::NIL;
 use solana_sdk::{
+    pubkey::Pubkey,
     signature::Keypair,
     signer::Signer,
 };
 
-pub const USER_111_KEY: &str =
-    "65ZPkM5c2CuLcvozaVw5CRgKs9C8yHSociK85kUezr7oFCfhsK4CsFXGznEbvtn51NWdx6M33Q4o4fMBT8px6mDQ";
-pub const USER_222_KEY: &str =
-    "wuDnL8tvfZdoxUS3fSyuQ9CLrYjuGAAef1FYVYJumeBXnspD3193PWUVubSgB3nNo9LUbv3MzcdeGTykkq6RKBV";
+pub const USER_AAA_KEYPAIR: &str =
+    "2zLitvKbr3wtwBNwEHgbFA9FHW3C5jn1BQkAA3whwBooGTA3PSNYNHPXiPuqXh2JJnCgCeM64aNEHxvSxnEqKMuD";
+pub const USER_BBB_KEYPAIR: &str =
+    "5W4uaLrJKMVuntmQ7ES9LA6RuWMZZQwVEjfHkTPHGYZ95V31yKoYTerttNZmtjgPw9U4yuYb28EC1TskmWZ2qoQp";
+pub const USER_AAA_PUBKEY: &str = "AAAzWLJZqUqCU3g16ztxABo4i6GBX4dr6NjfVxr7APPR";
+pub const USER_BBB_PUBKEY: &str = "BBBPCe266xTrRCH6DLqfcnhGeX9QPba3K4bqM8dfaEA8";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let rpc = &CustomRpcClient::default();
 
-    let payer_1 = Keypair::from_base58_string(USER_111_KEY);
-    let payer_2 = Keypair::from_base58_string(USER_222_KEY);
+    let payer_1 = Keypair::from_base58_string(USER_AAA_KEYPAIR);
+    let payer_2 = Keypair::from_base58_string(USER_BBB_KEYPAIR);
+
+    assert_eq!(payer_1.pubkey(), Pubkey::from_str_const(USER_AAA_PUBKEY));
+    assert_eq!(payer_2.pubkey(), Pubkey::from_str_const(USER_BBB_PUBKEY));
 
     rpc.fund_account(&payer_1.pubkey()).await?;
     rpc.fund_account(&payer_2.pubkey()).await?;
@@ -38,18 +44,40 @@ async fn main() -> anyhow::Result<()> {
     market_ctx.base.mint_to(rpc, &payer_2, 10000).await?;
     market_ctx.quote.mint_to(rpc, &payer_2, 10000).await?;
 
-    let deposit_1 = market_ctx.deposit_base(payer_1.pubkey(), 1000, NIL);
-    let deposit_2 = market_ctx.deposit_base(payer_2.pubkey(), 1000, NIL);
-
     rpc.send_and_confirm_txn(
         &payer_1,
         &[&payer_1, &payer_2],
-        &[register, deposit_1, deposit_2],
+        // Create payer 2's seat before payer 1 to ensure that they're inserted out of order.
+        &[
+            register,
+            market_ctx.deposit_base(payer_2.pubkey(), 1000, NIL),
+            market_ctx.deposit_base(payer_1.pubkey(), 1000, NIL),
+        ],
     )
     .await?;
 
     let market = market_ctx.view_market(rpc)?;
-    println!("{:#?}", market);
+    // Sanity check.
+    assert!(payer_1.pubkey() != payer_2.pubkey());
+
+    // Ensure they're sorted. Payer 1 should be first.
+    assert_eq!(
+        market
+            .seats
+            .first()
+            .expect("Should have a first element")
+            .user,
+        payer_1.pubkey()
+    );
+    // Payer 2 should be second.
+    assert_eq!(
+        market
+            .seats
+            .last()
+            .expect("Should have a last element")
+            .user,
+        payer_2.pubkey()
+    );
 
     Ok(())
 }

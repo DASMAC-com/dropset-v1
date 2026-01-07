@@ -537,6 +537,7 @@ dependencies = [
  "futures",
  "itertools 0.14.0",
  "lazy-regex",
+ "price",
  "regex",
  "serde",
  "serde_json",
