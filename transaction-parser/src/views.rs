@@ -43,6 +43,7 @@ pub struct MarketViewAll {
     pub seats: Vec<MarketSeatView>,
 }
 
+/// Fallibly convert an account's owner and account data into a market header and its sector bytes.
 fn try_market_from_owner_and_data(
     account_owner: Pubkey,
     account_data: &[u8],
