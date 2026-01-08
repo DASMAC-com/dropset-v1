@@ -165,8 +165,15 @@ impl Default for SendTransactionConfig {
     }
 }
 
+/// A parsed transaction together with all `DropsetEvent`s derived from it.
+///
+/// This bundles the decoded transaction data with the events extracted from
+/// its execution logs, making it easier for callers to work with both in one
+/// value.
 pub struct ParsedTransactionWithEvents {
+    /// The parsed representation of the confirmed transaction.
     pub parsed_transaction: ParsedTransaction,
+    /// All `DropsetEvent`s parsed in the transaction.
     pub events: Vec<DropsetEvent>,
 }
 
