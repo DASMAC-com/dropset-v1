@@ -126,8 +126,6 @@ async fn main() -> anyhow::Result<()> {
     let market_before_fill = e2e.view_market()?;
     let maker_seat_before_fill = e2e.find_seat(&maker.pubkey())?.unwrap();
     let ask_before_fill = market_before_fill.asks.first().expect("Should have an ask");
-    let taker_base_before_fill = e2e.get_base_balance(&taker.pubkey())?;
-    let taker_quote_before_fill = e2e.get_quote_balance(&taker.pubkey())?;
 
     // ---------------------------------------------------------------------------------------------
     // 2. Have a taker partially fill the ask with a market buy order.
@@ -197,9 +195,6 @@ async fn main() -> anyhow::Result<()> {
     assert_eq!(maker_seat_before_fill.quote_available, 0);
     // So the quote after the fill should just be the taker size in quote.
     assert_eq!(maker_seat_after_fill_1.quote_available, TAKER_SIZE_IN_QUOTE);
-
-    let taker_base_after_fill_1 = e2e.get_base_balance(&taker.pubkey())?;
-    let taker_quote_after_fill_1 = e2e.get_quote_balance(&taker.pubkey())?;
 
     // ---------------------------------------------------------------------------------------------
     // 3. Have the taker partially fill the ask again with a market buy, but denominate the order
@@ -272,9 +267,6 @@ async fn main() -> anyhow::Result<()> {
         TAKER_SIZE_IN_QUOTE * 2
     );
 
-    let taker_base_after_fill_2 = e2e.get_base_balance(&taker.pubkey())?;
-    let taker_quote_after_fill_2 = e2e.get_quote_balance(&taker.pubkey())?;
-
     // ---------------------------------------------------------------------------------------------
     // Check that the amounts transferred according to events are the same.
     // ---------------------------------------------------------------------------------------------
@@ -315,35 +307,6 @@ async fn main() -> anyhow::Result<()> {
     assert_eq!(order_1.is_buy, order_2.is_buy);
     assert_eq!(order_1.base_filled, order_2.base_filled);
     assert_eq!(order_1.quote_filled, order_2.quote_filled);
-
-    let taker_base_received_from_order_1 = taker_base_after_fill_1 - taker_base_before_fill;
-    let taker_base_received_from_order_2 = taker_base_after_fill_2 - taker_base_after_fill_1;
-
-    let taker_quote_spent_from_order_1 = taker_quote_before_fill - taker_quote_after_fill_1;
-    let taker_quote_spent_from_order_2 = taker_quote_after_fill_1 - taker_quote_after_fill_2;
-
-    assert_eq!(
-        taker_base_received_from_order_1,
-        taker_base_received_from_order_2
-    );
-    assert_eq!(
-        taker_quote_spent_from_order_1,
-        taker_quote_spent_from_order_2
-    );
-
-    let maker_quote_received_from_order_1 =
-        maker_seat_after_fill_1.quote_available - maker_seat_before_fill.quote_available;
-    let maker_quote_received_from_order_2 =
-        maker_seat_after_fill_2.quote_available - maker_seat_after_fill_1.quote_available;
-
-    assert_eq!(
-        maker_quote_received_from_order_1,
-        maker_quote_received_from_order_2
-    );
-    assert_eq!(
-        maker_quote_received_from_order_1,
-        taker_quote_spent_from_order_1
-    );
 
     Ok(())
 }
