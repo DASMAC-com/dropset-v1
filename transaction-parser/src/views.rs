@@ -2,10 +2,7 @@
 //! structs.
 
 use dropset_interface::state::{
-    market::{
-        Market,
-        MarketRef,
-    },
+    market::MarketRef,
     market_header::MarketHeader,
     market_seat::MarketSeat,
     node::Node,
@@ -43,11 +40,21 @@ pub struct MarketViewAll {
     pub seats: Vec<MarketSeatView>,
 }
 
-/// Fallibly convert an account's owner and account data into a market header and its sector bytes.
+/// Attempts to parse a Dropset market account from raw Solana account fields.
+///
+/// Validates that:
+/// - `account_owner` matches the Dropset program id, and
+/// - `account_data` is at least [`MarketHeader::LEN`] bytes (i.e., initialized enough to contain a
+///   header).
+///
+/// On success, returns a [`MarketRef`] view over `account_data` (header + sector bytes).
+///
+/// # Errors
+/// Returns an error if the account is not owned by the Dropset program or if the data is too short.
 fn try_market_from_owner_and_data(
     account_owner: Pubkey,
     account_data: &[u8],
-) -> Result<Market<&MarketHeader, &[u8]>, anyhow::Error> {
+) -> Result<MarketRef, anyhow::Error> {
     if account_owner != dropset::ID.into() {
         return Err(anyhow::Error::msg("Account isn't owned by dropset program"));
     }
@@ -62,7 +69,14 @@ fn try_market_from_owner_and_data(
     Ok(market)
 }
 
-// Fallibly convert an account's owner and account data into a market view of all types.
+/// Attempts to parse a Dropset market account from raw Solana account fields and convert it into a
+/// fully-typed market view.
+///
+/// This is a convenience wrapper around [`try_market_from_owner_and_data`] that converts the
+/// returned [`MarketRef`] into [`MarketViewAll`].
+///
+/// # Errors
+/// Propagates any error from [`try_market_from_owner_and_data`].
 pub fn try_market_view_all_from_owner_and_data(
     account_owner: Pubkey,
     account_data: &[u8],
