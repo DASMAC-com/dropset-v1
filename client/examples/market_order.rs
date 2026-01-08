@@ -225,10 +225,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let market_after_fill_2 = e2e.view_market()?;
-    println!("Market after buy in quote (2):\n{:#?}", market_after_fill_2);
-
     let maker_seat_after_fill_2 = e2e.find_seat(&maker.pubkey())?.unwrap();
-    println!("Market maker seat after buy in quote (2): {maker_seat_after_fill_2:#?}");
 
     // ------------- 3a. Check the taker's base/quote balances after the second fill. --------------
     // The amount filled in base/quote should be exactly as before, so simply account for the
