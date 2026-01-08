@@ -311,5 +311,9 @@ async fn main() -> anyhow::Result<()> {
     assert_eq!(order_1.base_filled, order_2.base_filled);
     assert_eq!(order_1.quote_filled, order_2.quote_filled);
 
+    // Ensure that the amounts reported as filled in the events are the expected constant sizes.
+    assert_eq!(order_1.base_filled, TAKER_SIZE_IN_BASE);
+    assert_eq!(order_1.quote_filled, TAKER_SIZE_IN_QUOTE);
+
     Ok(())
 }
