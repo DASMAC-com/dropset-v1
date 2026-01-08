@@ -28,6 +28,29 @@ fn mul_div(multiplicand: u64, multiplier: u64, divisor: u64) -> u64 {
     res as u64
 }
 
+const MAKER_INITIAL_BASE: u64 = 1_000_000_000;
+const MAKER_INITIAL_QUOTE: u64 = 0;
+const TAKER_INITIAL_BASE: u64 = 0;
+const TAKER_INITIAL_QUOTE: u64 = 1_000_000_000;
+const ASK_SIZE_IN_BASE: u64 = 500_000_000;
+const ASK_SIZE_IN_QUOTE: u64 = 55_000_000;
+// The order size for both fills should be exactly the same, just denominated in different
+// assets. This example ensures that the different denominations results in the same effective
+// fill size.
+const TAKER_SIZE_IN_BASE: u64 = 50_000_000;
+const TAKER_SIZE_IN_QUOTE: u64 = 5_500_000;
+
+// Assert that the taker size ratios are equivalent to the amounts in the order to ensure that
+// both fills will be the exact same effective size.
+static_assertions::const_assert_eq!(
+    TAKER_SIZE_IN_BASE as f64 / TAKER_SIZE_IN_QUOTE as f64,
+    ASK_SIZE_IN_BASE as f64 / ASK_SIZE_IN_QUOTE as f64
+);
+
+// Ensure that the taker sizes are less than the full order size.
+static_assertions::const_assert!(TAKER_SIZE_IN_BASE < ASK_SIZE_IN_BASE);
+static_assertions::const_assert!(TAKER_SIZE_IN_QUOTE < ASK_SIZE_IN_QUOTE);
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let rpc = CustomRpcClient::new(
@@ -41,16 +64,6 @@ async fn main() -> anyhow::Result<()> {
 
     let maker = test_accounts::acc_1111();
     let taker = test_accounts::acc_2222();
-
-    const MAKER_INITIAL_BASE: u64 = 1_000_000_000;
-    const MAKER_INITIAL_QUOTE: u64 = 0;
-    const TAKER_INITIAL_BASE: u64 = 0;
-    const TAKER_INITIAL_QUOTE: u64 = 1_000_000_000;
-    // The order size for both fills should be exactly the same, just denominated in different
-    // assets. This example ensures that the different denominations results in the same effective
-    // fill size.
-    const TAKER_SIZE_IN_BASE: u64 = 50_000_000;
-    const TAKER_SIZE_IN_QUOTE: u64 = 5_500_000;
 
     let e2e = E2e::new_traders_and_market(
         Some(rpc),
@@ -109,16 +122,9 @@ async fn main() -> anyhow::Result<()> {
         .map(|v| (v.base_remaining, v.quote_remaining))
         .expect("Should have an ask");
 
-    // Assert that the taker size ratios are equivalent to the amounts in the order to ensure that
-    // both fills will be the exact same effective size.
-    assert_eq!(
-        TAKER_SIZE_IN_BASE as f64 / TAKER_SIZE_IN_QUOTE as f64,
-        initial_ask_size_base as f64 / initial_ask_size_quote as f64
-    );
-
-    // Ensure that the taker sizes are less than the full order size.
-    assert!(TAKER_SIZE_IN_BASE < initial_ask_size_base);
-    assert!(TAKER_SIZE_IN_QUOTE < initial_ask_size_quote);
+    // Ensure the sizes are the expected constant values.
+    assert_eq!(initial_ask_size_base, ASK_SIZE_IN_BASE);
+    assert_eq!(initial_ask_size_quote, ASK_SIZE_IN_QUOTE);
 
     println!("Post ask transaction signature: {}", post_signature);
 
