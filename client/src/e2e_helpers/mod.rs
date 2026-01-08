@@ -22,11 +22,12 @@ pub mod test_accounts;
 /// Convenience harness for end-to-end tests and examples.
 ///
 /// Upon instantiation it:
-/// 1. Creates and registers a new market backed by two newly-created SPL token mints (base/quote).
-/// 2. Airdrops [`crate::transactions::DEFAULT_FUND_AMOUNT`] to each trader. If any trader account
-///    already exists on-chain, returns an error.
-/// 3. Creates base/quote associated token accounts (ATAs) for each trader.
-/// 4. Mints the specified `base` and `quote` amounts to each trader's ATAs.
+/// - Funds the default payer if it doesn't exist yet.
+/// - Creates and registers a new market backed by two newly-created SPL token mints (base/quote).
+/// - Airdrops [`crate::transactions::DEFAULT_FUND_AMOUNT`] lamports to each trader. If any trader
+///   account already exists on-chain, returns an error.
+/// - Creates base/quote associated token accounts (ATAs) for each trader.
+/// - Mints the specified `base` and `quote` amounts to each trader's ATAs if the amount is != 0.
 pub struct E2e {
     pub rpc: CustomRpcClient,
     pub market: MarketContext,
@@ -62,16 +63,23 @@ impl E2e {
         traders: impl AsRef<[Trader<'_>]>,
     ) -> anyhow::Result<Self> {
         let rpc = rpc.unwrap_or_default();
-        let market = MarketContext::new_market(&rpc).await?;
 
-        // Fund the default payer.
-        // This is a separate account to avoid the traders incurring unexpected balance changes when
-        // paying for gas for transactions.
+        // Fund the default payer if it doesn't exist yet. This is a separate account to avoid the
+        // traders incurring unexpected balance changes when paying for gas.
         let default_payer = test_accounts::default_payer().insecure_clone();
-        rpc.fund_account(&default_payer.pubkey()).await?;
+        if !account_exists(&rpc.client, &default_payer.pubkey()).await? {
+            rpc.fund_account(&default_payer.pubkey()).await?;
+        }
 
-        // Then fund and create the trader accounts and their base/quote associated token accounts.
-        // Mint and deposit the specified base/quote amounts to each trader.
+        // Create and register the market derived from the base/quote token pair.
+        let market = MarketContext::new_market(&rpc).await?;
+        let register_market_txn = market
+            .register_market(default_payer.pubkey(), 10)
+            .send_single_signer(&rpc, &default_payer)
+            .await?;
+
+        // Fund and create the trader accounts and their base/quote associated token accounts.
+        // Then mint and deposit the specified base/quote amounts to each trader if the amount != 0.
         for trader in traders.as_ref().iter() {
             // Fail if any of the traders already exist, as this can cause unexpected behavior.
             if account_exists(&rpc.client, &trader.pubkey()).await? {
@@ -99,12 +107,6 @@ impl E2e {
                     .await?;
             }
         }
-
-        // Then register the market.
-        let register_market_txn = market
-            .register_market(default_payer.pubkey(), 10)
-            .send_single_signer(&rpc, &default_payer)
-            .await?;
 
         Ok(Self {
             rpc,
