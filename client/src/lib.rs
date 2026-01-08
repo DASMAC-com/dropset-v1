@@ -3,10 +3,11 @@
 //! Includes context helpers, pretty-printing utilities, and PDA derivations.
 
 pub mod context;
+pub mod e2e_helpers;
 pub mod logs;
 pub mod pda;
 pub mod pretty;
-pub mod test_accounts;
+pub mod single_signer_instruction;
 pub mod transactions;
 
 pub use logs::LogColor;

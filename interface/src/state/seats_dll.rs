@@ -19,22 +19,22 @@ pub type SeatsLinkedList<'a> = LinkedList<'a, Seats>;
 impl LinkedListOperations for Seats {
     #[inline(always)]
     fn head(header: &MarketHeader) -> SectorIndex {
-        header.seat_dll_head()
+        header.seats_dll_head()
     }
 
     #[inline(always)]
     fn set_head(header: &mut MarketHeader, new_index: SectorIndex) {
-        header.set_seat_dll_head(new_index);
+        header.set_seats_dll_head(new_index);
     }
 
     #[inline(always)]
     fn tail(header: &MarketHeader) -> SectorIndex {
-        header.seat_dll_tail()
+        header.seats_dll_tail()
     }
 
     #[inline(always)]
     fn set_tail(header: &mut MarketHeader, new_index: SectorIndex) {
-        header.set_seat_dll_tail(new_index);
+        header.set_seats_dll_tail(new_index);
     }
 
     #[inline(always)]

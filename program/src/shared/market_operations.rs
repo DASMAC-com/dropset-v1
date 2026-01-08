@@ -43,7 +43,7 @@ pub fn insert_market_seat(
         }
     }
 
-    if insert_before_index == list.header.seat_dll_head() {
+    if insert_before_index == list.header.seats_dll_head() {
         list.push_front(seat_bytes)
     } else if insert_before_index == NIL {
         list.push_back(seat_bytes)
@@ -65,7 +65,7 @@ fn find_insert_before_index(list: &SeatsLinkedList, user: &Pubkey) -> (SectorInd
         }
     }
     // The `prev` index at the end of the list is the tail.
-    (list.header.seat_dll_tail(), NIL)
+    (list.header.seats_dll_tail(), NIL)
 }
 
 /// Tries to find a market seat given an index hint.

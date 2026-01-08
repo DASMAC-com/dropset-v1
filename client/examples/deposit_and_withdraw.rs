@@ -1,44 +1,39 @@
-use client::{
-    context::market::MarketContext,
-    transactions::CustomRpcClient,
+use client::e2e_helpers::{
+    E2e,
+    Trader,
 };
 use dropset_interface::state::sector::NIL;
-use solana_sdk::signer::Signer;
+use solana_sdk::{
+    signature::Keypair,
+    signer::Signer,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let rpc = &CustomRpcClient::default();
+    let trader = Keypair::new();
+    let e2e = E2e::new_traders_and_market(None, [Trader::new(&trader, 10000, 10000)]).await?;
 
-    let payer = rpc.fund_new_account().await?;
-
-    let market_ctx = MarketContext::new_market(rpc).await?;
-    let register = market_ctx.register_market(payer.pubkey(), 10);
-
-    market_ctx.base.create_ata_for(rpc, &payer).await?;
-    market_ctx.quote.create_ata_for(rpc, &payer).await?;
-
-    market_ctx.base.mint_to(rpc, &payer, 10000).await?;
-    market_ctx.quote.mint_to(rpc, &payer, 10000).await?;
-
-    let deposit = market_ctx.deposit_base(payer.pubkey(), 1000, NIL);
-
-    rpc.send_and_confirm_txn(&payer, &[&payer], &[register, deposit])
+    e2e.market
+        .deposit_base(trader.pubkey(), 1000, NIL)
+        .send_single_signer(&e2e.rpc, &trader)
         .await?;
 
-    let market = market_ctx.view_market(rpc)?;
-    println!("{:#?}", market);
+    println!("{:#?}", e2e.view_market());
 
-    let user_seat = market_ctx
-        .find_seat(rpc, &payer.pubkey())?
+    let user_seat = e2e
+        .find_seat(&trader.pubkey())?
         .expect("User should have been registered on deposit");
 
-    let withdraw = market_ctx.withdraw_base(payer.pubkey(), 100, user_seat.index);
-
-    let res = rpc
-        .send_and_confirm_txn(&payer, &[&payer], &[withdraw])
+    let res = e2e
+        .market
+        .withdraw_base(trader.pubkey(), 100, user_seat.index)
+        .send_single_signer(&e2e.rpc, &trader)
         .await?;
 
-    println!("Transaction signature: {res}");
+    println!(
+        "Transaction signature: {}",
+        res.parsed_transaction.signature
+    );
 
     Ok(())
 }

@@ -7,6 +7,7 @@ use anyhow::{
     bail,
     Context,
 };
+use itertools::Itertools;
 use solana_client::rpc_client::RpcClient;
 use solana_commitment_config::CommitmentConfig;
 use solana_compute_budget_interface::ComputeBudgetInstruction;
@@ -28,7 +29,11 @@ use solana_transaction_status::{
     UiTransactionEncoding,
 };
 use transaction_parser::{
-    client_rpc::parse_transaction,
+    client_rpc::{
+        parse_transaction,
+        ParsedTransaction,
+    },
+    events::dropset_event::DropsetEvent,
     ParseDropsetEvents,
 };
 
@@ -93,21 +98,36 @@ impl CustomRpcClient {
         Ok(kp)
     }
 
+    /// Sends and confirms a single signer transaction with the signer passed in as the payer and
+    /// sole signer.
+    /// Instructions that require multiple signers should not be used here as they will obviously
+    /// fail.
+    pub async fn send_single_signer(
+        &self,
+        signer: &Keypair,
+        instructions: impl AsRef<[Instruction]>,
+    ) -> anyhow::Result<ParsedTransactionWithEvents> {
+        self.send_and_confirm_txn(signer, &[signer], instructions.as_ref())
+            .await
+    }
+
     pub async fn send_and_confirm_txn(
         &self,
         payer: &Keypair,
         signers: &[&Keypair],
         instructions: &[Instruction],
-    ) -> anyhow::Result<Signature> {
+    ) -> anyhow::Result<ParsedTransactionWithEvents> {
         send_transaction_with_config(&self.client, payer, signers, instructions, &self.config).await
     }
 }
 
 const MAX_TRIES: u8 = 20;
 
+pub const DEFAULT_FUND_AMOUNT: u64 = 10_000_000_000;
+
 async fn fund(rpc: &RpcClient, account: &Pubkey) -> anyhow::Result<()> {
     let airdrop_signature: Signature = rpc
-        .request_airdrop(account, 10_000_000_000)
+        .request_airdrop(account, DEFAULT_FUND_AMOUNT)
         .context("Failed to request airdrop")?;
 
     let mut i = 0;
@@ -145,31 +165,42 @@ impl Default for SendTransactionConfig {
     }
 }
 
+/// A parsed transaction together with all `DropsetEvent`s derived from it.
+///
+/// This bundles the decoded transaction data with the events extracted from
+/// its execution logs, making it easier for callers to work with both in one
+/// value.
+pub struct ParsedTransactionWithEvents {
+    /// The parsed representation of the confirmed transaction.
+    pub parsed_transaction: ParsedTransaction,
+    /// All `DropsetEvent`s parsed in the transaction.
+    pub events: Vec<DropsetEvent>,
+}
+
 async fn send_transaction_with_config(
     rpc: &RpcClient,
     payer: &Keypair,
     signers: &[&Keypair],
     instructions: &[Instruction],
     config: &SendTransactionConfig,
-) -> anyhow::Result<Signature> {
+) -> anyhow::Result<ParsedTransactionWithEvents> {
     let bh = rpc
         .get_latest_blockhash()
         .or(Err(()))
         .expect("Should be able to get blockhash.");
 
-    let msg = Message::new(
-        &[
-            config.compute_budget.map_or(vec![], |budget| {
-                vec![
-                    ComputeBudgetInstruction::set_compute_unit_limit(budget),
-                    ComputeBudgetInstruction::set_compute_unit_price(1),
-                ]
-            }),
-            instructions.to_vec(),
-        ]
-        .concat(),
-        Some(&payer.pubkey()),
-    );
+    let final_instructions: &[Instruction] = &[
+        config.compute_budget.map_or(vec![], |budget| {
+            vec![
+                ComputeBudgetInstruction::set_compute_unit_limit(budget),
+                ComputeBudgetInstruction::set_compute_unit_price(1),
+            ]
+        }),
+        instructions.to_vec(),
+    ]
+    .concat();
+
+    let msg = Message::new(final_instructions, Some(&payer.pubkey()));
 
     let mut tx = Transaction::new_unsigned(msg);
     tx.try_sign(
@@ -184,41 +215,44 @@ async fn send_transaction_with_config(
     let res = rpc.send_and_confirm_transaction(&tx);
     match res {
         Ok(signature) => {
-            if matches!(config.debug_logs, Some(true)) {
-                let encoded = fetch_transaction_json(rpc, signature).await?;
-                match parse_transaction(encoded) {
-                    Ok(ref transaction) => {
-                        print!(
-                            "{}",
-                            PrettyTransaction {
-                                sender: payer.pubkey(),
-                                signature,
-                                indent_size: 2,
-                                transaction,
-                                instruction_filter: &config.program_id_filter,
-                            }
-                        );
+            let encoded = fetch_transaction_json(rpc, signature).await?;
+            let parsed_transaction = parse_transaction(encoded).expect("Should parse transaction");
+            let dropset_events = parsed_transaction
+                .instructions
+                .iter()
+                .flat_map(|outer| {
+                    outer.inner_instructions.iter().flat_map(|inner_ixn| {
+                        inner_ixn
+                            .parse_events()
+                            .expect("Should be able to parse events")
+                    })
+                })
+                .collect_vec();
 
-                        for ixn in transaction.instructions.iter() {
-                            for inner_ixn in ixn.inner_instructions.iter() {
-                                let events = inner_ixn
-                                    .parse_events()
-                                    .expect("Should be able to parse events");
-                                for event in events {
-                                    println!("{event:?}");
-                                }
-                            }
-                        }
+            if matches!(config.debug_logs, Some(true)) {
+                print!(
+                    "{}",
+                    PrettyTransaction {
+                        sender: payer.pubkey(),
+                        signature,
+                        indent_size: 2,
+                        transaction: &parsed_transaction,
+                        instruction_filter: &config.program_id_filter,
                     }
-                    Err(e) => {
-                        eprintln!("{e}");
-                    }
+                );
+
+                for event in dropset_events.iter() {
+                    println!("{event:?}");
                 }
             }
-            Ok(signature)
+
+            Ok(ParsedTransactionWithEvents {
+                parsed_transaction,
+                events: dropset_events,
+            })
         }
         Err(error) => {
-            PrettyInstructionError::new(&error, instructions).inspect(|err| {
+            PrettyInstructionError::new(&error, final_instructions).inspect(|err| {
                 print!("{err}");
                 print_kv!("Payer", payer.pubkey(), LogColor::Error);
             });
@@ -240,4 +274,16 @@ async fn fetch_transaction_json(
         },
     )
     .context("Should be able to fetch transaction with config")
+}
+
+/// Checks if an account at the given pubkey exists on-chain.
+pub async fn account_exists(
+    rpc: &solana_client::rpc_client::RpcClient,
+    pubkey: &Pubkey,
+) -> anyhow::Result<bool> {
+    Ok(rpc
+        .get_account_with_commitment(pubkey, CommitmentConfig::confirmed())
+        .context("Couldn't retrieve account data")?
+        .value
+        .is_some())
 }

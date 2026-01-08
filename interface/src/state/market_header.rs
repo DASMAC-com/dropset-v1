@@ -49,9 +49,9 @@ pub struct MarketHeader {
     /// The u32 sector index of the first node in the stack of free nodes as LE bytes.
     free_stack_top: LeSectorIndex,
     /// The u32 sector index of the first node in the doubly linked list of seat nodes as LE bytes.
-    seat_dll_head: LeSectorIndex,
+    seats_dll_head: LeSectorIndex,
     /// The u32 sector index of the last node in the doubly linked list of seat nodes as LE bytes.
-    seat_dll_tail: LeSectorIndex,
+    seats_dll_tail: LeSectorIndex,
     /// The market's base mint public key.
     pub base_mint: Pubkey,
     /// The market's quote mint public key.
@@ -76,8 +76,8 @@ unsafe impl Transmutable for MarketHeader {
     /* num_seats */        + size_of::<LeU32>()
     /* num_free_sectors */ + size_of::<LeU32>()
     /* free_stack_top */   + size_of::<LeSectorIndex>()
-    /* seat_dll_head */    + size_of::<LeSectorIndex>()
-    /* seat_dll_tail */    + size_of::<LeSectorIndex>()
+    /* seats_dll_head */   + size_of::<LeSectorIndex>()
+    /* seats_dll_tail */   + size_of::<LeSectorIndex>()
     /* base_mint */        + size_of::<Pubkey>()
     /* quote_mint */       + size_of::<Pubkey>()
     /* market_bump */      + size_of::<u8>()
@@ -113,8 +113,8 @@ impl MarketHeader {
             num_seats: [0; U32_SIZE],
             num_free_sectors: [0; U32_SIZE],
             free_stack_top: LE_NIL,
-            seat_dll_head: LE_NIL,
-            seat_dll_tail: LE_NIL,
+            seats_dll_head: LE_NIL,
+            seats_dll_tail: LE_NIL,
             base_mint: *base_mint,
             quote_mint: *quote_mint,
             market_bump,
@@ -178,23 +178,23 @@ impl MarketHeader {
     }
 
     #[inline(always)]
-    pub fn seat_dll_head(&self) -> SectorIndex {
-        u32::from_le_bytes(self.seat_dll_head)
+    pub fn seats_dll_head(&self) -> SectorIndex {
+        u32::from_le_bytes(self.seats_dll_head)
     }
 
     #[inline(always)]
-    pub fn set_seat_dll_head(&mut self, index: SectorIndex) {
-        self.seat_dll_head = index.to_le_bytes();
+    pub fn set_seats_dll_head(&mut self, index: SectorIndex) {
+        self.seats_dll_head = index.to_le_bytes();
     }
 
     #[inline(always)]
-    pub fn seat_dll_tail(&self) -> SectorIndex {
-        u32::from_le_bytes(self.seat_dll_tail)
+    pub fn seats_dll_tail(&self) -> SectorIndex {
+        u32::from_le_bytes(self.seats_dll_tail)
     }
 
     #[inline(always)]
-    pub fn set_seat_dll_tail(&mut self, index: SectorIndex) {
-        self.seat_dll_tail = index.to_le_bytes();
+    pub fn set_seats_dll_tail(&mut self, index: SectorIndex) {
+        self.seats_dll_tail = index.to_le_bytes();
     }
 
     #[inline(always)]

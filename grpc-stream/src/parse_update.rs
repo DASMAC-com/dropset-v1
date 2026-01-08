@@ -4,9 +4,8 @@ use solana_sdk::pubkey::Pubkey;
 use transaction_parser::{
     events::dropset_event::DropsetEvent,
     views::{
-        market_view_try_from_owner_and_data,
-        MarketSeatView,
-        MarketView,
+        try_market_view_all_from_owner_and_data,
+        MarketViewAll,
     },
     ParseDropsetEvents,
 };
@@ -58,7 +57,7 @@ impl ParsedInnerInstruction {
 // }
 
 pub enum ParsedUpdate {
-    Market(MarketView<MarketSeatView>),
+    Market(MarketViewAll),
     EmittedEvents {
         logs: Vec<String>,
         events: Vec<InstructionEventsWithIndices>,
@@ -80,8 +79,11 @@ pub fn parse_update(update: UpdateOneof) -> Option<ParsedUpdate> {
                     .owner
                     .try_into()
                     .expect("Should be a valid pubkey");
-                let market_view = market_view_try_from_owner_and_data(owner, &account_info.data)
-                    .expect(
+                let market_view = try_market_view_all_from_owner_and_data(
+                    owner,
+                    &account_info.data,
+                )
+                .expect(
                     "The account filter should ensure only valid market accounts are passed here",
                 );
 

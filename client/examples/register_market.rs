@@ -1,23 +1,18 @@
-use client::{
-    context::market::MarketContext,
-    transactions::CustomRpcClient,
+use client::e2e_helpers::{
+    E2e,
+    Trader,
 };
-use solana_sdk::signer::Signer;
+use solana_sdk::signature::Keypair;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let rpc = &CustomRpcClient::default();
+    let trader = Keypair::new();
+    let e2e = E2e::new_traders_and_market(None, [Trader::new(&trader, 0, 0)]).await?;
 
-    let payer = rpc.fund_new_account().await?;
-    let market_ctx = MarketContext::new_market(rpc).await?;
-
-    let register = market_ctx.register_market(payer.pubkey(), 10);
-
-    let res = rpc
-        .send_and_confirm_txn(&payer, &[&payer], &[register])
-        .await?;
-
-    println!("Transaction signature: {res}");
+    println!(
+        "Transaction signature: {}",
+        e2e.register_market_txn.parsed_transaction.signature
+    );
 
     Ok(())
 }

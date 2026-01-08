@@ -17,8 +17,8 @@ pub struct MarketHeaderView {
     pub num_seats: u32,
     pub num_free_sectors: u32,
     pub free_stack_top: SectorIndex,
-    pub seat_dll_head: SectorIndex,
-    pub seat_dll_tail: SectorIndex,
+    pub seats_dll_head: SectorIndex,
+    pub seats_dll_tail: SectorIndex,
     pub base_mint: Pubkey,
     pub quote_mint: Pubkey,
     pub market_bump: u8,
@@ -26,20 +26,36 @@ pub struct MarketHeaderView {
     pub _padding: [u8; 3],
 }
 
+/// A view on a market account's data with the collection of type T nodes.
 #[derive(Debug)]
 pub struct MarketView<T> {
     pub header: MarketHeaderView,
     pub sectors: Vec<T>,
 }
 
-// Fallibly convert an account's owner and account data into a market view of type T.
-pub fn market_view_try_from_owner_and_data<'a, T>(
+/// A view on a market account's data showing all collections of all node types.
+#[derive(Debug)]
+pub struct MarketViewAll {
+    pub header: MarketHeaderView,
+    pub seats: Vec<MarketSeatView>,
+}
+
+/// Attempts to parse a Dropset market account from raw Solana account fields and convert it into a
+/// fully-typed market view.
+///
+/// Validates that:
+/// - `account_owner` matches the Dropset program id, and
+/// - `account_data` is at least [`MarketHeader::LEN`] bytes (i.e., initialized enough to contain a
+///   header).
+///
+/// On success, returns a [`MarketViewAll`] over `account_data` (header + sector bytes).
+///
+/// # Errors
+/// Returns an error if the account is not owned by the Dropset program or if the data is too short.
+pub fn try_market_view_all_from_owner_and_data(
     account_owner: Pubkey,
-    account_data: &'a [u8],
-) -> Result<MarketView<T>, anyhow::Error>
-where
-    MarketView<T>: From<MarketRef<'a>>,
-{
+    account_data: &[u8],
+) -> Result<MarketViewAll, anyhow::Error> {
     if account_owner != dropset::ID.into() {
         return Err(anyhow::Error::msg("Account isn't owned by dropset program"));
     }
@@ -50,6 +66,7 @@ where
 
     // Safety: Length was just checked.
     let market = unsafe { MarketRef::from_bytes(account_data) };
+
     Ok(market.into())
 }
 
@@ -89,8 +106,8 @@ impl From<&MarketHeader> for MarketHeaderView {
             num_seats: header.num_seats(),
             num_free_sectors: header.num_free_sectors(),
             free_stack_top: header.free_stack_top(),
-            seat_dll_head: header.seat_dll_head(),
-            seat_dll_tail: header.seat_dll_tail(),
+            seats_dll_head: header.seats_dll_head(),
+            seats_dll_tail: header.seats_dll_tail(),
             base_mint: header.base_mint.into(),
             quote_mint: header.quote_mint.into(),
             market_bump: header.market_bump,
@@ -105,6 +122,15 @@ impl From<MarketRef<'_>> for MarketView<MarketSeatView> {
         Self {
             header: market.header.into(),
             sectors: market.iter_seats().map(MarketSeatView::from).collect(),
+        }
+    }
+}
+
+impl From<MarketRef<'_>> for MarketViewAll {
+    fn from(market: MarketRef<'_>) -> Self {
+        Self {
+            header: market.header.into(),
+            seats: market.iter_seats().map(MarketSeatView::from).collect(),
         }
     }
 }
