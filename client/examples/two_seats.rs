@@ -1,40 +1,33 @@
 use client::e2e_helpers::{
+    test_accounts,
     E2e,
     Trader,
 };
 use dropset_interface::state::sector::NIL;
-use solana_sdk::{
-    signature::Keypair,
-    signer::Signer,
-};
-
-pub const USER_AAA_KEYPAIR: &str =
-    "2zLitvKbr3wtwBNwEHgbFA9FHW3C5jn1BQkAA3whwBooGTA3PSNYNHPXiPuqXh2JJnCgCeM64aNEHxvSxnEqKMuD";
-pub const USER_BBB_KEYPAIR: &str =
-    "5W4uaLrJKMVuntmQ7ES9LA6RuWMZZQwVEjfHkTPHGYZ95V31yKoYTerttNZmtjgPw9U4yuYb28EC1TskmWZ2qoQp";
+use solana_sdk::signer::Signer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let payer_1 = Keypair::from_base58_string(USER_AAA_KEYPAIR);
-    let payer_2 = Keypair::from_base58_string(USER_BBB_KEYPAIR);
+    let payer_1 = test_accounts::acc_6666();
+    let payer_2 = test_accounts::acc_7777();
 
-    assert!(payer_1.pubkey().to_string().starts_with("AAA"));
-    assert!(payer_2.pubkey().to_string().starts_with("BBB"));
+    assert!(payer_1.pubkey().to_string().starts_with("6666"));
+    assert!(payer_2.pubkey().to_string().starts_with("7777"));
 
     let traders = [
-        Trader::new(&payer_1, 10000, 10000),
-        Trader::new(&payer_2, 10000, 10000),
+        Trader::new(payer_1, 10000, 10000),
+        Trader::new(payer_2, 10000, 10000),
     ];
     let e2e = E2e::new_traders_and_market(None, traders).await?;
 
     // Create payer 2's seat before payer 1 to ensure that they're inserted out of order.
     e2e.market
         .deposit_base(payer_2.pubkey(), 1000, NIL)
-        .send_single_signer(&e2e.rpc, &payer_2)
+        .send_single_signer(&e2e.rpc, payer_2)
         .await?;
     e2e.market
         .deposit_base(payer_1.pubkey(), 1000, NIL)
-        .send_single_signer(&e2e.rpc, &payer_1)
+        .send_single_signer(&e2e.rpc, payer_1)
         .await?;
 
     let market = e2e.view_market()?;
