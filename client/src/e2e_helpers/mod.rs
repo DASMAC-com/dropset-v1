@@ -83,10 +83,14 @@ impl E2e {
         for trader in traders.as_ref().iter() {
             // Fail if any of the traders already exist, as this can cause unexpected behavior.
             if account_exists(&rpc.client, &trader.pubkey()).await? {
-                return Err(anyhow::Error::msg(format!(
-                    "Trader account {} already exists.",
-                    trader.pubkey(),
-                )));
+                return Err(anyhow::anyhow!(
+                    concat!(
+                        "Trader account {} already exists. ",
+                        "E2e setup requires fresh accounts to avoid unexpected existing state. ",
+                        "Please use a different keypair.",
+                    ),
+                    trader.pubkey()
+                ));
             }
 
             rpc.fund_account(&trader.pubkey()).await?;
