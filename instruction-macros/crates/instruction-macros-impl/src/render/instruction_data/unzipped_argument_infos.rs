@@ -20,7 +20,7 @@ use crate::parse::{
 /// (not including the tag byte).
 ///
 /// For example, this struct might resemble something like this:
-/// ```rust
+/// ```rust,ignore
 /// InstructionArgumentInfo {
 ///     names: ["amount", "index"],
 ///     types: [u64, u32],

@@ -23,7 +23,7 @@ use crate::parse::{
 /// enum type `T`.
 ///
 /// ## Rendered output
-/// ```
+/// ```rust,ignore
 /// #[repr(u8)]
 /// // `ProgramInstruction` creates a declarative macro for this enum.
 /// #[derive(ProgramInstruction)]
@@ -55,7 +55,7 @@ use crate::parse::{
 /// ```
 ///
 /// ## Example
-/// ```
+/// ```rust,ignore
 /// // Use it to implement `TryFrom<u8>`:
 /// impl TryFrom<u8> for MyInstruction {
 ///     type Error = ProgramError;
@@ -134,7 +134,7 @@ pub fn render(
 ///
 /// To clarify, this stops the user from doing this:
 ///
-/// ```rust
+/// ```rust,ignore
 /// // In some file, `Enum1` is defined with the derive attribute:
 /// // This creates the unsafe transmute macro.
 /// #[repr(u8)]
@@ -163,7 +163,7 @@ pub fn render(
 ///
 /// More specifically, the following const assertions would be generated,
 /// triggering a compile-time failure:
-/// ```rust
+/// ```rust,ignore
 /// const _: [(); 0] = [(); Enum1::A as usize];
 /// // ❌ fails because Enum1::B == 2
 /// const _: [(); 1] = [(); Enum1::B as usize];

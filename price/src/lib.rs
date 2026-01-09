@@ -133,7 +133,7 @@ pub struct OrderInfo {
 /// This decomposes into:
 ///
 /// ```text
-/// base_atoms = base_scalar × 10^base_exponent_unbiased
+/// base_atoms = base_scalar × 10^BASE_EXPONENT
 /// base_atoms = 5 × 10^8
 /// ```
 ///
@@ -157,19 +157,19 @@ pub struct OrderInfo {
 /// Internally, this function computes quote atoms as:
 ///
 /// ```text
-/// quote_atoms = (price_mantissa × base_scalar) × 10^quote_exponent_biased
+/// quote_atoms = (price_mantissa × base_scalar) × 10^QUOTE_EXPONENT
 /// ```
 ///
 /// Substituting:
 ///
 /// ```text
-/// 55_000_000 = (11_000_000 × 5) × 10^quote_exponent_biased
+/// 55_000_000 = (11_000_000 × 5) × 10^QUOTE_EXPONENT
 /// ```
 ///
 /// Which gives:
 ///
 /// ```text
-/// quote_exponent_biased = 0
+/// QUOTE_EXPONENT = 0
 /// ```
 ///
 /// ---
@@ -179,14 +179,14 @@ pub struct OrderInfo {
 /// ```rust
 /// let price_mantissa = 11_000_000;
 /// let base_scalar = 5;
-/// let base_exponent_biased = 8;
-/// let quote_exponent_biased = 0;
+/// const BASE_EXPONENT: u8 = 8;
+/// const QUOTE_EXPONENT: u8 = 0;
 ///
 /// let order = price::to_order_info(
 ///     price_mantissa,
 ///     base_scalar,
-///     price::to_biased_exponent!(base_exponent_biased),
-///     price::to_biased_exponent!(quote_exponent_biased),
+///     price::to_biased_exponent!(BASE_EXPONENT),
+///     price::to_biased_exponent!(QUOTE_EXPONENT),
 /// ).unwrap();
 ///
 /// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;

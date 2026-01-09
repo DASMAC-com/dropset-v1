@@ -118,10 +118,10 @@ macro_rules! pow10_u64 {
 /// ```rust
 /// enum MyError { BadSub }
 ///
-/// let res: Result<u8, MyError> = price::checked_sub!(5, 4, MyError::BadSub);
+/// let res: Result<u8, MyError> = price::checked_sub!(5u8, 4, MyError::BadSub);
 /// assert!(matches!(res, Ok(1)));
 ///
-/// let res: Result<u8, MyError> = price::checked_sub!(5, 6, MyError::BadSub);
+/// let res: Result<u8, MyError> = price::checked_sub!(5u8, 6, MyError::BadSub);
 /// assert!(matches!(res, Err(MyError::BadSub)));
 /// ```
 #[macro_export]
@@ -171,7 +171,6 @@ macro_rules! checked_mul {
 /// The input must be a literal or const value so that the const assertions work properly.
 ///
 /// Requires the [`static_assertions`] library.
-#[cfg(test)]
 #[macro_export]
 macro_rules! to_biased_exponent {
     ($unbiased_exponent:expr) => {{

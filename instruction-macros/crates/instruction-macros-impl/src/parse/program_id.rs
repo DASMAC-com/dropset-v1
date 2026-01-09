@@ -14,7 +14,7 @@ use crate::{
 /// An unambiguous path to a program ID.
 ///
 /// ## Examples
-/// ```rust
+/// ```rust,ignore
 /// // With a leading colon.
 /// program_id(::some_program::ID)
 /// // With `crate::`
