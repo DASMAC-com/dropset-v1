@@ -20,7 +20,8 @@ async fn main() -> anyhow::Result<()> {
     ];
     let e2e = E2e::new_traders_and_market(None, traders).await?;
 
-    // Create payer 2's seat before payer 1 to ensure that they're inserted out of order.
+    // Deposit to both payers' accounts, but ensure that payer 2's seat is created
+    // before payer 1 so that they're inserted out of order.
     e2e.market
         .deposit_base(payer_2.pubkey(), 1000, NIL)
         .send_single_signer(&e2e.rpc, payer_2)

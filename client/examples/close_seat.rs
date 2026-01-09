@@ -12,7 +12,6 @@ use client::{
     },
     LogColor,
 };
-use dropset_interface::state::sector::NIL;
 use solana_sdk::{
     signature::Keypair,
     signer::Signer,
@@ -33,8 +32,9 @@ async fn main() -> anyhow::Result<()> {
 
     let e2e = E2e::new_traders_and_market(Some(rpc), [Trader::new(&trader, 10000, 10000)]).await?;
 
+    // Create a seat for the trader.
     e2e.market
-        .deposit_base(trader.pubkey(), 1000, NIL)
+        .create_seat(trader.pubkey())
         .send_single_signer(&e2e.rpc, &trader)
         .await?;
 
