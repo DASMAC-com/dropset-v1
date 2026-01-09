@@ -34,9 +34,9 @@ const MAX_BIASED_EXPONENT: u8 = (1 << (EXPONENT_BITS)) - 1;
 /// See [`pow10_u64`] for more information on the reasoning behind the exponent range.
 pub const BIAS: u8 = 16;
 
-/// The minimum unbiased exponent value.
+/// The minimum unbiased exponent value. Primarily for usage in tests and client contexts.
 pub const UNBIASED_MIN: i16 = 0 - BIAS as i16;
-/// The maximum unbiased exponent value.
+/// The maximum unbiased exponent value. Primarily for usage in tests and client contexts.
 pub const UNBIASED_MAX: i16 = MAX_BIASED_EXPONENT as i16 - BIAS as i16;
 
 // Ensure that adding the bias to the max biased exponent never overflows.
