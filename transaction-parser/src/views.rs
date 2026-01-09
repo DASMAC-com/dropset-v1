@@ -13,7 +13,7 @@ use dropset_interface::state::{
 };
 use solana_sdk::pubkey::Pubkey;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MarketHeaderView {
     pub discriminant: u64,
     pub num_seats: u32,
@@ -35,14 +35,14 @@ pub struct MarketHeaderView {
 }
 
 /// A view on a market account's data with the collection of type T nodes.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MarketView<T> {
     pub header: MarketHeaderView,
     pub sectors: Vec<T>,
 }
 
 /// A view on a market account's data showing all collections of all node types.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MarketViewAll {
     pub header: MarketHeaderView,
     pub seats: Vec<MarketSeatView>,
@@ -80,7 +80,7 @@ pub fn try_market_view_all_from_owner_and_data(
     Ok(market.into())
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MarketSeatView {
     pub prev_index: SectorIndex,
     pub index: SectorIndex,
@@ -91,7 +91,7 @@ pub struct MarketSeatView {
     pub user_order_sectors: UserOrderSectors,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct OrderView {
     pub prev_index: SectorIndex,
     pub index: SectorIndex,
