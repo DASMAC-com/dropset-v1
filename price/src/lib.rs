@@ -133,7 +133,7 @@ pub struct OrderInfo {
 /// This decomposes into:
 ///
 /// ```text
-/// base_atoms = base_scalar × 10^BASE_EXPONENT
+/// base_atoms = base_scalar × 10^BASE_EXPONENT_UNBIASED
 /// base_atoms = 5 × 10^8
 /// ```
 ///
@@ -157,19 +157,19 @@ pub struct OrderInfo {
 /// Internally, this function computes quote atoms as:
 ///
 /// ```text
-/// quote_atoms = (price_mantissa × base_scalar) × 10^QUOTE_EXPONENT
+/// quote_atoms = (price_mantissa × base_scalar) × 10^QUOTE_EXPONENT_UNBIASED
 /// ```
 ///
 /// Substituting:
 ///
 /// ```text
-/// 55_000_000 = (11_000_000 × 5) × 10^QUOTE_EXPONENT
+/// 55_000_000 = (11_000_000 × 5) × 10^QUOTE_EXPONENT_UNBIASED
 /// ```
 ///
 /// Which gives:
 ///
 /// ```text
-/// QUOTE_EXPONENT = 0
+/// QUOTE_EXPONENT_UNBIASED = 0
 /// ```
 ///
 /// ---
@@ -179,14 +179,14 @@ pub struct OrderInfo {
 /// ```rust
 /// let price_mantissa = 11_000_000;
 /// let base_scalar = 5;
-/// const BASE_EXPONENT: u8 = 8;
-/// const QUOTE_EXPONENT: u8 = 0;
+/// const BASE_EXPONENT_UNBIASED: u8 = 8;
+/// const QUOTE_EXPONENT_UNBIASED: u8 = 0;
 ///
 /// let order = price::to_order_info(
 ///     price_mantissa,
 ///     base_scalar,
-///     price::to_biased_exponent!(BASE_EXPONENT),
-///     price::to_biased_exponent!(QUOTE_EXPONENT),
+///     price::to_biased_exponent!(BASE_EXPONENT_UNBIASED),
+///     price::to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
 /// ).unwrap();
 ///
 /// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
@@ -414,21 +414,25 @@ mod tests {
         let mantissa: u32 = 10_000_000;
         let base_scalar: u64 = 1;
 
-        const QUOTE_EXPONENT: i32 = 12;
+        const QUOTE_EXPONENT_UNBIASED: i32 = 12;
         assert!((mantissa as u64).checked_mul(base_scalar).is_some());
 
         // No overflow with quote exponent using core rust operations.
         assert!((mantissa as u64)
             .checked_mul(base_scalar)
             .unwrap()
-            .checked_mul(10u64.checked_pow(QUOTE_EXPONENT as u32).unwrap())
+            .checked_mul(10u64.checked_pow(QUOTE_EXPONENT_UNBIASED as u32).unwrap())
             .is_some());
 
         // Overflow with quote exponent + 1 using core rust operations.
         assert!((mantissa as u64)
             .checked_mul(base_scalar)
             .unwrap()
-            .checked_mul(10u64.checked_pow((QUOTE_EXPONENT + 1) as u32).unwrap())
+            .checked_mul(
+                10u64
+                    .checked_pow((QUOTE_EXPONENT_UNBIASED + 1) as u32)
+                    .unwrap()
+            )
             .is_none());
 
         // No overflow with quote exponent in `to_order_info`.
@@ -436,7 +440,7 @@ mod tests {
             mantissa,
             base_scalar,
             to_biased_exponent!(0),
-            to_biased_exponent!(QUOTE_EXPONENT)
+            to_biased_exponent!(QUOTE_EXPONENT_UNBIASED)
         )
         .is_ok());
 
@@ -446,7 +450,7 @@ mod tests {
                 mantissa,
                 base_scalar,
                 to_biased_exponent!(0),
-                to_biased_exponent!(QUOTE_EXPONENT + 1)
+                to_biased_exponent!(QUOTE_EXPONENT_UNBIASED + 1)
             ),
             Err(OrderInfoError::ArithmeticOverflow)
         ));
