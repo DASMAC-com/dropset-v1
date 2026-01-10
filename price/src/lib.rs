@@ -7,6 +7,7 @@ mod validated_mantissa;
 pub use decoded_price::*;
 pub use encoded_price::*;
 pub use error::*;
+use static_assertions::const_assert_eq;
 pub use validated_mantissa::*;
 
 pub const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
@@ -88,112 +89,74 @@ pub struct OrderInfo {
 ///
 /// # Example
 ///
-/// The following example shows how to place an order for **0.5 SOL** at a price of
-/// **$110 SOL/USD**, assuming:
+/// The following example shows how to place an order for 500 EUR at a price of 1.25 USD / 1 EUR.
 ///
-/// - SOL has **9 decimals** (`1 SOL = 10^9 lamports`)
-/// - USDC has **6 decimals** (`1 USDC = 10^6 atoms`)
-/// - USDC trades at exactly **$1.00**
+/// Typically, stablecoins use 6 decimals in their SPL-token implementations, so 6 decimals are used
+/// in this example as well. In this example, EUR and USD are stablecoins on-chain representing
+/// their corresponding currencies. This means that:
 ///
-/// ---
+/// - 1 EUR = 10^6 atoms
+/// - 1 USD = 10^6 atoms
 ///
-/// ## Price normalization
+/// The price mantissa stores significant digits within a fixed range `10_000_000 ..= 99_999_999`.
 ///
-/// A price of `110 SOL/USD` becomes a ratio of atomic units:
-///
-/// ```text
-/// 110 USDC      110 * 10^6        110        110 USDC atoms
-/// --------  =  -----------  =  --------  =  ----------------
-///  1  SOL        1 * 10^9        10^3        1000 lamports
-/// ```
-///
-/// Which yields:
+/// If the price is 1.25 USD/EUR, the significant digits are 125, and the price mantissa is thus:
 ///
 /// ```text
-/// price = 0.11 USDC atoms / lamport
+/// price_mantissa = 12_500_000
 /// ```
 ///
-/// The price mantissa stores significant digits within a fixed range
-/// `10_000_000 ..= 99_999_999`, so:
-///
-/// ```text
-/// price_mantissa = 11_000_000
-/// ```
-///
-/// ---
-///
-/// ## Base size
-///
-/// The order size is expressed entirely in base atoms:
-///
-/// ```text
-/// 0.5 SOL = 500_000_000 lamports
-/// ```
-///
-/// This decomposes into:
-///
-/// ```text
-/// base_atoms = base_scalar × 10^BASE_EXPONENT_UNBIASED
-/// base_atoms = 5 × 10^8
-/// ```
-///
-/// ---
-///
-/// ## Quote size
-///
-/// By definition:
-///
-/// ```text
-/// price = quote_atoms / base_atoms
-/// ```
-///
-/// Substituting known values:
-///
-/// ```text
-/// 0.11 = quote_atoms / 500_000_000
-/// quote_atoms = 55_000_000
-/// ```
-///
-/// Internally, this function computes quote atoms as:
-///
-/// ```text
-/// quote_atoms = (price_mantissa × base_scalar) × 10^QUOTE_EXPONENT_UNBIASED
-/// ```
-///
-/// Substituting:
-///
-/// ```text
-/// 55_000_000 = (11_000_000 × 5) × 10^QUOTE_EXPONENT_UNBIASED
-/// ```
-///
-/// Which gives:
-///
-/// ```text
-/// QUOTE_EXPONENT_UNBIASED = 0
-/// ```
-///
-/// ---
-///
-/// ## Putting it together
+/// The rest of the input values can be determined as follows:
 ///
 /// ```rust
-/// let price_mantissa = 11_000_000;
-/// let base_scalar = 5;
+/// use price;
+/// use static_assertions::{const_assert_eq};
+///
+/// const PRICE_MANTISSA: u64 = 12_500_000;
+/// // 500 EUR worth of base atoms is 500 * 10^6.
+/// const BASE_ATOMS: u64 = 500 * 10u64.pow(6);
+/// // Derive the base scalar similarly to how the price mantissa is derived: using the sig figs.
+/// // Since the intended number of base atoms is 500_000_000, the only sig fig is 5.
+/// const BASE_SCALAR: u64 = 5;
+/// // The unbiased base exponent is simply the power of 10 to which you multiply the base scalar
+/// // by to get to the base atoms:
 /// const BASE_EXPONENT_UNBIASED: u8 = 8;
-/// const QUOTE_EXPONENT_UNBIASED: u8 = 0;
+/// const_assert_eq!(BASE_ATOMS, BASE_SCALAR * 10u64.pow(BASE_EXPONENT_UNBIASED as u32));
+///
+/// // The quote atoms can be derived from the price and base atoms. The price is 1.25 USD / 1 EUR,
+/// // which can also cleanly translate to multiplying by 125 / 100.
+/// const QUOTE_ATOMS: u64 = BASE_ATOMS * 125 / 100;
+///
+/// // The (unbiased) quote exponent can be cleanly derived from the price, the price mantissa, and
+/// // the already derived unbiased base exponent:
+/// //
+/// // price = price_mantissa / 10 ^ (price_exponent);
+/// // where
+/// // price_exponent = quote_exponent_unbiased - base_exponent_unbiased
+/// //
+/// // There's a difference of magnitude 7 between 1.25 and 12_500_000. Count the digits to see:
+/// //  1 234 567
+/// // 12_500_000
+/// //
+/// // Thus the price_exponent = -7
+/// // -7 = quote_exponent_unbiased - 8
+/// //    =
+/// // quote_exponent_unbiased = 1
+/// const QUOTE_EXPONENT_UNBIASED: u8 = 1;
+/// const_assert_eq!(QUOTE_ATOMS, PRICE_MANTISSA * BASE_SCALAR * 10u64.pow(QUOTE_EXPONENT_UNBIASED as u32));
 ///
 /// let order = price::to_order_info(
-///     price_mantissa,
-///     base_scalar,
+///     PRICE_MANTISSA as u32,
+///     BASE_SCALAR,
 ///     price::to_biased_exponent!(BASE_EXPONENT_UNBIASED),
 ///     price::to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
-/// ).unwrap();
+/// ).expect("Should create order info");
 ///
 /// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
 ///
-/// assert_eq!(order.base_atoms, 500_000_000);
-/// assert_eq!(order.quote_atoms, 55_000_000);
-/// assert_eq!(derived_price, 0.11);
+/// assert_eq!(order.base_atoms, BASE_ATOMS);
+/// assert_eq!(order.quote_atoms, QUOTE_ATOMS);
+/// assert_eq!(derived_price, 1.25);
 /// ```
 ///
 /// # Safety
@@ -407,6 +370,42 @@ mod tests {
             invalid_quote_exponent,
             Err(OrderInfoError::InvalidBiasedExponent)
         ));
+    }
+
+    #[test]
+    fn test_eur_usd() {
+        // A price of 1.25 USD / 1 EUR.
+        const PRICE_MANTISSA: u64 = 12_500_000;
+        // 500 EUR worth of base atoms is 500 * 10^6.
+        const BASE_ATOMS: u64 = 500 * 10u64.pow(6);
+        // Derive the base scalar the same way the price mantissa is derived- from the sig figs.
+        // If the base atoms are 500 * 10^6, the base scalar is 5 and the exponent is 8, since
+        // 500 * 10 ^ 6 == 5 * 10 ^ 8.
+        const BASE_SCALAR: u64 = 5;
+        const BASE_EXPONENT_UNBIASED: u8 = 8;
+        const QUOTE_ATOMS: u64 = BASE_ATOMS * 125 / 100;
+
+        // quote_atoms = (price_mantissa * base_scalar) * 10 ^ quote_exponent_unbiased.
+        const QUOTE_EXPONENT_UNBIASED: u8 = 1;
+        const_assert_eq!(
+            QUOTE_ATOMS / (PRICE_MANTISSA * BASE_SCALAR),
+            10u64.pow(QUOTE_EXPONENT_UNBIASED as u32)
+        );
+
+        assert_eq!(
+            QUOTE_ATOMS,
+            PRICE_MANTISSA * BASE_SCALAR * 10u64.pow(QUOTE_EXPONENT_UNBIASED as u32)
+        );
+
+        let order = to_order_info(
+            PRICE_MANTISSA as u32,
+            BASE_SCALAR,
+            to_biased_exponent!(BASE_EXPONENT_UNBIASED),
+            to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
+        )
+        .expect("Should create order info");
+
+        println!("{order:#?}");
     }
 
     #[test]
