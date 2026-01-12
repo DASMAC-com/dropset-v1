@@ -182,7 +182,7 @@ impl MarketContext {
         }
         .create_instruction(data)
         .try_into()
-        .expect("Should be a single singer instruction")
+        .expect("Should be a single signer instruction")
     }
 
     pub fn cancel_order(
