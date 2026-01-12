@@ -92,7 +92,7 @@ impl OrderSectors {
         Ok(())
     }
 
-    /// Fallibly remove a `PriceAndSectorIndex` from a user's orders.
+    /// Fallibly remove a [`PriceToIndex`] from a user's orders.
     ///
     /// Fails if the user does not have an order corresponding to the passed encoded price.
     #[inline(always)]
