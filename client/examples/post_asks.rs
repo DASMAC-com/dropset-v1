@@ -55,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
         to_biased_exponent!(0),
     );
 
-    // Post an ask so the user puts up quote as collateral with base to get filled.
+    // Post an ask. The user provides base as collateral and receives quote when filled.
     let is_bid = false;
     let post_ask = market_ctx.post_order(
         payer.pubkey(),
@@ -84,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
     let user_seat = market_ctx.find_seat(rpc, &payer.pubkey())?.unwrap();
     println!("User seat after posting ask: {user_seat:#?}");
 
-    // Post an ask so the user puts up quote as collateral with base to get filled.
+    // Post an ask. The user provides base as collateral and receives quote when filled.
     let is_bid = false;
 
     let ask_instructions = (1..5)
