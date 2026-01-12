@@ -77,18 +77,13 @@ pub struct LeEncodedPrice([u8; U32_SIZE]);
 
 impl LeEncodedPrice {
     #[inline(always)]
-    pub fn new(encoded_price: EncodedPrice) -> Self {
-        Self(encoded_price.as_u32().to_le_bytes())
-    }
-
-    #[inline(always)]
     pub fn as_slice(&self) -> &[u8; U32_SIZE] {
         &self.0
     }
 
     #[inline(always)]
     pub fn zero() -> Self {
-        LeEncodedPrice::new(EncodedPrice::zero())
+        Self::from(EncodedPrice::zero())
     }
 }
 
