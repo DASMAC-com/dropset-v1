@@ -118,10 +118,10 @@ macro_rules! pow10_u64 {
 /// ```rust
 /// enum MyError { BadSub }
 ///
-/// let res: Result<u8, MyError> = price::checked_sub!(5, 4, MyError::BadSub);
+/// let res: Result<u8, MyError> = price::checked_sub!(5u8, 4, MyError::BadSub);
 /// assert!(matches!(res, Ok(1)));
 ///
-/// let res: Result<u8, MyError> = price::checked_sub!(5, 6, MyError::BadSub);
+/// let res: Result<u8, MyError> = price::checked_sub!(5u8, 6, MyError::BadSub);
 /// assert!(matches!(res, Err(MyError::BadSub)));
 /// ```
 #[macro_export]
@@ -130,7 +130,8 @@ macro_rules! checked_sub {
         let lhs = $lhs;
         let rhs = $rhs;
         if lhs >= rhs {
-            Ok(lhs - rhs)
+            // SAFETY: Just checked it will not underflow.
+            unsafe { Ok(lhs.unchecked_sub(rhs)) }
         } else {
             ::pinocchio::hint::cold_path();
             Err($err)
@@ -165,18 +166,18 @@ macro_rules! checked_mul {
     }};
 }
 
-/// Test utility macro for converting unbiased exponents to biased exponents.
-#[cfg(test)]
+/// Utility macro for converting unbiased exponents to biased exponents.
+///
+/// The input must be a literal or const value so that the const assertions work properly.
+///
+/// Requires the [`static_assertions`] library.
 #[macro_export]
 macro_rules! to_biased_exponent {
     ($unbiased_exponent:expr) => {{
-        let unbiased_signed = $unbiased_exponent as i16;
-        match unbiased_signed {
-            $crate::UNBIASED_MIN..=$crate::UNBIASED_MAX => {
-                (unbiased_signed + $crate::BIAS as i16) as u8
-            }
-            _ => panic!("Invalid unbiased exponent."),
-        }
+        const UNBIASED: i16 = $unbiased_exponent as i16;
+        ::static_assertions::const_assert!(UNBIASED >= $crate::UNBIASED_MIN);
+        ::static_assertions::const_assert!(UNBIASED <= $crate::UNBIASED_MAX);
+        (UNBIASED + $crate::BIAS as i16) as u8
     }};
 }
 
@@ -216,17 +217,5 @@ mod tests {
 
         let expected_max = (UNBIASED_MAX + BIAS as i16) as u8;
         assert_eq!(to_biased_exponent!(UNBIASED_MAX), expected_max);
-    }
-
-    #[test]
-    #[should_panic(expected = "Invalid unbiased exponent.")]
-    fn below_minimum_unbiased() {
-        to_biased_exponent!(UNBIASED_MIN - 1);
-    }
-
-    #[test]
-    #[should_panic(expected = "Invalid unbiased exponent.")]
-    fn above_maximum_unbiased() {
-        to_biased_exponent!(UNBIASED_MAX + 1);
     }
 }

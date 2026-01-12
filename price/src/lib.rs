@@ -7,6 +7,7 @@ mod validated_mantissa;
 pub use decoded_price::*;
 pub use encoded_price::*;
 pub use error::*;
+use static_assertions::const_assert_eq;
 pub use validated_mantissa::*;
 
 pub const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
@@ -34,12 +35,11 @@ const MAX_BIASED_EXPONENT: u8 = (1 << (EXPONENT_BITS)) - 1;
 /// See [`pow10_u64`] for more information on the reasoning behind the exponent range.
 pub const BIAS: u8 = 16;
 
-/// The minimum unbiased exponent value.
-#[cfg(test)]
-const UNBIASED_MIN: i16 = 0 - BIAS as i16;
-/// The maximum unbiased exponent value.
-#[cfg(test)]
-const UNBIASED_MAX: i16 = MAX_BIASED_EXPONENT as i16 - BIAS as i16;
+/// The minimum unbiased exponent value. Primarily for usage in tests and client contexts.
+pub const UNBIASED_MIN: i16 = 0 - BIAS as i16;
+
+/// The maximum unbiased exponent value. Primarily for usage in tests and client contexts.
+pub const UNBIASED_MAX: i16 = MAX_BIASED_EXPONENT as i16 - BIAS as i16;
 
 // Ensure that adding the bias to the max biased exponent never overflows.
 static_assertions::const_assert!((MAX_BIASED_EXPONENT as u16) + (BIAS as u16) <= (u8::MAX as u16));
@@ -82,14 +82,92 @@ pub struct OrderInfo {
     pub quote_atoms: u64,
 }
 
-/// # Safety note:
+/// Convert order inputs into a serializable, non-decimalized [`OrderInfo`].
 ///
-/// In the rebiased exponent calculation, there is an unchecked add that is actually safe. It's
-/// safe because the prior function body ensures the quote exponent is <= MAX_BIASED_EXPONENT, and
-/// const assertions ensure that `MAX_BIASED_EXPONENT + BIAS` is always <= `u8::MAX`.
+/// This function accepts a **price mantissa**, a **base scalar**, and **biased base/quote
+/// exponents**, and produces an order whose amounts are fully expressed in atomic units.
 ///
-/// [`tests::ensure_invalid_quote_exponent_fails_early`] ensures that the function fails early if
-/// the quote exponent isn't <= MAX_BIASED_EXPONENT prior to the unchecked add.
+/// # Example
+///
+/// The following example shows how to place an order for 500 EUR at a price of 1.25 USD / 1 EUR.
+///
+/// Typically, stablecoins use 6 decimals in their SPL-token implementations, so 6 decimals are used
+/// in this example as well. In this example, EUR and USD are stablecoins on-chain representing
+/// their corresponding currencies. This means that:
+///
+/// - 1 EUR = 10^6 atoms
+/// - 1 USD = 10^6 atoms
+///
+/// The price mantissa stores significant digits within a fixed range `10_000_000 ..= 99_999_999`.
+///
+/// If the price is 1.25 USD/EUR, the significant digits are 125, and the price mantissa is thus:
+///
+/// ```text
+/// price_mantissa = 12_500_000
+/// ```
+///
+/// The rest of the input values can be determined as follows:
+///
+/// ```rust
+/// use price;
+/// use static_assertions::{const_assert_eq};
+///
+/// const PRICE_MANTISSA: u64 = 12_500_000;
+/// // 500 EUR worth of base atoms is 500 * 10^6.
+/// const BASE_ATOMS: u64 = 500 * 10u64.pow(6);
+/// // Derive the base scalar similarly to how the price mantissa is derived: using the sig figs.
+/// // Since the intended number of base atoms is 500_000_000, the only sig fig is 5.
+/// const BASE_SCALAR: u64 = 5;
+/// // The unbiased base exponent is simply the power of 10 to which you multiply the base scalar
+/// // by to get to the base atoms:
+/// const BASE_EXPONENT_UNBIASED: u8 = 8;
+/// const_assert_eq!(BASE_ATOMS, BASE_SCALAR * 10u64.pow(BASE_EXPONENT_UNBIASED as u32));
+///
+/// // The quote atoms can be derived from the price and base atoms. The price is 1.25 USD / 1 EUR,
+/// // which can also cleanly translate to multiplying by 125 / 100.
+/// const QUOTE_ATOMS: u64 = BASE_ATOMS * 125 / 100;
+///
+/// // The (unbiased) quote exponent can be cleanly derived from the price, the price mantissa, and
+/// // the already derived unbiased base exponent:
+/// //
+/// // price = price_mantissa / 10 ^ (price_exponent);
+/// // where
+/// // price_exponent = quote_exponent_unbiased - base_exponent_unbiased
+/// //
+/// // There's a difference of magnitude 7 between 1.25 and 12_500_000. Count the digits to see:
+/// //  1 234 567
+/// // 12_500_000
+/// //
+/// // Thus the price_exponent = -7, so:
+/// // price_exponent = quote_exponent_unbiased - base_exponent_unbiased
+/// // -7 = quote_exponent_unbiased - 8
+/// // quote_exponent_unbiased = 1
+/// const QUOTE_EXPONENT_UNBIASED: u8 = 1;
+/// const_assert_eq!(QUOTE_ATOMS, PRICE_MANTISSA * BASE_SCALAR * 10u64.pow(QUOTE_EXPONENT_UNBIASED as u32));
+///
+/// let order = price::to_order_info(
+///     PRICE_MANTISSA as u32,
+///     BASE_SCALAR,
+///     price::to_biased_exponent!(BASE_EXPONENT_UNBIASED),
+///     price::to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
+/// ).expect("Should create order info");
+///
+/// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
+///
+/// assert_eq!(order.base_atoms, BASE_ATOMS);
+/// assert_eq!(order.quote_atoms, QUOTE_ATOMS);
+/// assert_eq!(derived_price, 1.25);
+/// ```
+///
+/// # Safety
+///
+/// This function performs an unchecked add when rebiasing the price exponent. This is safe because:
+///
+/// - The quote exponent is validated to be `<= MAX_BIASED_EXPONENT`
+/// - Compile-time assertions guarantee `MAX_BIASED_EXPONENT + BIAS <= u8::MAX`
+///
+/// The test [`tests::ensure_invalid_quote_exponent_fails_early`] ensures invalid inputs
+/// are rejected before the unchecked operation.
 #[allow(rustdoc::broken_intra_doc_links)]
 pub fn to_order_info(
     price_mantissa: u32,
@@ -102,7 +180,7 @@ pub fn to_order_info(
     let base_atoms = pow10_u64!(base_scalar, base_exponent_biased)?;
 
     let price_mantissa_times_base_scalar = checked_mul!(
-        validated_mantissa.get() as u64,
+        validated_mantissa.as_u32() as u64,
         base_scalar,
         OrderInfoError::ArithmeticOverflow
     )?;
@@ -185,10 +263,11 @@ mod tests {
             .clone()
             .try_into()
             .expect("Should be a valid f64");
-        assert_eq!(decoded_mantissa.get(), mantissa);
+        assert_eq!(decoded_mantissa.as_u32(), mantissa);
         assert_eq!(decoded_f64, "0.12345678".parse().unwrap());
         assert_eq!(
-            (decoded_mantissa.get() as f64).mul(10f64.powi(*decoded_exponent as i32 - BIAS as i32)),
+            (decoded_mantissa.as_u32() as f64)
+                .mul(10f64.powi(*decoded_exponent as i32 - BIAS as i32)),
             decoded_f64
         );
     }
@@ -298,21 +377,25 @@ mod tests {
         let mantissa: u32 = 10_000_000;
         let base_scalar: u64 = 1;
 
-        let quote_exponent = 12;
+        const QUOTE_EXPONENT_UNBIASED: i32 = 12;
         assert!((mantissa as u64).checked_mul(base_scalar).is_some());
 
         // No overflow with quote exponent using core rust operations.
         assert!((mantissa as u64)
             .checked_mul(base_scalar)
             .unwrap()
-            .checked_mul(10u64.checked_pow(quote_exponent as u32).unwrap())
+            .checked_mul(10u64.checked_pow(QUOTE_EXPONENT_UNBIASED as u32).unwrap())
             .is_some());
 
         // Overflow with quote exponent + 1 using core rust operations.
         assert!((mantissa as u64)
             .checked_mul(base_scalar)
             .unwrap()
-            .checked_mul(10u64.checked_pow((quote_exponent + 1) as u32).unwrap())
+            .checked_mul(
+                10u64
+                    .checked_pow((QUOTE_EXPONENT_UNBIASED + 1) as u32)
+                    .unwrap()
+            )
             .is_none());
 
         // No overflow with quote exponent in `to_order_info`.
@@ -320,7 +403,7 @@ mod tests {
             mantissa,
             base_scalar,
             to_biased_exponent!(0),
-            to_biased_exponent!(quote_exponent)
+            to_biased_exponent!(QUOTE_EXPONENT_UNBIASED)
         )
         .is_ok());
 
@@ -330,7 +413,7 @@ mod tests {
                 mantissa,
                 base_scalar,
                 to_biased_exponent!(0),
-                to_biased_exponent!(quote_exponent + 1)
+                to_biased_exponent!(QUOTE_EXPONENT_UNBIASED + 1)
             ),
             Err(OrderInfoError::ArithmeticOverflow)
         ));

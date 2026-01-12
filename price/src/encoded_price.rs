@@ -16,7 +16,7 @@ use crate::{
 ///                    32
 /// ```
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct EncodedPrice(u32);
 
 pub const ENCODED_PRICE_INFINITY: u32 = u32::MAX;
@@ -32,12 +32,12 @@ impl EncodedPrice {
 
         // No need to mask the price mantissa since it has already been range checked/validated.
         // Thus it's guaranteed it will only occupy the lower M bits where M = PRICE_MANTISSA_BITS.
-        Self(exponent_bits | price_mantissa.get())
+        Self(exponent_bits | price_mantissa.as_u32())
     }
 
     /// Returns the inner encoded price as a u32.
     #[inline(always)]
-    pub fn get(&self) -> u32 {
+    pub fn as_u32(&self) -> u32 {
         self.0
     }
 
@@ -79,15 +79,15 @@ mod tests {
 
     #[test]
     fn encoded_price_mantissa_bits() {
-        let exponent = 0b0_1111;
+        const EXPONENT: u8 = 0b0_1111;
         let price_mantissa = 0b000_1111_0000_1111_0000_1111_0000;
         let encoded_price = EncodedPrice::new(
-            to_biased_exponent!(exponent),
+            to_biased_exponent!(EXPONENT),
             ValidatedPriceMantissa::try_from(price_mantissa).unwrap(),
         );
         assert_eq!(
             encoded_price.0 >> PRICE_MANTISSA_BITS,
-            (exponent + BIAS) as u32
+            (EXPONENT + BIAS) as u32
         );
         assert_eq!(encoded_price.0 & PRICE_MANTISSA_MASK, price_mantissa);
     }

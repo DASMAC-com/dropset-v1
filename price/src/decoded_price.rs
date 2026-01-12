@@ -41,7 +41,7 @@ impl TryFrom<EncodedPrice> for DecodedPrice {
     type Error = OrderInfoError;
 
     fn try_from(encoded: EncodedPrice) -> Result<Self, Self::Error> {
-        let res = match encoded.get() {
+        let res = match encoded.as_u32() {
             ENCODED_PRICE_ZERO => Self::Zero,
             ENCODED_PRICE_INFINITY => Self::Infinity,
             value => {
@@ -70,7 +70,7 @@ impl TryFrom<DecodedPrice> for f64 {
                 price_exponent_biased,
                 price_mantissa,
             } => {
-                let res = (price_mantissa.get() as f64)
+                let res = (price_mantissa.as_u32() as f64)
                     * 10f64.powi(price_exponent_biased as i32 - BIAS as i32);
                 Ok(res)
             }

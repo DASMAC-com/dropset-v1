@@ -44,7 +44,7 @@ fn parse_as_file(ts: &TokenStream) -> syn::Result<File> {
 /// Helpful for catching non-fully-qualified paths in the macro output.
 ///
 /// Example output:
-/// ```rust
+/// ```rust,ignore
 /// ::core::mem::MaybeUninit::uninit
 /// ::core::mem::MaybeUninit<u8>
 /// ::core::ptr::copy_nonoverlapping

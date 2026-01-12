@@ -107,7 +107,7 @@ fn render_variant(
 /// detailing each account's write/read and signer status.
 ///
 /// Example output:
-/// ```
+/// ```rust,ignore
 /// /// 0. `[WRITE, SIGNER]` market_account
 /// /// 1. `[WRITE]` base_mint_account
 /// /// 2. `[READ]` quote_mint_account

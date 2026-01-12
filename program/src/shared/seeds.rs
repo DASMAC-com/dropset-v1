@@ -18,7 +18,9 @@ macro_rules! market_seeds {
 /// use pinocchio::instruction::Signer;
 ///
 /// let bump: u8 = 0x10;
-/// let signer: Signer = crate::market_signer!(base_mint, quote_mint, bump);
+/// let base_mint = pinocchio_pubkey::pubkey!("11111111111111111111111111111111111111111111");
+/// let quote_mint = pinocchio_pubkey::pubkey!("22222222222222222222222222222222222222222222");
+/// let signer: Signer = market_signer!(base_mint, quote_mint, bump);
 /// ```
 #[macro_export]
 macro_rules! market_signer {
@@ -38,7 +40,7 @@ macro_rules! market_signer {
 /// use dropset::event_authority_signer;
 /// use pinocchio::instruction::Signer;
 ///
-/// let signer: Signer = crate::event_authority_signer!();
+/// let signer: Signer = event_authority_signer!();
 /// ```
 #[macro_export]
 macro_rules! event_authority_signer {
