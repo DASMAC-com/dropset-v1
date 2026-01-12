@@ -189,6 +189,9 @@ unsafe impl Transmutable for OrderSectors {
     }
 }
 
+const_assert_eq!(OrderSectors::LEN, size_of::<OrderSectors>());
+const_assert_eq!(align_of::<OrderSectors>(), 1);
+
 // Safety:
 //
 // - Stable layout with `#[repr(C)]`.
