@@ -158,24 +158,6 @@ impl From<&MarketHeader> for MarketHeaderView {
     }
 }
 
-impl From<MarketRef<'_>> for MarketView<MarketSeatView> {
-    fn from(market: MarketRef) -> Self {
-        Self {
-            header: market.header.into(),
-            sectors: market.iter_seats().map(MarketSeatView::from).collect(),
-        }
-    }
-}
-
-impl From<MarketRef<'_>> for MarketView<OrderView> {
-    fn from(market: MarketRef<'_>) -> Self {
-        Self {
-            header: market.header.into(),
-            sectors: market.iter_bids().map(OrderView::from).collect(),
-        }
-    }
-}
-
 impl From<MarketRef<'_>> for MarketViewAll {
     fn from(market: MarketRef<'_>) -> Self {
         Self {
