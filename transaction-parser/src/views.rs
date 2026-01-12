@@ -46,7 +46,8 @@ pub struct MarketView<T> {
 pub struct MarketViewAll {
     pub header: MarketHeaderView,
     pub seats: Vec<MarketSeatView>,
-    pub orders: Vec<OrderView>,
+    pub bids: Vec<OrderView>,
+    pub asks: Vec<OrderView>,
 }
 
 /// Attempts to parse a Dropset market account from raw Solana account fields and convert it into a
@@ -180,7 +181,8 @@ impl From<MarketRef<'_>> for MarketViewAll {
         Self {
             header: market.header.into(),
             seats: market.iter_seats().map(MarketSeatView::from).collect(),
-            orders: market.iter_bids().map(OrderView::from).collect(),
+            bids: market.iter_bids().map(OrderView::from).collect(),
+            asks: market.iter_asks().map(OrderView::from).collect(),
         }
     }
 }
