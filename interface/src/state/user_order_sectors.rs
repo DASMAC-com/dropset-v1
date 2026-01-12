@@ -21,7 +21,7 @@ use crate::{
 
 /// The max number of orders a single user/address can have for a single market for bids or asks.
 /// That is, each user can have [`MAX_ORDERS`] bids and [`MAX_ORDERS`] asks for a single market.
-const MAX_ORDERS: u8 = 5;
+pub const MAX_ORDERS: u8 = 5;
 
 /// The [`OrderSectors`] that maps the prices of a user's bids and asks to their corresponding
 /// sector indices in the market account data.
@@ -34,8 +34,8 @@ pub struct UserOrderSectors {
     pub asks: OrderSectors,
 }
 
-/// An array of [`MAX_ORDERS`] [`PriceIndexNode`]s that maps unique prices to a sector index.
-/// By default, [`PriceIndexNode`]s are free orders and map an encoded price u32 value of `0`
+/// An array of [`MAX_ORDERS`] [`PriceToIndex`]s that maps unique prices to a sector index.
+/// By default, [`PriceToIndex`]s are free orders and map an encoded price u32 value of `0`
 /// to the [`LE_NIL`] sector index.
 #[repr(transparent)]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -122,7 +122,7 @@ impl OrderSectors {
 
 /// The paired encoded price and sector index for an order.
 ///
-/// If the sector index equals [`NIL`], it's considered a freed node, otherwise, it contains an
+/// If the sector index equals [`LE_NIL`], it's considered a freed node, otherwise, it contains an
 /// existing, valid pair of encoded price to sector index.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
