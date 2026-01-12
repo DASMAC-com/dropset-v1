@@ -62,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
     let order_info = to_order_info(price_mantissa, base_scalar, base_exponent, quote_exponent)
         .expect("Should be a valid order");
 
-    // Post an ask so the user puts up quote as collateral with base to get filled.
+    // Post an ask. The user provides base as collateral and receives quote when filled.
     let is_bid = false;
     let post_ask = market_ctx.post_order(
         payer.pubkey(),
