@@ -46,7 +46,7 @@ pub struct MarketHeader {
     num_seats: LeU32,
     /// The u32 total number of fully initialized bid orders as LE bytes.
     num_bids: LeU32,
-    /// The u32 total number of fully initialized bid orders as LE bytes.
+    /// The u32 total number of fully initialized ask orders as LE bytes.
     num_asks: LeU32,
     /// The u32 total number of sectors in the free stack as LE bytes.
     num_free_sectors: LeU32,
@@ -193,17 +193,17 @@ impl MarketHeader {
 
     #[inline(always)]
     pub fn num_asks(&self) -> u32 {
-        u32::from_le_bytes(self.num_bids)
+        u32::from_le_bytes(self.num_asks)
     }
 
     #[inline(always)]
     pub fn increment_num_asks(&mut self) {
-        self.num_bids = self.num_asks().saturating_add(1).to_le_bytes();
+        self.num_asks = self.num_asks().saturating_add(1).to_le_bytes();
     }
 
     #[inline(always)]
     pub fn decrement_num_asks(&mut self) {
-        self.num_bids = self.num_asks().saturating_sub(1).to_le_bytes();
+        self.num_asks = self.num_asks().saturating_sub(1).to_le_bytes();
     }
 
     #[inline(always)]
