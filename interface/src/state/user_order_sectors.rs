@@ -70,7 +70,7 @@ impl OrderSectors {
     /// Fails if the user already has [`MAX_ORDERS`] or the price already has an existing order.
     ///
     /// The `sector_index` passed to this method should be non-NIL or the node after mutation will
-    /// continue be treated as a free node.
+    /// continue to be treated as a free node.
     #[inline(always)]
     pub fn add(&mut self, new_price: &LeEncodedPrice, new_index: &LeSectorIndex) -> DropsetResult {
         // Check if the price already exists in a node and fail early if it does.
