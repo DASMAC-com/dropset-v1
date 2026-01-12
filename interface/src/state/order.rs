@@ -105,7 +105,7 @@ impl Order {
     }
 
     #[inline(always)]
-    pub fn set_remaining(&mut self, amount: u64) {
+    pub fn set_base_remaining(&mut self, amount: u64) {
         self.base_remaining = amount.to_le_bytes();
     }
 
