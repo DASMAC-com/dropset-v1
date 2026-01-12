@@ -66,9 +66,8 @@ pub unsafe fn process_post_order<'a>(
 
     let (base_atoms, quote_atoms) = (order_info.base_atoms, order_info.quote_atoms);
 
-    // To avoid convoluted borrow checking rules, optimistically insert the order into the tree
-    // with the index hint passed in, assuming it's valid. It's verified later when mutating the
-    // market seat.
+    // To avoid convoluted borrow checking rules, optimistically insert the order with the index
+    // hint passed in, assuming it's valid. It's verified later when mutating the market seat.
     let order = Order::new(order_info, user_sector_index_hint);
     let le_encoded_price = *order.le_encoded_price();
     let order_sector_index = {
