@@ -72,8 +72,14 @@ mod tests {
     };
 
     use dropset_interface::state::{
-        asks_dll::AskOrders,
-        bids_dll::BidOrders,
+        asks_dll::{
+            AskOrders,
+            AskOrdersLinkedList,
+        },
+        bids_dll::{
+            BidOrders,
+            BidOrdersLinkedList,
+        },
         linked_list::{
             LinkedList,
             LinkedListOperations,
@@ -327,5 +333,89 @@ mod tests {
             to_prices(bids),
             [40_000_000, 30_000_000, 20_000_000, 10_000_000]
         );
+    }
+
+    #[test]
+    fn test_post_only_crossing_check_asks() {
+        let bytes = &mut [0u8; MARKET_LEN];
+        let mut market = create_simple_market(bytes);
+
+        let [order_1, order_2, order_3] = [
+            create_test_order(10_000_000, 1),
+            create_test_order(20_000_000, 2),
+            create_test_order(30_000_000, 3),
+        ];
+
+        // Placing an ask when there are no bids should succeed regardless of price.
+        assert_eq!(market.bids().iter().count(), 0);
+        assert!(AskOrders::post_only_crossing_check(&order_1, &market).is_ok());
+        assert!(AskOrders::post_only_crossing_check(&order_2, &market).is_ok());
+        assert!(AskOrders::post_only_crossing_check(&order_3, &market).is_ok());
+
+        // Insert a single order to the bid side.
+        insert_helper(&mut market.bids(), &order_2);
+
+        let get_bids_head_price = |bids: BidOrdersLinkedList| {
+            bids.iter()
+                .next()
+                .unwrap()
+                .1
+                .load_payload::<Order>()
+                .encoded_price()
+        };
+
+        // Placing an ask with a higher price than the top bid should succeed.
+        assert!(order_3.encoded_price() > get_bids_head_price(market.bids()));
+        assert!(AskOrders::post_only_crossing_check(&order_3, &market).is_ok());
+
+        // Placing an ask with an equal price to the top bid should fail.
+        assert_eq!(order_2.encoded_price(), get_bids_head_price(market.bids()));
+        assert!(AskOrders::post_only_crossing_check(&order_2, &market).is_err());
+
+        // Placing an ask with a lower price than the top bid should fail.
+        assert!(order_1.encoded_price() < get_bids_head_price(market.bids()));
+        assert!(AskOrders::post_only_crossing_check(&order_1, &market).is_err());
+    }
+
+    #[test]
+    fn test_post_only_crossing_check_bids() {
+        let bytes = &mut [0u8; MARKET_LEN];
+        let mut market = create_simple_market(bytes);
+
+        let [order_1, order_2, order_3] = [
+            create_test_order(10_000_000, 1),
+            create_test_order(20_000_000, 2),
+            create_test_order(30_000_000, 3),
+        ];
+
+        // Placing a bid when there are no asks should succeed regardless of price.
+        assert_eq!(market.asks().iter().count(), 0);
+        assert!(BidOrders::post_only_crossing_check(&order_1, &market).is_ok());
+        assert!(BidOrders::post_only_crossing_check(&order_2, &market).is_ok());
+        assert!(BidOrders::post_only_crossing_check(&order_3, &market).is_ok());
+
+        // Insert a single order to the ask side.
+        insert_helper(&mut market.asks(), &order_2);
+
+        let get_asks_head_price = |asks: AskOrdersLinkedList| {
+            asks.iter()
+                .next()
+                .unwrap()
+                .1
+                .load_payload::<Order>()
+                .encoded_price()
+        };
+
+        // Placing a bid with a lower price than the top ask should succeed.
+        assert!(order_1.encoded_price() < get_asks_head_price(market.asks()));
+        assert!(BidOrders::post_only_crossing_check(&order_1, &market).is_ok());
+
+        // Placing a bid with an equal price to the top ask should fail.
+        assert_eq!(order_2.encoded_price(), get_asks_head_price(market.asks()));
+        assert!(BidOrders::post_only_crossing_check(&order_2, &market).is_err());
+
+        // Placing a bid with a higher price than the top ask should fail.
+        assert!(order_3.encoded_price() > get_asks_head_price(market.asks()));
+        assert!(BidOrders::post_only_crossing_check(&order_3, &market).is_err());
     }
 }
