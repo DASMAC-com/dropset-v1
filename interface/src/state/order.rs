@@ -157,6 +157,7 @@ unsafe impl AllBitPatternsValid for Order {}
 #[cfg(test)]
 mod tests {
     use price::{
+        to_biased_exponent,
         to_order_info,
         EncodedPrice,
     };
@@ -179,17 +180,23 @@ mod tests {
 
     #[test]
     fn order_mutators() {
-        let order_info = to_order_info(10_000_000, 5, 8, 0).expect("Should create order info");
+        let order_info = to_order_info(
+            10_000_000,
+            5,
+            to_biased_exponent!(7),
+            to_biased_exponent!(0),
+        )
+        .expect("Should create order info");
         let user_seat = 17;
-        let mut order = Order::new(order_info, user_seat);
-        let new_base = 27364;
-        let new_quote = 123876;
-        assert_ne!(order.base_remaining(), new_base);
-        assert_ne!(order.quote_remaining(), new_base);
-        order.set_base_remaining(new_base);
-        order.set_quote_remaining(new_quote);
-        assert_eq!(order.base_remaining(), new_base);
-        assert_eq!(order.quote_remaining(), new_base);
+        let mut order = Order::new(order_info.clone(), user_seat);
+        assert_eq!(order.base_remaining(), 50_000_000);
+        assert_eq!(order.quote_remaining(), 50_000_000);
+        let base_after = 111_111_111;
+        let quote_after: u64 = 222_222_222;
+        order.set_base_remaining(base_after);
+        order.set_quote_remaining(quote_after);
+        assert_eq!(order.base_remaining(), base_after);
+        assert_eq!(order.quote_remaining(), quote_after);
     }
 
     #[test]
@@ -205,11 +212,11 @@ mod tests {
         let order = Order::new(order_info, USER_SEAT);
         assert_eq!(
             [
-                &0u32.to_le_bytes(), // Encoded price.
-                &USER_SEAT.to_le_bytes(), // User seat.
-                BASE_ATOMS.to_le_bytes().as_ref(), // Base remaining.
+                &0u32.to_le_bytes(),                // Encoded price.
+                &USER_SEAT.to_le_bytes(),           // User seat.
+                BASE_ATOMS.to_le_bytes().as_ref(),  // Base remaining.
                 QUOTE_ATOMS.to_le_bytes().as_ref(), // Quote remaining.
-                [0u8; ORDER_PADDING].as_ref(), // Padding.
+                [0u8; ORDER_PADDING].as_ref(),      // Padding.
             ]
             .concat(),
             order.as_bytes()

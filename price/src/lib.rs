@@ -81,7 +81,7 @@ mod debug_assertions {
 /// This struct is a C-style struct to facilitate a predictable, fixed layout for on-chain function
 /// calls related to `dropset` orders.
 #[repr(C)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Debug, Clone)]
 pub struct OrderInfo {
     /// The encoded price, containing an exponent and price mantissa.
     /// See [`EncodedPrice`] for more details.
