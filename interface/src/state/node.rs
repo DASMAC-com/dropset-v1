@@ -15,11 +15,12 @@ use crate::{
             SECTOR_SIZE,
         },
         transmutable::Transmutable,
+        user_order_sectors::UserOrderSectors,
     },
     syscalls,
 };
 
-pub const NODE_PAYLOAD_SIZE: usize = 64;
+pub const NODE_PAYLOAD_SIZE: usize = 48 + UserOrderSectors::LEN;
 
 #[repr(C)]
 #[derive(Debug)]

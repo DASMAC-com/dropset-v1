@@ -966,6 +966,7 @@ dependencies = [
  "pinocchio-pubkey",
  "pinocchio-token",
  "pinocchio-token-interface",
+ "price",
  "solana-cpi",
  "solana-instruction",
  "solana-sdk",

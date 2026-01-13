@@ -119,7 +119,6 @@ async fn main() -> anyhow::Result<()> {
         let amount_from_create_seat = 1;
         let base_remaining = (expected_base_dep + amount_from_create_seat) - expected_base_wd;
         assert_eq!(seat.base_available, base_remaining);
-        assert_eq!(seat.base_deposited, base_remaining);
     }
 
     Ok(())

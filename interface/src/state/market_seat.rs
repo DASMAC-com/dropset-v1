@@ -9,7 +9,8 @@ use crate::state::{
         NODE_PAYLOAD_SIZE,
     },
     transmutable::Transmutable,
-    LeU64,
+    user_order_sectors::UserOrderSectors,
+    U64_SIZE,
 };
 
 /// Represents a user's position within a market.
@@ -18,45 +19,25 @@ use crate::state::{
 pub struct MarketSeat {
     /// The user's public key.
     pub user: Pubkey,
-    /// Amount of base token deposited.
-    base_deposited: LeU64,
-    /// Amount of quote token deposited.
-    quote_deposited: LeU64,
-    /// Amount of base token available.
-    base_available: LeU64,
-    /// Amount of quote token available.
-    quote_available: LeU64,
+    /// The u64 amount of base the maker can withdraw as LE bytes.
+    /// Updated on place, cancel, deposit, withdraw.
+    base_available: [u8; U64_SIZE],
+    /// The u64 amount of quote the maker can withdraw as LE bytes.
+    /// Updated on place, cancel, deposit, withdraw.
+    quote_available: [u8; U64_SIZE],
+    /// The mapping for a user's order prices to order sector indices.
+    /// This facilitates O(1) indexing from a user's seat -> their orders.
+    user_order_sectors: UserOrderSectors,
 }
 
 impl MarketSeat {
     pub fn new(user: Pubkey, base: u64, quote: u64) -> Self {
         MarketSeat {
             user,
-            base_deposited: base.to_le_bytes(),
-            quote_deposited: quote.to_le_bytes(),
             base_available: base.to_le_bytes(),
             quote_available: quote.to_le_bytes(),
+            user_order_sectors: UserOrderSectors::default(),
         }
-    }
-
-    #[inline(always)]
-    pub fn base_deposited(&self) -> u64 {
-        u64::from_le_bytes(self.base_deposited)
-    }
-
-    #[inline(always)]
-    pub fn set_base_deposited(&mut self, amount: u64) {
-        self.base_deposited = amount.to_le_bytes();
-    }
-
-    #[inline(always)]
-    pub fn quote_deposited(&self) -> u64 {
-        u64::from_le_bytes(self.quote_deposited)
-    }
-
-    #[inline(always)]
-    pub fn set_quote_deposited(&mut self, amount: u64) {
-        self.quote_deposited = amount.to_le_bytes();
     }
 
     #[inline(always)]

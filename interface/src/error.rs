@@ -34,6 +34,9 @@ pub enum DropsetError {
     InvalidInstructionData,
     IncorrectEventAuthority,
     EventAuthorityMustBeSigner,
+    OrderWithPriceAlreadyExists,
+    UserHasMaxOrders,
+    OrderNotFound,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -72,8 +75,11 @@ impl From<DropsetError> for &'static str {
             DropsetError::MissingIndexHint => "Instruction data must include an index hint",
             DropsetError::InvalidNonZeroInteger => "Value passed must be greater than zero",
             DropsetError::InvalidInstructionData => "Instruction data is invalid",
-            DropsetError::IncorrectEventAuthority => "The event authority passed isn't correct.",
-            DropsetError::EventAuthorityMustBeSigner => "The event authority isn't a signer.",
+            DropsetError::IncorrectEventAuthority => "The event authority passed isn't correct",
+            DropsetError::EventAuthorityMustBeSigner => "The event authority isn't a signer",
+            DropsetError::OrderWithPriceAlreadyExists => "An order with this price already exists",
+            DropsetError::UserHasMaxOrders => "User already has the max number of open orders",
+            DropsetError::OrderNotFound => "Order not found",
         }
     }
 }

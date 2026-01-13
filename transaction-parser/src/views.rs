@@ -76,8 +76,6 @@ pub struct MarketSeatView {
     pub index: SectorIndex,
     pub next_index: SectorIndex,
     pub user: Pubkey,
-    pub base_deposited: u64,
-    pub quote_deposited: u64,
     pub base_available: u64,
     pub quote_available: u64,
 }
@@ -91,8 +89,6 @@ impl From<(SectorIndex, &Node)> for MarketSeatView {
             index: sector_index,
             next_index: node.next(),
             user: seat.user.into(),
-            base_deposited: seat.base_deposited(),
-            quote_deposited: seat.quote_deposited(),
             base_available: seat.base_available(),
             quote_available: seat.quote_available(),
         }

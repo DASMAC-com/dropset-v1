@@ -3,7 +3,7 @@
 
 use crate::state::U32_SIZE;
 
-pub const SECTOR_SIZE: usize = 72;
+pub const SECTOR_SIZE: usize = 136;
 
 /// A sentinel value that marks 1-past the last valid sector index.
 ///

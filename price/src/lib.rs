@@ -1,13 +1,23 @@
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(test)]
+extern crate std;
+
+#[cfg(any(feature = "std", test))]
 mod decoded_price;
+#[cfg(any(feature = "std", test))]
+pub use decoded_price::*;
+
 mod encoded_price;
 mod error;
 mod macros;
 mod validated_mantissa;
 
-pub use decoded_price::*;
 pub use encoded_price::*;
 pub use error::*;
-use static_assertions::const_assert_eq;
 pub use validated_mantissa::*;
 
 pub const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
@@ -210,6 +220,8 @@ pub fn to_order_info(
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
+
     use std::ops::Mul;
 
     use static_assertions::*;

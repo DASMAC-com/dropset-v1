@@ -74,19 +74,9 @@ pub unsafe fn process_deposit<'a>(
                     .checked_add(amount_deposited)
                     .ok_or(ProgramError::ArithmeticOverflow)?,
             );
-            seat.set_base_deposited(
-                seat.base_deposited()
-                    .checked_add(amount_deposited)
-                    .ok_or(ProgramError::ArithmeticOverflow)?,
-            );
         } else {
             seat.set_quote_available(
                 seat.quote_available()
-                    .checked_add(amount_deposited)
-                    .ok_or(ProgramError::ArithmeticOverflow)?,
-            );
-            seat.set_quote_deposited(
-                seat.quote_deposited()
                     .checked_add(amount_deposited)
                     .ok_or(ProgramError::ArithmeticOverflow)?,
             );

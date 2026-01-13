@@ -60,19 +60,9 @@ pub unsafe fn process_withdraw<'a>(
                 .checked_sub(amount)
                 .ok_or(DropsetError::InsufficientUserBalance)?,
         );
-        seat.set_base_deposited(
-            seat.base_deposited()
-                .checked_sub(amount)
-                .ok_or(DropsetError::InsufficientUserBalance)?,
-        );
     } else {
         seat.set_quote_available(
             seat.quote_available()
-                .checked_sub(amount)
-                .ok_or(DropsetError::InsufficientUserBalance)?,
-        );
-        seat.set_quote_deposited(
-            seat.quote_deposited()
                 .checked_sub(amount)
                 .ok_or(DropsetError::InsufficientUserBalance)?,
         );
