@@ -13,8 +13,10 @@ pub fn render() -> TokenStream {
 
             /// Packs `Self` as bytes into a given mutable slice.
             ///
-            /// Caller is responsible for ensuring the buffer length
-            /// is sufficient and that its length is tracked properly.
+            /// # Safety
+            ///
+            /// Caller is responsible for ensuring the buffer length is sufficient and that its
+            /// length is tracked properly.
             unsafe fn pack_into_slice(
                 &self,
                 buf: &mut [::core::mem::MaybeUninit<u8>],
