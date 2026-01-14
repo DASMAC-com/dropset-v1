@@ -11,7 +11,7 @@ dropset-interface = { path = "../interface", features = ["client", "solana-progr
 itertools.workspace = true
 lazy-regex.workspace = true
 price = { path = "../price" }
-solana-address.workspace = true
+solana-address = { workspace = true, features = ["copy"] }
 solana-sdk.workspace = true
 solana-transaction-status.workspace = true
 solana-transaction-status-client-types.workspace = true

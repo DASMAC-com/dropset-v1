@@ -18,7 +18,7 @@ pinocchio-token-interface.workspace = true
 pinocchio-token-2022.workspace = true
 price = { path = "../price" }
 solana-account-view.workspace = true
-solana-address.workspace = true
+solana-address = { workspace = true, features = ["copy"] }
 solana-instruction-view = { workspace = true, features = ["cpi"] }
 static_assertions.workspace = true
 
