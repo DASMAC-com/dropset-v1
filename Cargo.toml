@@ -22,10 +22,10 @@ bincode = "1.3.3"
 borsh = "1"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 colored = { version = "3.0.0" }
-derive_more = "2.0.1"
+derive_more = "2.1.1"
 itertools = "0.14.0"
 futures = "0.3.31"
-lazy-regex = "3.4.2"
+lazy-regex = "3.5.1"
 pinocchio = { version = "0.10.1" }
 pinocchio-associated-token-account = { version = "0.3.0" }
 pinocchio-log = { version = "0.5.1" }
@@ -55,14 +55,14 @@ spl-token-2022-interface = "2.1.0"
 static_assertions = "1.1.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
-tokio = "1.47.1"
+tokio = "1.49.0"
 yellowstone-grpc-client = "10.2.0"
 yellowstone-grpc-proto = "10.1.1"
 
 # proc-macro dependencies
-quote = "1.0.41"
-proc-macro2 = "1.0.103"
-syn = { version = "2.0.108", features = ["full", "extra-traits", "visit"] }
+quote = "1.0.43"
+proc-macro2 = "1.0.105"
+syn = { version = "2.0.114", features = ["full", "extra-traits", "visit"] }
 
 [workspace.dependencies.pinocchio-token-interface]
 git = "https://github.com/solana-program/token.git"
