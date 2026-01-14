@@ -74,27 +74,28 @@ async fn main() -> anyhow::Result<()> {
         (test_accounts::acc_5555().pubkey(), (100, 50)),
     ]);
 
-    let deposits_and_withdraws: Vec<Instruction> = traders
+    let (deposits, withdraws): (Vec<Instruction>, Vec<Instruction>) = traders
         .iter()
         .zip(seats)
-        .flat_map(|(trader, seat)| {
+        .map(|(trader, seat)| {
             let trader_addr = trader.address();
             let (deposit, withdraw) = base_amounts.get(&trader_addr).unwrap();
-            [
+            (
                 e2e.market.deposit_base(trader_addr, *deposit, seat).into(),
                 e2e.market
                     .withdraw_base(trader_addr, *withdraw, seat)
                     .into(),
-            ]
+            )
         })
-        .collect();
+        .unzip();
+
+    let trader_keypairs = &traders.into_iter().map(|tr| tr.keypair).collect_vec();
+    e2e.rpc
+        .send_and_confirm_txn(test_accounts::default_payer(), trader_keypairs, &deposits)
+        .await?;
 
     e2e.rpc
-        .send_and_confirm_txn(
-            test_accounts::default_payer(),
-            &traders.iter().map(|tr| tr.keypair).collect_vec(),
-            &deposits_and_withdraws,
-        )
+        .send_and_confirm_txn(test_accounts::default_payer(), trader_keypairs, &withdraws)
         .await?;
 
     let expected_base = base_amounts
