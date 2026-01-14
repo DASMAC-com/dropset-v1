@@ -26,6 +26,7 @@ derive_more = "2.1.1"
 itertools = "0.14.0"
 futures = "0.3.31"
 lazy-regex = "3.5.1"
+mollusk-svm = "0.10.0"
 pinocchio = { version = "0.10.1" }
 pinocchio-associated-token-account = { version = "0.3.0" }
 pinocchio-log = { version = "0.5.1" }
@@ -33,6 +34,7 @@ pinocchio-system = { version = "0.5.0" }
 pinocchio-token = { version = "0.5.0" }
 pinocchio-token-2022 = { version = "0.2.0" }
 regex = "1.12.2"
+solana-account = "3.3.0"
 solana-account-view = "1.0"
 solana-address = "2.0.0"
 solana-client = "3.1.6"

@@ -19,6 +19,8 @@ use crate::{
 
 pub mod test_accounts;
 
+pub mod mollusk;
+
 /// Convenience harness for end-to-end tests and examples.
 ///
 /// Upon instantiation it:
