@@ -12,12 +12,14 @@ dropset-interface = { path = "../interface", features = ["pinocchio"], default-f
 pinocchio.workspace = true
 pinocchio-associated-token-account.workspace = true
 pinocchio-log = { workspace = true, optional = true }
-pinocchio-pubkey.workspace = true
 pinocchio-system.workspace = true
 pinocchio-token.workspace = true
 pinocchio-token-interface.workspace = true
 pinocchio-token-2022.workspace = true
 price = { path = "../price" }
+solana-account-view.workspace = true
+solana-address.workspace = true
+solana-instruction-view = { workspace = true, features = ["cpi"] }
 static_assertions.workspace = true
 
 [dev-dependencies]

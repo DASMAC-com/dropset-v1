@@ -6,12 +6,14 @@ edition.workspace = true
 [dependencies]
 instruction-macros = { path = "../instruction-macros/crates/instruction-macros" }
 pinocchio.workspace = true
-pinocchio-pubkey.workspace = true
 pinocchio-token.workspace = true
 pinocchio-token-interface.workspace = true
 price = { path = "../price" }
+solana-account-view.workspace = true
+solana-address.workspace = true
 solana-cpi = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
+solana-instruction-view = { workspace = true, features = ["cpi"] }
 solana-sdk = { workspace = true, optional = true }
 static_assertions.workspace = true
 strum = { workspace = true, optional = true }

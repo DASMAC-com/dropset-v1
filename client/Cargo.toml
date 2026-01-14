@@ -22,7 +22,7 @@ solana-cpi.workspace = true
 solana-instruction.workspace = true
 solana-instruction-error.workspace = true
 solana-sdk.workspace = true
-solana-system-interface = { workspace = true, features = ["serde"] }
+solana-system-interface = { workspace = true, features = ["serde", "bincode"] }
 solana-transaction-error.workspace = true
 solana-transaction-status.workspace = true
 solana-transaction-status-client-types.workspace = true
