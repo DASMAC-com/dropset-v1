@@ -2745,12 +2745,17 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "client",
+ "dropset-interface",
+ "itertools 0.14.0",
  "reqwest 0.13.1",
  "serde",
  "serde_json",
+ "solana-address 2.0.0",
  "strum",
  "strum_macros",
  "tokio",
+ "transaction-parser",
 ]
 
 [[package]]
