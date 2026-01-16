@@ -25,8 +25,8 @@ pub fn volatility_estimate_squared() -> &'static f64 {
 ///
 /// Thus the function arguments are:
 ///
-/// - `mid_price: f64`
-/// - `base_inventory: i64`
+/// - the market's `mid_price`
+/// - the maker's `base_inventory` (`q` in the A-S paper)
 ///
 /// Also depends on various tuning parameters. The A-S paper defines them as:
 /// - the maker's risk aversion `γ`
