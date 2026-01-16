@@ -1,6 +1,15 @@
+use anyhow::anyhow;
+
+use crate::oanda::{
+    CurrencyPair,
+    OandaCandlestickResponse,
+};
+
 pub struct MakerContext {
-    /// The quote/base mark price, aka the mid price.
-    mark_price: f64,
+    /// The currency pair.
+    pair: CurrencyPair,
+    /// The quote/base mid price.
+    mid_price: f64,
     /// The total size of bids filled in base atoms.
     bid_fills: u64,
     /// The total size of asks filled in base atoms.
@@ -8,11 +17,45 @@ pub struct MakerContext {
 }
 
 impl MakerContext {
-    pub fn mark_price(&self) -> f64 {
-        self.mark_price
+    pub fn mid_price(&self) -> f64 {
+        self.mid_price
     }
 
     pub fn base_inventory(&self) -> i128 {
         self.bid_fills as i128 - self.ask_fills as i128
+    }
+
+    pub fn update_price_from_candlestick(
+        &mut self,
+        candlestick_response: OandaCandlestickResponse,
+    ) -> anyhow::Result<()> {
+        let maker_pair = self.pair.to_string();
+        let response_pair = candlestick_response.instrument;
+        if maker_pair != response_pair {
+            anyhow::bail!("Maker and and candlestick response pair don't match. {maker_pair} != {response_pair}");
+        }
+
+        if !candlestick_response.candles.is_sorted_by_key(|c| c.time) {
+            anyhow::bail!("Candlesticks aren't sorted by time (ascending).");
+        }
+
+        let latest = candlestick_response.candles.last();
+        let latest_price = match latest {
+            Some(candlestick) => {
+                candlestick
+                    .mid
+                    .as_ref()
+                    .ok_or_else(|| {
+                        let err = anyhow::anyhow!("`mid` price not found in candlestick response.");
+                        err
+                    })?
+                    .c
+            }
+            None => anyhow::bail!("There are zero candlesticks in the candlestick response"),
+        };
+
+        self.mid_price = latest_price;
+
+        Ok(())
     }
 }

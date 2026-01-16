@@ -64,7 +64,7 @@ fn half_spread() -> f64 {
 }
 
 fn bid_and_ask_price(ctx: &MakerContext) -> (f64, f64) {
-    let reservation_price = calculate_reservation_price(ctx.mark_price(), ctx.base_inventory());
+    let reservation_price = calculate_reservation_price(ctx.mid_price(), ctx.base_inventory());
 
     let bid_price = reservation_price - half_spread();
     let ask_price = reservation_price + half_spread();
