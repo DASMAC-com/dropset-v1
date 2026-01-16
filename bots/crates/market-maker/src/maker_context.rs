@@ -8,7 +8,7 @@ use crate::oanda::{
 pub struct MakerContext {
     /// The currency pair.
     pair: CurrencyPair,
-    /// The quote/base mid price.
+    /// The mid price as quote / base.
     mid_price: f64,
     /// The total size of bids filled in base atoms.
     bid_fills: u64,
