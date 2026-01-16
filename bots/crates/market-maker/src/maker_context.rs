@@ -46,7 +46,7 @@ impl MakerContext {
                     .mid
                     .as_ref()
                     .ok_or_else(|| {
-                        let err = anyhow::anyhow!("`mid` price not found in candlestick response.");
+                        let err = anyhow::anyhow!("`mid` price not found in the last candlestick.");
                         err
                     })?
                     .c
