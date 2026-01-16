@@ -23,6 +23,7 @@ anyhow = "1.0.100"
 bincode = "1.3.3"
 borsh = "1"
 bytemuck = { version = "1.23.2", features = ["derive"] }
+chrono = { version = "0.4.43", features = ["serde"] }
 colored = { version = "3.0.0" }
 derive_more = "2.1.1"
 itertools = "0.14.0"
@@ -36,6 +37,9 @@ pinocchio-system = { version = "0.5.0" }
 pinocchio-token = { version = "0.5.0" }
 pinocchio-token-2022 = { version = "0.2.0" }
 regex = "1.12.2"
+reqwest = "0.13.1"
+serde = { version = "1.0.0", features = ["derive"] }
+serde_json = { version = "1.0.0" }
 solana-account = "3.3.0"
 solana-account-view = "1.0"
 solana-address = "2.0.0"
