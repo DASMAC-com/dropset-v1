@@ -13,10 +13,12 @@ use crate::oanda::{
 };
 
 pub struct MakerState {
-    address: Address,
-    seat: MarketSeatView,
-    bids: Vec<OrderView>,
-    asks: Vec<OrderView>,
+    pub address: Address,
+    pub seat: MarketSeatView,
+    pub bids: Vec<OrderView>,
+    pub asks: Vec<OrderView>,
+    pub base_inventory: u64,
+    pub quote_inventory: u64,
 }
 
 fn find_maker_seat(market: &MarketViewAll, maker: &Address) -> anyhow::Result<MarketSeatView> {
@@ -74,11 +76,23 @@ impl MakerState {
             .map(|price| find_order_by_price(price, &market.asks))
             .collect_vec();
 
+        // Sum the maker's base inventory by adding the seat balance + the bid collateral amounts.
+        let base_inventory = bids
+            .iter()
+            .fold(seat.base_available, |acc, seat| acc + seat.base_remaining);
+
+        // Sum the maker's quote inventory by adding the seat balance + the ask collateral amounts.
+        let quote_inventory = asks
+            .iter()
+            .fold(seat.quote_available, |acc, seat| acc + seat.quote_remaining);
+
         Ok(Self {
             address: maker_address,
             seat,
             bids,
             asks,
+            base_inventory,
+            quote_inventory,
         })
     }
 }
