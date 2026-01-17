@@ -7,4 +7,5 @@ pub enum OrderInfoError {
     InvalidPriceMantissa,
     InvalidBiasedExponent,
     InfinityIsNotAFloat,
+    AmountCannotBeZero,
 }
