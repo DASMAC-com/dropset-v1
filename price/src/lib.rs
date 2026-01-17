@@ -8,6 +8,8 @@ extern crate std;
 
 #[cfg(any(feature = "std", test))]
 mod decoded_price;
+use core::num::NonZeroU64;
+
 #[cfg(any(feature = "std", test))]
 pub use decoded_price::*;
 
@@ -218,7 +220,56 @@ pub fn to_order_info(
     })
 }
 
-/// A helper function to convert an `f64` price to an 8-digit price mantissa.
+/// Try converting an unbiased exponent to a biased one.
+pub fn try_to_biased_exponent(unbiased_exponent: i16) -> Result<u8, OrderInfoError> {
+    if !(UNBIASED_MIN..=UNBIASED_MAX).contains(&unbiased_exponent) {
+        return Err(OrderInfoError::InvalidBiasedExponent);
+    }
+    Ok((unbiased_exponent + BIAS as i16) as u8)
+}
+
+/// Returns the significant figures/digits in a u64 and the power of 10 to which that number must
+/// be multiplied by to achieve the original input value.
+fn get_sig_figs(value: NonZeroU64) -> (u64, i16) {
+    let mut x = value.into();
+    let mut pow: i16 = 0;
+    while x % 10 == 0 {
+        x /= 10;
+        pow += 1;
+    }
+
+    (x, pow)
+}
+
+/// A helper function to convert a price ratio and order size (in base atoms) to order info args.
+///
+/// NOTE: The price must represent the atom price ratio since `price: f64` represents the quote
+/// atoms to base atoms price ratio.
+pub fn to_order_info_args(
+    price: f64,
+    order_size_base_atoms: u64,
+) -> Result<(u32, u64, u8, u8), OrderInfoError> {
+    let (validated_mantissa, price_exponent) =
+        ValidatedPriceMantissa::from_f64_with_normalize(price)?;
+
+    let order_size_non_zero =
+        NonZeroU64::try_from(order_size_base_atoms).or(Err(OrderInfoError::AmountCannotBeZero))?;
+    let (base_scalar, base_exponent_unbiased) = get_sig_figs(order_size_non_zero);
+
+    // price_exponent == quote_exponent - base_exponent.
+    // quote_exponent == price_exponent + base_exponent.
+    let quote_exponent_unbiased = price_exponent + base_exponent_unbiased;
+
+    let quote_exponent_biased = try_to_biased_exponent(quote_exponent_unbiased)?;
+    let base_exponent_biased = try_to_biased_exponent(base_exponent_unbiased)?;
+
+    Ok((
+        validated_mantissa.as_u32(),
+        base_scalar,
+        base_exponent_biased,
+        quote_exponent_biased,
+    ))
+}
 
 #[cfg(test)]
 mod tests {
@@ -431,5 +482,61 @@ mod tests {
             ),
             Err(OrderInfoError::ArithmeticOverflow)
         ));
+    }
+
+    #[test]
+    fn test_sig_figs() {
+        assert_eq!(get_sig_figs(NonZeroU64::new(16801).unwrap()), (16801, 0));
+        assert_eq!(get_sig_figs(NonZeroU64::new(168010).unwrap()), (16801, 1));
+        assert_eq!(
+            get_sig_figs(NonZeroU64::new(100_000_000_000).unwrap()),
+            (1, 11)
+        );
+        assert_eq!(
+            get_sig_figs(NonZeroU64::new(909_512_730_220).unwrap()),
+            (90_951_273_022, 1)
+        );
+        assert_eq!(get_sig_figs(NonZeroU64::new(99).unwrap()), (99, 0));
+        assert_eq!(get_sig_figs(NonZeroU64::new(909).unwrap()), (909, 0));
+        assert_eq!(get_sig_figs(NonZeroU64::new(9090).unwrap()), (909, 1));
+        assert_eq!(get_sig_figs(NonZeroU64::new(404_000).unwrap()), (404, 3));
+
+        // Check that the values returned actually do equal the sig figs and power of 10.
+        let n = NonZeroU64::new(4_125_900).unwrap();
+        let expected_num: u64 = 41_259;
+        let expected_pow_10: i16 = 2;
+        assert_eq!(get_sig_figs(n), (expected_num, expected_pow_10));
+        assert_eq!(n.get(), expected_num * 10u64.pow(expected_pow_10 as u32));
+    }
+
+    #[test]
+    fn test_try_biased_exponents() {
+        let expected_min = (UNBIASED_MIN + BIAS as i16) as u8;
+        let expected_mid = BIAS;
+        let expected_max = (UNBIASED_MAX + BIAS as i16) as u8;
+
+        assert_eq!(try_to_biased_exponent(UNBIASED_MIN).unwrap(), expected_min);
+        assert_eq!(try_to_biased_exponent(0).unwrap(), expected_mid);
+        assert_eq!(try_to_biased_exponent(UNBIASED_MAX).unwrap(), expected_max);
+
+        assert!(try_to_biased_exponent(UNBIASED_MIN - 1).is_err());
+        assert!(try_to_biased_exponent(UNBIASED_MAX + 1).is_err());
+    }
+
+    #[test]
+    fn test_to_order_info_args() {
+        assert!(to_order_info_args(1.5123, 500_000).is_ok());
+
+        // Test the example in the doctest.
+        let base_atoms = 500 * 10u64.pow(6);
+        let res = to_order_info_args(1.25, base_atoms);
+        let expected = (
+            12_500_000,
+            5,
+            to_biased_exponent!(8),
+            to_biased_exponent!(1),
+        );
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), expected);
     }
 }
