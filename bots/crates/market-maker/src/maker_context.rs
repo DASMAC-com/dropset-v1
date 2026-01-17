@@ -98,12 +98,31 @@ impl MakerState {
 }
 
 pub struct MakerContext {
+    /// The maker's address.
+    address: Address,
     /// The currency pair.
     pair: CurrencyPair,
     /// The maker's initial state.
     initial_state: MakerState,
     /// The maker's latest state.
     latest_state: MakerState,
+    /// The change in the market maker's base inventory value as a signed integer. In the A-S paper
+    /// this is denoted as `q`.
+    ///
+    /// When `q` is negative, the maker is below the desired/target inventory amount, and when `q`
+    /// is positive, the maker is above the desired/target inventory amount.
+    ///
+    /// In practice, this has two opposing effects.
+    /// - When q is negative, it pushes the spread upwards so that bid prices are closer to the
+    ///   [`crate::calculate_spreads::reservation_price`] and ask prices are further away. This
+    ///   effectively increases the likelihood of getting bids filled and vice versa for asks.
+    /// - When q is positive, it pushes the spread downwards so that ask prices are closer to the
+    ///   [`crate::calculate_spreads::reservation_price`] price and bid prices are further away.
+    ///   This effectively increases the likelihood of getting asks filled and vice versa for bids.
+    pub base_inventory_delta: i128,
+    /// The change in quote inventory since the initial maker state was created.
+    /// This isn't used by the A-S model but is helpful for debugging purposes.
+    pub quote_inventory_delta: i128,
     /// The mid price as quote / base.
     mid_price: f64,
 }
@@ -111,6 +130,19 @@ pub struct MakerContext {
 impl MakerContext {
     pub fn mid_price(&self) -> f64 {
         self.mid_price
+    }
+
+    pub fn update_state_and_inventory_deltas(
+        &mut self,
+        new_market_state: &MarketViewAll,
+    ) -> anyhow::Result<()> {
+        self.latest_state = MakerState::new_from_market(self.address, new_market_state)?;
+        self.base_inventory_delta =
+            self.latest_state.base_inventory as i128 - self.initial_state.base_inventory as i128;
+        self.quote_inventory_delta =
+            self.latest_state.quote_inventory as i128 - self.initial_state.quote_inventory as i128;
+
+        Ok(())
     }
 
     /// This method returns market maker's base inventory value as a signed integer. In the A-S
