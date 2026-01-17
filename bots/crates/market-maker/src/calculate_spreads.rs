@@ -3,8 +3,6 @@
 
 use std::sync::LazyLock;
 
-use crate::maker_context::MakerContext;
-
 const RISK_AVERSION: f64 = 1.0;
 const VOLATILITY_ESTIMATE: f64 = 1.0;
 const TIME_HORIZON: f64 = 300.0;
@@ -26,9 +24,9 @@ pub fn volatility_estimate_squared() -> &'static f64 {
 /// Thus the function arguments are:
 ///
 /// - the market's `mid_price`
-/// - the maker's `base_inventory` (`q` in the A-S paper)
+/// - the maker's `base_inventory` (`q` in the A-S model)
 ///
-/// Also depends on various tuning parameters. The A-S paper defines them as:
+/// Also depends on various tuning parameters. The A-S model defines them as:
 /// - the maker's risk aversion `γ`
 /// - a volatility estimate for the market `σ`
 /// - Time remaining, aka the effective time horizon `T - t`
@@ -61,11 +59,4 @@ pub fn half_spread() -> f64 {
     });
 
     *LazyLock::force(&HALF_SPREAD)
-}
-
-pub fn bid_and_ask_price(ctx: &MakerContext) -> (f64, f64) {
-    let reservation_price = reservation_price(ctx.mid_price(), ctx.current_base_inventory());
-    let bid_price = reservation_price - half_spread();
-    let ask_price = reservation_price + half_spread();
-    (bid_price, ask_price)
 }

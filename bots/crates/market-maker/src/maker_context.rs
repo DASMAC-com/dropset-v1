@@ -7,9 +7,15 @@ use transaction_parser::views::{
     OrderView,
 };
 
-use crate::oanda::{
-    CurrencyPair,
-    OandaCandlestickResponse,
+use crate::{
+    calculate_spreads::{
+        half_spread,
+        reservation_price,
+    },
+    oanda::{
+        CurrencyPair,
+        OandaCandlestickResponse,
+    },
 };
 
 pub struct MakerState {
@@ -106,8 +112,12 @@ pub struct MakerContext {
     initial_state: MakerState,
     /// The maker's latest state.
     latest_state: MakerState,
-    /// The change in the market maker's base inventory value as a signed integer. In the A-S paper
-    /// this is denoted as `q`.
+    /// The change in the market maker's base inventory value as a signed integer.
+    ///
+    /// In the A-S model `q` represents the base inventory as a reflection of the maker's net short
+    /// (negative) or long (positive) position. The change in base inventory from initial to
+    /// current state thus can be used in place of `q` to achieve the effect of always returning to
+    /// the initial base inventory amount.
     ///
     /// When `q` is negative, the maker is below the desired/target inventory amount, and when `q`
     /// is positive, the maker is above the desired/target inventory amount.
@@ -123,13 +133,27 @@ pub struct MakerContext {
     /// The change in quote inventory since the initial maker state was created.
     /// This isn't used by the A-S model but is helpful for debugging purposes.
     pub quote_inventory_delta: i128,
-    /// The mid price as quote / base.
+    /// The reference mid price, expressed as quote per 1 base.
+    ///
+    /// In the A–S model this is an exogenous “fair price” process; in practice you can source it
+    /// externally (e.g. FX feed) or derive it internally from the venue’s top-of-book.
+    /// It anchors the reservation price and thus the bid/ask quotes via the spread model.
     mid_price: f64,
 }
 
 impl MakerContext {
+    /// See [`MakerContext::mid_price`].
     pub fn mid_price(&self) -> f64 {
         self.mid_price
+    }
+
+    /// Calculates the model's output bid and ask prices as a function of the current mid price and
+    /// the maker's base inventory delta.
+    pub fn get_bid_and_ask_prices(&self) -> (f64, f64) {
+        let reservation_price = reservation_price(self.mid_price(), self.base_inventory_delta);
+        let bid_price = reservation_price - half_spread();
+        let ask_price = reservation_price + half_spread();
+        (bid_price, ask_price)
     }
 
     pub fn update_state_and_inventory_deltas(
@@ -143,23 +167,6 @@ impl MakerContext {
             self.latest_state.quote_inventory as i128 - self.initial_state.quote_inventory as i128;
 
         Ok(())
-    }
-
-    /// This method returns market maker's base inventory value as a signed integer. In the A-S
-    /// paper this is denoted as `q`.
-    ///
-    /// When `q` is negative, the maker is below the desired/target inventory amount, and when `q`
-    /// is positive, the maker is above the desired/target inventory amount.
-    ///
-    /// In practice, this has two opposing effects.
-    /// - When q is negative, it pushes the spread upwards so that bid prices are closer to the
-    ///   [`crate::calculate_spreads::reservation_price`] and ask prices are further away. This
-    ///   effectively increases the likelihood of getting bids filled and vice versa for asks.
-    /// - When q is positive, it pushes the spread downwards so that ask prices are closer to the
-    ///   [`crate::calculate_spreads::reservation_price`] price and bid prices are further away.
-    ///   This effectively increases the likelihood of getting asks filled and vice versa for bids.
-    pub fn current_base_inventory(&self) -> i128 {
-        self.latest_state.base_inventory as i128 - self.initial_state.base_inventory as i128
     }
 
     pub fn update_price_from_candlestick(
