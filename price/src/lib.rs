@@ -218,6 +218,8 @@ pub fn to_order_info(
     })
 }
 
+/// A helper function to convert an `f64` price to an 8-digit price mantissa.
+
 #[cfg(test)]
 mod tests {
     extern crate std;
