@@ -100,16 +100,12 @@ impl MakerState {
 pub struct MakerContext {
     /// The currency pair.
     pair: CurrencyPair,
-    /// The maker's initial seat state.
-    initial_state: MarketSeatView,
-    /// The maker's latest seat state
-    latest_state: MarketSeatView,
+    /// The maker's initial state.
+    initial_state: MakerState,
+    /// The maker's latest state.
+    latest_state: MakerState,
     /// The mid price as quote / base.
     mid_price: f64,
-    /// The total size of bids filled in base atoms.
-    bid_fills: u64,
-    /// The total size of asks filled in base atoms.
-    ask_fills: u64,
 }
 
 impl MakerContext {
@@ -117,8 +113,21 @@ impl MakerContext {
         self.mid_price
     }
 
-    pub fn base_inventory(&self) -> i128 {
-        self.bid_fills as i128 - self.ask_fills as i128
+    /// This method returns market maker's base inventory value as a signed integer. In the A-S
+    /// paper this is denoted as `q`.
+    ///
+    /// When `q` is negative, the maker is below the desired/target inventory amount, and when `q`
+    /// is positive, the maker is above the desired/target inventory amount.
+    ///
+    /// In practice, this has two opposing effects.
+    /// - When q is negative, it pushes the spread upwards so that bid prices are closer to the
+    ///   [`crate::calculate_spreads::reservation_price`] and ask prices are further away. This
+    ///   effectively increases the likelihood of getting bids filled and vice versa for asks.
+    /// - When q is positive, it pushes the spread downwards so that ask prices are closer to the
+    ///   [`crate::calculate_spreads::reservation_price`] price and bid prices are further away.
+    ///   This effectively increases the likelihood of getting asks filled and vice versa for bids.
+    pub fn current_base_inventory(&self) -> i128 {
+        self.latest_state.base_inventory as i128 - self.initial_state.base_inventory as i128
     }
 
     pub fn update_price_from_candlestick(

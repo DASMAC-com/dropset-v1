@@ -38,7 +38,7 @@ pub fn volatility_estimate_squared() -> &'static f64 {
 /// ```text
 /// r = mid_price - (base_inventory · risk_aversion · volatility_estimate² · (T - t))
 /// ```
-fn calculate_reservation_price(mid_price: f64, base_inventory: i128) -> f64 {
+pub fn reservation_price(mid_price: f64, base_inventory: i128) -> f64 {
     let base_inventory_f64 = base_inventory as f64;
 
     mid_price - (base_inventory_f64 * RISK_AVERSION * volatility_estimate_squared() * TIME_HORIZON)
@@ -50,9 +50,9 @@ fn calculate_reservation_price(mid_price: f64, base_inventory: i128) -> f64 {
 ///
 /// total_spread = (risk_aversion · volatility_estimate² · time_horizon)
 ///                + (2 / risk_aversion) · ln(1 + (risk_aversion / fill_decay))
-///
+///a
 /// Thus half that value is half the spread.
-fn half_spread() -> f64 {
+pub fn half_spread() -> f64 {
     static HALF_SPREAD: LazyLock<f64> = LazyLock::new(|| {
         let spread = (RISK_AVERSION * volatility_estimate_squared() * TIME_HORIZON)
             + (2.0 / RISK_AVERSION) * (1.0 + (RISK_AVERSION / FILL_DECAY)).ln();
@@ -63,9 +63,8 @@ fn half_spread() -> f64 {
     *LazyLock::force(&HALF_SPREAD)
 }
 
-fn bid_and_ask_price(ctx: &MakerContext) -> (f64, f64) {
-    let reservation_price = calculate_reservation_price(ctx.mid_price(), ctx.base_inventory());
-
+pub fn bid_and_ask_price(ctx: &MakerContext) -> (f64, f64) {
+    let reservation_price = reservation_price(ctx.mid_price(), ctx.current_base_inventory());
     let bid_price = reservation_price - half_spread();
     let ask_price = reservation_price + half_spread();
     (bid_price, ask_price)
