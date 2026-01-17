@@ -147,15 +147,6 @@ impl MakerContext {
         self.mid_price
     }
 
-    /// Calculates the model's output bid and ask prices as a function of the current mid price and
-    /// the maker's base inventory delta.
-    pub fn get_bid_and_ask_prices(&self) -> (f64, f64) {
-        let reservation_price = reservation_price(self.mid_price(), self.base_inventory_delta);
-        let bid_price = reservation_price - half_spread();
-        let ask_price = reservation_price + half_spread();
-        (bid_price, ask_price)
-    }
-
     pub fn update_state_and_inventory_deltas(
         &mut self,
         new_market_state: &MarketViewAll,
@@ -201,5 +192,14 @@ impl MakerContext {
         self.mid_price = latest_price;
 
         Ok(())
+    }
+
+    /// Calculates the model's output bid and ask prices as a function of the current mid price and
+    /// the maker's base inventory delta.
+    fn get_bid_and_ask_prices(&self) -> (f64, f64) {
+        let reservation_price = reservation_price(self.mid_price(), self.base_inventory_delta);
+        let bid_price = reservation_price - half_spread();
+        let ask_price = reservation_price + half_spread();
+        (bid_price, ask_price)
     }
 }
