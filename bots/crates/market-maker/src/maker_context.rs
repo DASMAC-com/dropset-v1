@@ -1,6 +1,24 @@
-use dropset_interface::state::user_order_sectors::OrderSectors;
+use client::{
+    context::market::MarketContext,
+    transactions::CustomRpcClient,
+};
+use dropset_interface::{
+    instructions::{
+        CancelOrderInstructionData,
+        PostOrderInstructionData,
+    },
+    state::{
+        sector::SectorIndex,
+        user_order_sectors::OrderSectors,
+    },
+};
 use itertools::Itertools;
+use price::to_order_info_args;
 use solana_address::Address;
+use solana_sdk::{
+    message::Instruction,
+    signature::Keypair,
+};
 use transaction_parser::views::{
     MarketSeatView,
     MarketViewAll,
@@ -18,7 +36,10 @@ use crate::{
     },
 };
 
+const ORDER_SIZE: u64 = 10_000;
+
 pub struct MakerState {
+    pub transaction_version: u64,
     pub address: Address,
     pub seat: MarketSeatView,
     pub bids: Vec<OrderView>,
@@ -42,7 +63,11 @@ fn find_maker_seat(market: &MarketViewAll, maker: &Address) -> anyhow::Result<Ma
 }
 
 impl MakerState {
-    pub fn new_from_market(maker_address: Address, market: &MarketViewAll) -> anyhow::Result<Self> {
+    pub fn new_from_market(
+        transaction_version: u64,
+        maker_address: Address,
+        market: &MarketViewAll,
+    ) -> anyhow::Result<Self> {
         let seat = find_maker_seat(market, &maker_address)?;
 
         // Convert a user's order sectors into a Vec<u32> of prices.
@@ -93,6 +118,7 @@ impl MakerState {
             .fold(seat.quote_available, |acc, seat| acc + seat.quote_remaining);
 
         Ok(Self {
+            transaction_version,
             address: maker_address,
             seat,
             bids,
@@ -103,7 +129,10 @@ impl MakerState {
     }
 }
 
-pub struct MakerContext {
+pub struct MakerContext<'a> {
+    /// The maker's keypair.
+    keypair: Keypair,
+    market_ctx: &'a MarketContext,
     /// The maker's address.
     address: Address,
     /// The currency pair.
@@ -139,19 +168,105 @@ pub struct MakerContext {
     /// externally (e.g. FX feed) or derive it internally from the venue’s top-of-book.
     /// It anchors the reservation price and thus the bid/ask quotes via the spread model.
     mid_price: f64,
+    /// The transaction version of the last successful cancel + order transaction.
+    last_successful_txn_version: Option<u64>,
 }
 
-impl MakerContext {
+impl MakerContext<'_> {
     /// See [`MakerContext::mid_price`].
     pub fn mid_price(&self) -> f64 {
         self.mid_price
     }
 
+    /// Checks if the latest state is definitively stale by comparing the transaction version in the
+    /// latest state to the transaction version of the last submitted cancel + post transaction.
+    ///
+    /// NOTE: A value of `false` doesn't mean the latest state is definitively not stale, because
+    /// the maker's orders can get filled at any time.
+    pub fn is_latest_state_definitely_stale(&self) -> bool {
+        self.latest_state.transaction_version < self.last_successful_txn_version.unwrap_or(0)
+    }
+
+    pub fn maker_seat(&self) -> SectorIndex {
+        self.latest_state.seat.index
+    }
+
+    pub async fn cancel_all_and_post_new(&mut self, rpc: &CustomRpcClient) -> anyhow::Result<()> {
+        // NOTE: The bids and asks here might be stale due to fills. This will cause the cancel
+        // order attempt to fail. This is an expected possible error.
+        let cancel_bid_instructions = self
+            .latest_state
+            .bids
+            .iter()
+            .map(|bid| {
+                self.market_ctx.cancel_order(
+                    self.address,
+                    CancelOrderInstructionData::new(bid.encoded_price, true, self.maker_seat()),
+                )
+            })
+            .collect_vec();
+        let cancel_ask_instructions = self
+            .latest_state
+            .asks
+            .iter()
+            .map(|ask| {
+                self.market_ctx.cancel_order(
+                    self.address,
+                    CancelOrderInstructionData::new(ask.encoded_price, false, self.maker_seat()),
+                )
+            })
+            .collect_vec();
+
+        let (bid_price, ask_price) = self.get_bid_and_ask_prices();
+        let to_post_ixn = |price: f64, size: u64, is_bid: bool, seat_index: SectorIndex| {
+            to_order_info_args(price, size)
+                .map_err(|e| anyhow::anyhow! {"{e:#?}"})
+                .map(|args| {
+                    PostOrderInstructionData::new(
+                        args.0, args.1, args.2, args.3, is_bid, seat_index,
+                    )
+                })
+        };
+
+        let post_instructions = vec![
+            self.market_ctx.post_order(
+                self.address,
+                to_post_ixn(bid_price, ORDER_SIZE, true, self.maker_seat())?,
+            ),
+            self.market_ctx.post_order(
+                self.address,
+                to_post_ixn(ask_price, ORDER_SIZE, false, self.maker_seat())?,
+            ),
+        ];
+
+        let ixns = [
+            cancel_ask_instructions,
+            cancel_bid_instructions,
+            post_instructions,
+        ]
+        .into_iter()
+        .concat();
+
+        rpc.send_and_confirm_txn(
+            &self.keypair,
+            &[&self.keypair],
+            ixns.into_iter()
+                .map(Instruction::from)
+                .collect_vec()
+                .as_ref(),
+        )
+        .await?;
+
+        Ok(())
+    }
+
     pub fn update_state_and_inventory_deltas(
         &mut self,
+        transaction_version: u64,
         new_market_state: &MarketViewAll,
     ) -> anyhow::Result<()> {
-        self.latest_state = MakerState::new_from_market(self.address, new_market_state)?;
+        self.latest_state =
+            MakerState::new_from_market(transaction_version, self.address, new_market_state)?;
         self.base_inventory_delta =
             self.latest_state.base_inventory as i128 - self.initial_state.base_inventory as i128;
         self.quote_inventory_delta =
@@ -196,10 +311,31 @@ impl MakerContext {
 
     /// Calculates the model's output bid and ask prices as a function of the current mid price and
     /// the maker's base inventory delta.
-    fn get_bid_and_ask_prices(&self) -> (f64, f64) {
-        let reservation_price = reservation_price(self.mid_price(), self.base_inventory_delta);
+
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    // These units need to be properly normalized/scaled to atoms (or not).
+    fn get_bid_and_ask_prices(&self, base_decimals: i32, quote_decimals: i32) -> (f64, f64) {
+        let normalization_factor = 10f64.powi(quote_decimals - base_decimals);
+        let normalize = |price: f64| price * normalization_factor;
+
+        let q_atoms = self.base_inventory_delta;
+        let scale = 10i128.pow(base_decimals as u32); // base_decimals <= 18-ish is safe
+        let q_base_units: f64 =
+            (q_atoms / scale) as f64 + (q_atoms % scale) as f64 / (scale as f64);
+
+        let reservation_price = reservation_price(self.mid_price(), q_base_units);
         let bid_price = reservation_price - half_spread();
         let ask_price = reservation_price + half_spread();
-        (bid_price, ask_price)
+
+        (normalize(bid_price), normalize(ask_price))
     }
 }

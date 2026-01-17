@@ -63,6 +63,7 @@ impl From<OrderInfoError> for DropsetError {
             OrderInfoError::InvalidPriceMantissa => DropsetError::InvalidPriceMantissa,
             OrderInfoError::InvalidBiasedExponent => DropsetError::InvalidBiasedExponent,
             OrderInfoError::InfinityIsNotAFloat => DropsetError::InfinityIsNotAFloat,
+            OrderInfoError::AmountCannotBeZero => DropsetError::AmountCannotBeZero,
         }
     }
 }

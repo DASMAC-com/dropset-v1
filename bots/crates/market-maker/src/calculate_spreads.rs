@@ -23,8 +23,8 @@ pub fn volatility_estimate_squared() -> &'static f64 {
 ///
 /// Thus the function arguments are:
 ///
-/// - the market's `mid_price`
-/// - the maker's `base_inventory` (`q` in the A-S model)
+/// - the market's `mid_price_in_atoms`
+/// - the maker's `base_atoms_inventory` (`q` in the A-S model)
 ///
 /// Also depends on various tuning parameters. The A-S model defines them as:
 /// - the maker's risk aversion `γ`
@@ -34,12 +34,25 @@ pub fn volatility_estimate_squared() -> &'static f64 {
 /// Equation (3.17):
 ///
 /// ```text
-/// r = mid_price - (base_inventory · risk_aversion · volatility_estimate² · (T - t))
+/// r = mid_price_in_atoms - (base_atoms_inventory · risk_aversion · volatility_estimate² · (T - t))
 /// ```
-pub fn reservation_price(mid_price: f64, base_inventory: i128) -> f64 {
-    let base_inventory_f64 = base_inventory as f64;
 
-    mid_price - (base_inventory_f64 * RISK_AVERSION * volatility_estimate_squared() * TIME_HORIZON)
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+// These units need to be properly normalized/scaled to atoms (or not).
+pub fn reservation_price(mid_price_in_atoms: f64, base_atoms_inventory: i128) -> f64 {
+    mid_price_in_atoms
+        - (base_atoms_inventory as f64
+            * RISK_AVERSION
+            * volatility_estimate_squared()
+            * TIME_HORIZON)
 }
 
 /// Calculates half of the total spread.
