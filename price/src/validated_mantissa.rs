@@ -41,8 +41,8 @@ impl ValidatedPriceMantissa {
     ///
     /// ```rust
     /// let price = rust_decimal::dec!(1.0);
-    /// let res = crate::ValidatedPriceMantissa::try_to_valid_mantissa_and_scale(price).unwrap();
-    /// assert_eq!(res, (10_000_000, -7));
+    /// let (mantissa, scale) = price::ValidatedPriceMantissa::try_into_with_scale(price).unwrap();
+    /// assert_eq!((mantissa.as_u32(), scale), (10_000_000, -7));
     /// ```
     #[cfg(any(feature = "client", test))]
     pub fn try_into_with_scale(
