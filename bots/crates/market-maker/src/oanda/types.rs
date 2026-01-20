@@ -4,6 +4,7 @@ use chrono::{
     DateTime,
     Utc,
 };
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use strum_macros::{
     AsRefStr,
@@ -124,7 +125,7 @@ impl Display for CurrencyPair {
 }
 
 /// See: <https://developer.oanda.com/rest-live-v20/instrument-df/#CandlestickResponse>
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct OandaCandlestickResponse {
     pub instrument: String,
     pub granularity: CandlestickGranularity,
@@ -132,7 +133,7 @@ pub struct OandaCandlestickResponse {
 }
 
 /// See: <https://developer.oanda.com/rest-live-v20/instrument-df/#Candlestick>
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct OandaCandlestick {
     /// The start time of the candlestick.
     pub time: DateTime<Utc>,
@@ -151,10 +152,84 @@ pub struct OandaCandlestick {
 }
 
 /// See: <https://developer.oanda.com/rest-live-v20/instrument-df/#CandlestickData>
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct OandaCandlestickData {
-    pub o: f64,
-    pub h: f64,
-    pub l: f64,
-    pub c: f64,
+    #[serde(deserialize_with = "rust_decimal::serde::arbitrary_precision::deserialize")]
+    pub o: Decimal,
+    #[serde(deserialize_with = "rust_decimal::serde::arbitrary_precision::deserialize")]
+    pub h: Decimal,
+    #[serde(deserialize_with = "rust_decimal::serde::arbitrary_precision::deserialize")]
+    pub l: Decimal,
+    #[serde(deserialize_with = "rust_decimal::serde::arbitrary_precision::deserialize")]
+    pub c: Decimal,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs::File,
+        io::BufReader,
+        path::PathBuf,
+    };
+
+    use chrono::{
+        DateTime,
+        Utc,
+    };
+
+    use crate::oanda::{
+        CandlestickGranularity,
+        OandaCandlestick,
+        OandaCandlestickData,
+        OandaCandlestickResponse,
+    };
+
+    #[test]
+    fn deserialize_candlestick_decimals() {
+        let path = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
+            .join("bots/crates/market-maker/test_oanda_response.json");
+        let file = File::open(path).expect("Should find test oanda response json file");
+        let reader = BufReader::new(file);
+        let res: OandaCandlestickResponse =
+            serde_json::from_reader(reader).expect("Should parse the response json");
+
+        let parse_utc = |s: &str| -> DateTime<Utc> {
+            DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc)
+        };
+
+        let expected = OandaCandlestickResponse {
+            instrument: "EUR_USD".into(),
+            granularity: CandlestickGranularity::M15,
+            candles: vec![
+                OandaCandlestick {
+                    complete: true,
+                    volume: 236,
+                    time: parse_utc("2026-01-19T19:45:00.000000000Z"),
+                    mid: Some(OandaCandlestickData {
+                        o: rust_decimal::dec!(1.16439),
+                        h: rust_decimal::dec!(1.16444),
+                        l: rust_decimal::dec!(1.16426),
+                        c: rust_decimal::dec!(1.16433),
+                    }),
+                    bid: None,
+                    ask: None,
+                },
+                OandaCandlestick {
+                    complete: false,
+                    volume: 75,
+                    time: parse_utc("2026-01-19T20:00:00.000000000Z"),
+                    mid: Some(OandaCandlestickData {
+                        o: rust_decimal::dec!(1.16432),
+                        h: rust_decimal::dec!(1.16446),
+                        l: rust_decimal::dec!(1.16432),
+                        c: rust_decimal::dec!(1.16440),
+                    }),
+                    bid: None,
+                    ask: None,
+                },
+            ],
+        };
+
+        assert_eq!(res, expected);
+    }
 }
