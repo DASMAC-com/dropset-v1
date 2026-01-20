@@ -12,7 +12,7 @@ instruction-macros = { path = "../instruction-macros" }
 pinocchio = { workspace = true, optional = true }
 solana-account-view.workspace = true
 solana-address = { workspace = true, features = ["copy"] }
-solana-cpi = { workspace = true, optional = true}
+solana-cpi = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
 solana-instruction-view = { workspace = true, optional = true, features = ["cpi"] }
 solana-sdk = { workspace = true, optional = true}
