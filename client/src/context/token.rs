@@ -2,8 +2,8 @@
 //! tests and examples.
 
 use std::{
-    cell::RefCell,
     collections::HashMap,
+    sync::RwLock,
 };
 
 use solana_address::Address;
@@ -32,7 +32,7 @@ pub struct TokenContext {
     pub mint: Address,
     pub token_program: Address,
     pub mint_decimals: u8,
-    pub memoized_atas: RefCell<HashMap<Address, Address>>,
+    pub memoized_atas: RwLock<HashMap<Address, Address>>,
 }
 
 impl TokenContext {
@@ -84,7 +84,7 @@ impl TokenContext {
             mint: mint.pubkey(),
             token_program,
             mint_decimals: decimals,
-            memoized_atas: RefCell::new(HashMap::new()),
+            memoized_atas: RwLock::new(HashMap::new()),
         })
     }
 
@@ -107,12 +107,20 @@ impl TokenContext {
     }
 
     pub fn get_ata_for(&self, owner: &Address) -> Address {
-        if let Some(ata) = self.memoized_atas.borrow().get(owner) {
+        if let Some(ata) = self
+            .memoized_atas
+            .read()
+            .expect("RWLock shouldn't be poisoned")
+            .get(owner)
+        {
             return *ata;
         };
 
         let ata = get_associated_token_address(owner, &self.mint);
-        self.memoized_atas.borrow_mut().insert(*owner, ata);
+        self.memoized_atas
+            .write()
+            .expect("RWLock shouldn't be poisoned")
+            .insert(*owner, ata);
 
         ata
     }
