@@ -174,7 +174,8 @@ mod tests {
     };
 
     fn get_json_reader() -> BufReader<File> {
-        let path = PathBuf::from(env!("CARGO_WORKSPACE_DIR")).join("client/test_accounts.json");
+        let path =
+            PathBuf::from(env!("CARGO_WORKSPACE_DIR")).join("transaction-parser/test_logs.json");
         let file = File::open(path).expect("File should exist");
 
         BufReader::new(file)
