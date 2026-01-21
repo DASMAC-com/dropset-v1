@@ -13,7 +13,6 @@ use client::{
 };
 use dropset_interface::state::sector::NIL;
 use solana_address::Address;
-use solana_keypair::Keypair;
 use solana_sdk::signer::Signer;
 use transaction_parser::views::MarketSeatView;
 
@@ -21,7 +20,8 @@ use transaction_parser::views::MarketSeatView;
 pub struct Info {
     pub base_mint: Address,
     pub quote_mint: Address,
-    pub maker_keypair: Keypair,
+    pub maker_address: Address,
+    pub maker_keypair: String,
     pub market: Address,
     pub maker_seat: MarketSeatView,
 }
@@ -50,7 +50,8 @@ async fn main() -> anyhow::Result<()> {
     let info = Info {
         base_mint: e2e.market.base.mint,
         quote_mint: e2e.market.quote.mint,
-        maker_keypair: maker.insecure_clone(),
+        maker_address: maker.pubkey(),
+        maker_keypair: maker.insecure_clone().to_base58_string(),
         market: e2e.market.market,
         maker_seat: e2e
             .view_market()?
