@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::oanda::{
     CandlestickGranularity,
     CurrencyPair,
@@ -32,18 +30,4 @@ pub async fn query_price_feed(
     let text = response.text().await?;
 
     serde_json::from_str(text.as_str()).map_err(|e| e.into())
-}
-
-pub async fn poll_price_feed(client: reqwest::Client, oanda_args: OandaArgs) -> anyhow::Result<()> {
-    const POLL_INTERVAL_MS: u64 = 5000;
-    let mut interval = tokio::time::interval(Duration::from_millis(POLL_INTERVAL_MS));
-
-    loop {
-        interval.tick().await;
-
-        match query_price_feed(&oanda_args, &client).await {
-            Ok(response) => println!("{response:#?}"),
-            Err(e) => eprintln!("Price feed error: {e:#?}"),
-        }
-    }
 }

@@ -1,4 +1,8 @@
-use std::str::FromStr;
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    str::FromStr,
+};
 
 use anyhow::Context;
 use dropset_interface::state::market_header::MARKET_ACCOUNT_DISCRIMINANT;
@@ -18,7 +22,12 @@ use solana_client::{
 use tokio_stream::StreamExt;
 use transaction_parser::views::try_market_view_all_from_owner_and_data;
 
-pub async fn program_subscribe(ws_url: &str) -> anyhow::Result<()> {
+use crate::maker_context::MakerContext;
+
+pub async fn program_subscribe(
+    maker_ctx: Rc<RefCell<MakerContext>>,
+    ws_url: &str,
+) -> anyhow::Result<()> {
     let ws_client = PubsubClient::new(ws_url).await?;
 
     let config = RpcProgramAccountsConfig {
@@ -56,6 +65,9 @@ pub async fn program_subscribe(ws_url: &str) -> anyhow::Result<()> {
         // For now debug with print statement, eventually, this will mutate the MakerContext
         // state and update it.
         println!("new maker state\n{market_view:#?}");
+        maker_ctx
+            .try_borrow_mut()?
+            .update_maker_state(&market_view)?;
     }
 
     Ok(())
