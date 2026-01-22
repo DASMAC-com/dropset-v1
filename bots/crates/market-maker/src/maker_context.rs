@@ -311,6 +311,10 @@ impl MakerContext {
     }
 }
 
+// fn to_all_order_info(price: Decimal, size: u64) -> anyhow::Result<()> {
+
+// }
+
 /// The maker essentially cancels all orders and then re-posts them. If any orders would be canceled
 /// and then reposted in the same transaction, simply filter out the corresponding cancel + post
 /// instruction for that order.
@@ -326,7 +330,7 @@ fn get_non_redundant_order_flow(
 )> {
     let post_bid_args = bid_posts
         .into_iter()
-        .map(|(price, size)| {to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}"))})
+        .map(|(price, size)| to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}")))
         .collect::<anyhow::Result<Vec<_>>>()?;
 
     let post_ask_args = ask_posts
@@ -351,31 +355,23 @@ fn get_non_redundant_order_flow(
     let mut unique_bid_cancels = vec![];
     let mut unique_bid_posts = vec![];
 
-    for args in post_bid_args {
-        let o =
-            to_order_info(args.0, args.1, args.2, args.3).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+    // for args in post_bid_args {
+    //     let o =
+    //         to_order_info(args.0, args.1, args.2, args.3).map_err(|e|
+    // anyhow::anyhow!("{e:#?}"))?;
 
-        if bid_cancels.contains(&(o.encoded_price.as_u32(), o.base_atoms, o.quote_atoms)) {
-            // Do nothing
-        } else {
-            unique_bid_cancels.push(CancelOrderInstructionData::new())
-            // keep the cancel and post
-            unique_bid_cancels.push(/* create the cancel here and push it */);
-            // push the post
-            unique_bid_posts.push(/* create the post here and push */)
-        }
-    }
+    //     if bid_cancels.contains(&(o.encoded_price.as_u32(), o.base_atoms, o.quote_atoms)) {
+    //         // Do nothing
+    //     } else {
+    //         unique_bid_cancels.push(CancelOrderInstructionData::new())
+    //         // keep the cancel and post
+    //         unique_bid_cancels.push(/* create the cancel here and push it */);
+    //         // push the post
+    //         unique_bid_posts.push(/* create the post here and push */)
+    //     }
+    // }
 
-    // bid_posts.iter().filter(|new_bid| bid_cancels.)
-    // ask_posts.iter().filter
-
-    let ask_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
-        latest_state
-            .asks
-            .iter()
-            .map(|bid| (bid.encoded_price, bid.base_remaining, bid.quote_remaining)),
-    );
-    (vec![], vec![])
+    Ok((vec![], vec![]))
 }
 
 fn get_normalized_mid_price(

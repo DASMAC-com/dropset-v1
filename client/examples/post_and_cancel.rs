@@ -55,8 +55,9 @@ async fn main() -> anyhow::Result<()> {
         to_biased_exponent!(0),
         to_biased_exponent!(0),
     );
-    let order_info = to_order_info(price_mantissa, base_scalar, base_exponent, quote_exponent)
-        .expect("Should be a valid order");
+    let order_info =
+        to_order_info((price_mantissa, base_scalar, base_exponent, quote_exponent).into())
+            .expect("Should be a valid order");
 
     // Post an ask. The user provides base as collateral and receives quote when filled.
     let is_bid = false;

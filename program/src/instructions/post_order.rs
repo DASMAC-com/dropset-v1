@@ -20,7 +20,10 @@ use pinocchio::{
     account::AccountView,
     error::ProgramError,
 };
-use price::to_order_info;
+use price::{
+    to_order_info,
+    OrderInfoArgs,
+};
 
 use crate::{
     context::{
@@ -56,12 +59,12 @@ pub unsafe fn process_post_order<'a>(
     } = PostOrderInstructionData::unpack_pinocchio(instruction_data)?;
     let mut ctx = PostOrderContext::load(accounts)?;
 
-    let order_info = to_order_info(
+    let order_info = to_order_info(OrderInfoArgs::new(
         price_mantissa,
         base_scalar,
         base_exponent_biased,
         quote_exponent_biased,
-    )
+    ))
     .map_err(DropsetError::from)?;
 
     let (base_atoms, quote_atoms) = (order_info.base_atoms, order_info.quote_atoms);

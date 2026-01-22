@@ -92,6 +92,38 @@ pub struct OrderInfo {
     pub quote_atoms: u64,
 }
 
+#[derive(Debug, Clone)]
+pub struct OrderInfoArgs {
+    pub price_mantissa: u32,
+    pub base_scalar: u64,
+    pub base_exponent_biased: u8,
+    pub quote_exponent_biased: u8,
+}
+
+impl OrderInfoArgs {
+    #[inline(always)]
+    pub fn new(
+        price_mantissa: u32,
+        base_scalar: u64,
+        base_exponent_biased: u8,
+        quote_exponent_biased: u8,
+    ) -> Self {
+        Self {
+            price_mantissa,
+            base_scalar,
+            base_exponent_biased,
+            quote_exponent_biased,
+        }
+    }
+}
+
+impl From<(u32, u64, u8, u8)> for OrderInfoArgs {
+    #[inline(always)]
+    fn from(value: (u32, u64, u8, u8)) -> Self {
+        OrderInfoArgs::new(value.0, value.1, value.2, value.3)
+    }
+}
+
 /// Convert order inputs into a serializable, non-decimalized [`OrderInfo`].
 ///
 /// This function accepts a **price mantissa**, a **base scalar**, and **biased base/quote
@@ -155,12 +187,13 @@ pub struct OrderInfo {
 /// const QUOTE_EXPONENT_UNBIASED: u8 = 1;
 /// const_assert_eq!(QUOTE_ATOMS, PRICE_MANTISSA * BASE_SCALAR * 10u64.pow(QUOTE_EXPONENT_UNBIASED as u32));
 ///
-/// let order = price::to_order_info(
+/// let args: price::OrderInfoArgs = (
 ///     PRICE_MANTISSA as u32,
 ///     BASE_SCALAR,
 ///     price::to_biased_exponent!(BASE_EXPONENT_UNBIASED),
 ///     price::to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
-/// ).expect("Should create order info");
+/// ).into();
+/// let order = price::to_order_info().expect("Should create order info");
 ///
 /// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
 ///
@@ -179,12 +212,13 @@ pub struct OrderInfo {
 /// The test [`tests::ensure_invalid_quote_exponent_fails_early`] ensures invalid inputs
 /// are rejected before the unchecked operation.
 #[allow(rustdoc::broken_intra_doc_links)]
-pub fn to_order_info(
-    price_mantissa: u32,
-    base_scalar: u64,
-    base_exponent_biased: u8,
-    quote_exponent_biased: u8,
-) -> Result<OrderInfo, OrderInfoError> {
+pub fn to_order_info(args: OrderInfoArgs) -> Result<OrderInfo, OrderInfoError> {
+    let OrderInfoArgs {
+        price_mantissa,
+        base_scalar,
+        base_exponent_biased,
+        quote_exponent_biased,
+    } = args;
     let validated_mantissa = ValidatedPriceMantissa::try_from(price_mantissa)?;
 
     let base_atoms = pow10_u64!(base_scalar, base_exponent_biased)?;
@@ -235,8 +269,9 @@ mod tests {
     fn happy_path_simple_price() {
         let base_biased_exponent = to_biased_exponent!(0);
         let quote_biased_exponent = to_biased_exponent!(-4);
-        let order = to_order_info(12_340_000, 1, base_biased_exponent, quote_biased_exponent)
-            .expect("Should calculate price");
+        let order =
+            to_order_info((12_340_000, 1, base_biased_exponent, quote_biased_exponent).into())
+                .expect("Should calculate price");
         assert_eq!(order.base_atoms, 1);
         assert_eq!(order.quote_atoms, 1234);
 
@@ -249,8 +284,9 @@ mod tests {
 
     #[test]
     fn price_with_max_sig_digits() {
-        let order = to_order_info(12345678, 1, to_biased_exponent!(0), to_biased_exponent!(0))
-            .expect("Should calculate price");
+        let order =
+            to_order_info((12345678, 1, to_biased_exponent!(0), to_biased_exponent!(0)).into())
+                .expect("Should calculate price");
         assert_eq!(order.base_atoms, 1);
         assert_eq!(order.quote_atoms, 12345678);
 
@@ -264,8 +300,9 @@ mod tests {
     #[test]
     fn decimal_price() {
         let mantissa = 12345678;
-        let order = to_order_info(mantissa, 1, to_biased_exponent!(8), to_biased_exponent!(0))
-            .expect("Should calculate price");
+        let order =
+            to_order_info((mantissa, 1, to_biased_exponent!(8), to_biased_exponent!(0)).into())
+                .expect("Should calculate price");
         assert_eq!(order.quote_atoms, 12345678);
         assert_eq!(order.base_atoms, 100000000);
 
@@ -320,21 +357,21 @@ mod tests {
     fn ensure_price_mantissa_times_base_scalar_arithmetic_overflow() {
         const PRICE_MANTISSA: u32 = 10_000_000;
 
-        assert!(to_order_info(
+        assert!(to_order_info(OrderInfoArgs::new(
             PRICE_MANTISSA,
             u64::MAX / PRICE_MANTISSA as u64,
             to_biased_exponent!(0),
             to_biased_exponent!(0),
-        )
+        ))
         .is_ok());
 
         assert!(matches!(
-            to_order_info(
+            to_order_info(OrderInfoArgs::new(
                 PRICE_MANTISSA + 1,
                 u64::MAX / PRICE_MANTISSA as u64,
                 to_biased_exponent!(0),
                 to_biased_exponent!(0)
-            ),
+            )),
             Err(OrderInfoError::ArithmeticOverflow)
         ));
     }
@@ -344,10 +381,10 @@ mod tests {
         let price_mantissa = 10_000_000;
         let base_scalar = 1;
 
-        assert!(to_order_info(price_mantissa, base_scalar, BIAS, 0).is_ok());
+        assert!(to_order_info(OrderInfoArgs::new(price_mantissa, base_scalar, BIAS, 0)).is_ok());
 
         assert!(matches!(
-            to_order_info(price_mantissa, base_scalar, BIAS + 1, 0),
+            to_order_info(OrderInfoArgs::new(price_mantissa, base_scalar, BIAS + 1, 0)),
             Err(OrderInfoError::ExponentUnderflow)
         ));
     }
@@ -360,9 +397,9 @@ mod tests {
         // Ensure the base exponent is valid so that it can't be the trigger for the error.
         let _one_to_the_base_exponent = pow10_u64!(1u64, e_base).unwrap();
 
-        let all_good = to_order_info(10_000_000, 1, e_base, e_base);
-        let arithmetic_overflow = to_order_info(10_000_000, 1, e_base, e_quote - 1);
-        let invalid_biased_exponent = to_order_info(10_000_000, 1, e_base, e_quote);
+        let all_good = to_order_info((10_000_000, 1, e_base, e_base).into());
+        let arithmetic_overflow = to_order_info((10_000_000, 1, e_base, e_quote - 1).into());
+        let invalid_biased_exponent = to_order_info((10_000_000, 1, e_base, e_quote).into());
 
         assert!(all_good.is_ok());
         #[rustfmt::skip]
@@ -379,8 +416,8 @@ mod tests {
         // Ensure the quote exponent is valid so that it can't be the trigger for the error.
         let _one_to_the_quote_exponent = pow10_u64!(1u64, e_quote).unwrap();
 
-        let all_good = to_order_info(10_000_000, 1, e_base, e_quote);
-        let invalid_quote_exponent = to_order_info(10_000_000, 1, e_base + 1, e_quote);
+        let all_good = to_order_info((10_000_000, 1, e_base, e_quote).into());
+        let invalid_quote_exponent = to_order_info((10_000_000, 1, e_base + 1, e_quote).into());
 
         assert!(all_good.is_ok());
         assert!(matches!(
@@ -416,22 +453,22 @@ mod tests {
             .is_none());
 
         // No overflow with quote exponent in `to_order_info`.
-        assert!(to_order_info(
+        assert!(to_order_info(OrderInfoArgs::new(
             mantissa,
             base_scalar,
             to_biased_exponent!(0),
             to_biased_exponent!(QUOTE_EXPONENT_UNBIASED)
-        )
+        ))
         .is_ok());
 
         // Overflow with quote exponent + 1 in `to_order_info`.
         assert!(matches!(
-            to_order_info(
+            to_order_info(OrderInfoArgs::new(
                 mantissa,
                 base_scalar,
                 to_biased_exponent!(0),
                 to_biased_exponent!(QUOTE_EXPONENT_UNBIASED + 1)
-            ),
+            )),
             Err(OrderInfoError::ArithmeticOverflow)
         ));
     }

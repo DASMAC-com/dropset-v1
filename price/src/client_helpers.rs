@@ -9,6 +9,7 @@ use rust_decimal::{
 };
 
 use crate::{
+    OrderInfoArgs,
     OrderInfoError,
     ValidatedPriceMantissa,
     BIAS,
@@ -44,7 +45,7 @@ fn get_sig_figs(value: NonZeroU64) -> (u64, i16) {
 pub fn to_order_info_args(
     price: Decimal,
     order_size_base_atoms: u64,
-) -> Result<(u32, u64, u8, u8), OrderInfoError> {
+) -> Result<OrderInfoArgs, OrderInfoError> {
     let (validated_mantissa, price_exponent) = ValidatedPriceMantissa::try_into_with_scale(price)?;
 
     let order_size_non_zero =
@@ -58,7 +59,7 @@ pub fn to_order_info_args(
     let quote_exponent_biased = try_to_biased_exponent(quote_exponent_unbiased)?;
     let base_exponent_biased = try_to_biased_exponent(base_exponent_unbiased)?;
 
-    Ok((
+    Ok(OrderInfoArgs::new(
         validated_mantissa.as_u32(),
         base_scalar,
         base_exponent_biased,
