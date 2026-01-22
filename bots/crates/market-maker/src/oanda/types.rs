@@ -126,7 +126,7 @@ pub struct CurrencyPair {
 impl Display for CurrencyPair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (base, quote) = (self.base, self.quote);
-        writeln!(f, "{base}_{quote}")
+        write!(f, "{base}_{quote}")
     }
 }
 
