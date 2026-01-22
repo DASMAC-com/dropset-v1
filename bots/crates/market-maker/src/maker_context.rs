@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+use std::{
+    collections::HashMap,
+    hash::Hash,
+};
 
 use client::{
     context::market::MarketContext,
@@ -22,6 +25,7 @@ use price::{
     },
     to_order_info,
     OrderInfo,
+    OrderInfoArgs,
 };
 use rust_decimal::Decimal;
 use solana_address::Address;
@@ -225,63 +229,26 @@ impl MakerContext {
     }
 
     pub fn create_cancel_and_post_instructions(&self) -> anyhow::Result<Vec<Instruction>> {
-        // NOTE: The bids and asks here might be stale due to fills. This will cause the cancel
-        // order attempt to fail. This is an expected possible error.
-        let cancel_bid_instructions = self
-            .latest_state
-            .bids
-            .iter()
-            .map(|bid| {
-                self.market_ctx.cancel_order(
-                    self.maker_address,
-                    CancelOrderInstructionData::new(bid.encoded_price, true, self.maker_seat()),
-                )
-            })
-            .collect_vec();
-        let cancel_ask_instructions = self
-            .latest_state
-            .asks
-            .iter()
-            .map(|ask| {
-                self.market_ctx.cancel_order(
-                    self.maker_address,
-                    CancelOrderInstructionData::new(ask.encoded_price, false, self.maker_seat()),
-                )
-            })
-            .collect_vec();
-
         let (bid_price, ask_price) = self.get_bid_and_ask_prices();
 
-        let to_post_ixn = |price: Decimal, size: u64, is_bid: bool, seat_index: SectorIndex| {
-            to_order_info_args(price, size)
-                .map_err(|e| anyhow::anyhow! {"{e:#?}"})
-                .map(|args| {
-                    PostOrderInstructionData::new(
-                        args.0, args.1, args.2, args.3, is_bid, seat_index,
-                    )
-                })
-        };
+        let (cancels, posts) = get_non_redundant_order_flow(
+            &self.latest_state,
+            vec![(bid_price, ORDER_SIZE)],
+            vec![(ask_price, ORDER_SIZE)],
+        )?;
 
-        let post_instructions = vec![
-            self.market_ctx.post_order(
-                self.maker_address,
-                to_post_ixn(bid_price, ORDER_SIZE, true, self.maker_seat())?,
-            ),
-            self.market_ctx.post_order(
-                self.maker_address,
-                to_post_ixn(ask_price, ORDER_SIZE, false, self.maker_seat())?,
-            ),
-        ];
+        let ixns = cancels
+            .into_iter()
+            .map(|cancel| self.market_ctx.cancel_order(self.maker_address, cancel))
+            .chain(
+                posts
+                    .into_iter()
+                    .map(|post| self.market_ctx.post_order(self.maker_address, post)),
+            )
+            .map(Instruction::from)
+            .collect_vec();
 
-        let ixns = [
-            cancel_ask_instructions,
-            cancel_bid_instructions,
-            post_instructions,
-        ]
-        .into_iter()
-        .concat();
-
-        Ok(ixns.into_iter().map(Instruction::from).collect_vec())
+        Ok(ixns)
     }
 
     pub fn update_maker_state(&mut self, new_market_state: &MarketViewAll) -> anyhow::Result<()> {
@@ -311,13 +278,74 @@ impl MakerContext {
     }
 }
 
-// fn to_all_order_info(price: Decimal, size: u64) -> anyhow::Result<()> {
+#[derive(Hash, Eq, PartialEq)]
+struct OrderAsKey {
+    encoded_price: u32,
+    base: u64,
+    quote: u64,
+}
 
-// }
+impl From<OrderInfo> for OrderAsKey {
+    fn from(o: OrderInfo) -> Self {
+        Self {
+            encoded_price: o.encoded_price.as_u32(),
+            base: o.base_atoms,
+            quote: o.quote_atoms,
+        }
+    }
+}
+
+impl From<OrderView> for OrderAsKey {
+    fn from(o: OrderView) -> Self {
+        Self {
+            encoded_price: o.encoded_price,
+            base: o.base_remaining,
+            quote: o.quote_remaining,
+        }
+    }
+}
+
+/// Returns a pair of vectors that represents the uniquely keyed values in each hashmap.
+///
+/// Example in pseudo-code, where each pair represents a (k, v) pair in a hashmap.
+///
+/// let res = split_symmetric_difference(
+///     ((1, a), (2, b), (3, c)),
+///     ((3, c), (4, d), (5, e))
+/// );
+///
+/// res == vec![a, b]
+fn split_symmetric_difference<'a, K: Eq + Hash, V1, V2>(
+    a: &'a HashMap<K, V1>,
+    b: &'a HashMap<K, V2>,
+) -> (Vec<&'a V1>, Vec<&'a V2>) {
+    (
+        a.iter()
+            .filter(|(k, _)| !b.contains_key(k))
+            .map(|(_, v)| v)
+            .collect(),
+        b.iter()
+            .filter(|(k, _)| !a.contains_key(k))
+            .map(|(_, v)| v)
+            .collect(),
+    )
+}
+
+fn to_order_args_and_key(
+    price_and_size: (Decimal, u64),
+) -> anyhow::Result<(OrderAsKey, OrderInfoArgs)> {
+    let (price, size) = price_and_size;
+    let args = to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+    let order_info = to_order_info(args.clone()).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+    Ok((order_info.into(), args))
+}
 
 /// The maker essentially cancels all orders and then re-posts them. If any orders would be canceled
 /// and then reposted in the same transaction, simply filter out the corresponding cancel + post
 /// instruction for that order.
+///
+/// The bids and asks in the latest stored state might be stale due to fills.
+/// This will cause the cancel order attempts to fail and should be expected intermittently.
 fn get_non_redundant_order_flow(
     latest_state: &MakerState,
     // Vec of (price, size) tuples.
@@ -328,50 +356,73 @@ fn get_non_redundant_order_flow(
     Vec<CancelOrderInstructionData>,
     Vec<PostOrderInstructionData>,
 )> {
-    let post_bid_args = bid_posts
+    // Map the incoming (to-be-posted) key-able order infos to their respective order info args.
+    let bid_posts: HashMap<OrderAsKey, OrderInfoArgs> = bid_posts
         .into_iter()
-        .map(|(price, size)| to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}")))
-        .collect::<anyhow::Result<Vec<_>>>()?;
+        .map(to_order_args_and_key)
+        .collect::<anyhow::Result<HashMap<_, _>>>()?;
 
-    let post_ask_args = ask_posts
+    let ask_posts: HashMap<OrderAsKey, OrderInfoArgs> = ask_posts
         .into_iter()
-        .map(|(price, size)| to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}")))
-        .collect::<anyhow::Result<Vec<_>>>()?;
+        .map(to_order_args_and_key)
+        .collect::<anyhow::Result<HashMap<_, _>>>()?;
 
-    let bid_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
-        latest_state
-            .bids
-            .iter()
-            .map(|bid| (bid.encoded_price, bid.base_remaining, bid.quote_remaining)),
-    );
+    // Map the existing maker's key-able order infos to their respective orders.
+    // These will be the orders that are canceled.
+    let bids = latest_state.bids.clone();
+    let asks = latest_state.asks.clone();
+    let bid_cancels: HashMap<OrderAsKey, OrderView> = bids
+        .into_iter()
+        .map(|bid| (bid.clone().into(), bid))
+        .collect();
 
-    let ask_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
-        latest_state
-            .asks
-            .iter()
-            .map(|ask| (ask.encoded_price, ask.base_remaining, ask.quote_remaining)),
-    );
+    let ask_cancels: HashMap<OrderAsKey, OrderView> = asks
+        .into_iter()
+        .map(|ask| (ask.clone().into(), ask))
+        .collect();
 
-    let mut unique_bid_cancels = vec![];
-    let mut unique_bid_posts = vec![];
+    // Retain only the unique values in two hash maps `a` and `b`, where each item in `a` does not
+    // have a corresponding matching key in `b`.
+    let (c_ask, p_ask, c_bid, p_bid) = (&ask_cancels, &ask_posts, &bid_cancels, &bid_posts);
+    let (unique_bid_posts, unique_bid_cancels) = split_symmetric_difference(p_bid, c_bid);
+    let (unique_ask_posts, unique_ask_cancels) = split_symmetric_difference(p_ask, c_ask);
 
-    // for args in post_bid_args {
-    //     let o =
-    //         to_order_info(args.0, args.1, args.2, args.3).map_err(|e|
-    // anyhow::anyhow!("{e:#?}"))?;
+    let seat = latest_state.seat.index;
+    let cancels = unique_bid_cancels
+        .iter()
+        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, seat))
+        .chain(
+            unique_ask_cancels
+                .iter()
+                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, seat)),
+        )
+        .collect_vec();
 
-    //     if bid_cancels.contains(&(o.encoded_price.as_u32(), o.base_atoms, o.quote_atoms)) {
-    //         // Do nothing
-    //     } else {
-    //         unique_bid_cancels.push(CancelOrderInstructionData::new())
-    //         // keep the cancel and post
-    //         unique_bid_cancels.push(/* create the cancel here and push it */);
-    //         // push the post
-    //         unique_bid_posts.push(/* create the post here and push */)
-    //     }
-    // }
+    let posts = unique_bid_posts
+        .iter()
+        .map(|p| {
+            PostOrderInstructionData::new(
+                p.price_mantissa,
+                p.base_scalar,
+                p.base_exponent_biased,
+                p.quote_exponent_biased,
+                true,
+                seat,
+            )
+        })
+        .chain(unique_ask_posts.iter().map(|p| {
+            PostOrderInstructionData::new(
+                p.price_mantissa,
+                p.base_scalar,
+                p.base_exponent_biased,
+                p.quote_exponent_biased,
+                false,
+                seat,
+            )
+        }))
+        .collect_vec();
 
-    Ok((vec![], vec![]))
+    Ok((cancels, posts))
 }
 
 fn get_normalized_mid_price(
