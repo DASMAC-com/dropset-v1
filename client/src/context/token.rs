@@ -35,7 +35,7 @@ pub struct TokenContext {
     /// If the mint authority is provided, [`TokenContext`] enables minting tokens directly
     /// to recipients, mostly for testing purposes.
     mint_authority: Option<Keypair>,
-    pub mint: Address,
+    pub mint_address: Address,
     pub token_program: Address,
     pub mint_decimals: u8,
     pub memoized_atas: RwLock<HashMap<Address, Address>>,
@@ -53,16 +53,25 @@ impl TokenContext {
         check_spl_token_program_account(&mint_account.owner)?;
         let mint = Mint::unpack(&mint_account.data)?;
 
+        let auth_1 = mint_authority.as_ref().map(|kp| kp.pubkey());
+        let auth_2 = mint.mint_authority.into();
+        // If the mint authority is passed in, ensure it matches the mint authority pubkey on-chain.
+        if auth_1.is_some() && auth_1 != auth_2 {
+            anyhow::bail!(
+                "Mint authority passed in {auth_1:#?} doesn't match authority on-chain {auth_2:#?}"
+            );
+        }
+
         Ok(Self {
             mint_authority,
-            mint: mint_token,
+            mint_address: mint_token,
             token_program: mint_account.owner,
             mint_decimals: mint.decimals,
             memoized_atas: Default::default(),
         })
     }
 
-    /// Creates an account, airdrops it SOL, and then uses it to create the new token mint.
+    /// Creates an account, airdrops it SOL, and then uses it to create a new, random token mint.
     pub async fn create_new(
         rpc: &CustomRpcClient,
         token_program: Option<Address>,
@@ -107,7 +116,7 @@ impl TokenContext {
 
         Ok(Self {
             mint_authority: Some(mint_authority),
-            mint: mint.pubkey(),
+            mint_address: mint.pubkey(),
             token_program,
             mint_decimals: decimals,
             memoized_atas: RwLock::new(HashMap::new()),
@@ -131,7 +140,7 @@ impl TokenContext {
         let create_ata_instruction = create_associated_token_account_idempotent(
             owner_pk,
             owner_pk,
-            &self.mint,
+            &self.mint_address,
             &self.token_program,
         );
         rpc.send_and_confirm_txn(owner, &[owner], &[create_ata_instruction])
@@ -150,7 +159,7 @@ impl TokenContext {
             return *ata;
         };
 
-        let ata = get_associated_token_address(owner, &self.mint);
+        let ata = get_associated_token_address(owner, &self.mint_address);
         self.memoized_atas
             .write()
             .expect("RWLock shouldn't be poisoned")
@@ -171,7 +180,7 @@ impl TokenContext {
         let token_account = self.get_ata_for(&owner.pubkey());
         let mint_to = mint_to_checked(
             &self.token_program,
-            &self.mint,
+            &self.mint_address,
             &token_account,
             &mint_authority.pubkey(),
             &[],

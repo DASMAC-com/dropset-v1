@@ -19,6 +19,7 @@ use dropset_interface::{
     },
 };
 use solana_address::Address;
+use solana_sdk::signature::Keypair;
 use transaction_parser::views::{
     try_market_view_all_from_owner_and_data,
     MarketSeatView,
@@ -68,11 +69,13 @@ impl MarketContext {
         rpc: &CustomRpcClient,
         base_mint: Address,
         quote_mint: Address,
+        base_mint_authority: Option<Keypair>,
+        quote_mint_authority: Option<Keypair>,
     ) -> anyhow::Result<Self> {
-        let base = TokenContext::new_from_existing(rpc, base_mint, None)?;
-        let quote = TokenContext::new_from_existing(rpc, quote_mint, None)?;
+        let base = TokenContext::new_from_existing(rpc, base_mint, base_mint_authority)?;
+        let quote = TokenContext::new_from_existing(rpc, quote_mint, quote_mint_authority)?;
 
-        let (market_address, _bump) = find_market_address(&base.mint, &quote.mint);
+        let (market_address, _bump) = find_market_address(&base.mint_address, &quote.mint_address);
         let base_market_ata = base.get_ata_for(&market_address);
         let quote_market_ata = quote.get_ata_for(&market_address);
 
@@ -90,7 +93,7 @@ impl MarketContext {
     pub async fn create_market(rpc: &CustomRpcClient) -> anyhow::Result<Self> {
         let base = TokenContext::create_new(rpc, None).await?;
         let quote = TokenContext::create_new(rpc, None).await?;
-        let (market_address, _bump) = find_market_address(&base.mint, &quote.mint);
+        let (market_address, _bump) = find_market_address(&base.mint_address, &quote.mint_address);
         let base_market_ata = base.get_ata_for(&market_address);
         let quote_market_ata = quote.get_ata_for(&market_address);
         Ok(Self {
@@ -125,8 +128,8 @@ impl MarketContext {
             market_account: self.market,
             base_market_ata: self.base_market_ata,
             quote_market_ata: self.quote_market_ata,
-            base_mint: self.base.mint,
-            quote_mint: self.quote.mint,
+            base_mint: self.base.mint_address,
+            quote_mint: self.quote.mint_address,
             base_token_program: self.base.token_program,
             quote_token_program: self.quote.token_program,
             ata_program: spl_associated_token_account_interface::program::ID,
@@ -161,8 +164,8 @@ impl MarketContext {
             quote_user_ata: self.get_quote_ata(&user),
             base_market_ata: self.base_market_ata,
             quote_market_ata: self.quote_market_ata,
-            base_mint: self.base.mint,
-            quote_mint: self.quote.mint,
+            base_mint: self.base.mint_address,
+            quote_mint: self.quote.mint_address,
             base_token_program: self.base.token_program,
             quote_token_program: self.quote.token_program,
             dropset_program: dropset::ID,
@@ -257,8 +260,8 @@ impl MarketContext {
             quote_user_ata: self.get_quote_ata(&user),
             base_market_ata: self.base_market_ata,
             quote_market_ata: self.quote_market_ata,
-            base_mint: self.base.mint,
-            quote_mint: self.quote.mint,
+            base_mint: self.base.mint_address,
+            quote_mint: self.quote.mint_address,
             base_token_program: self.base.token_program,
             quote_token_program: self.quote.token_program,
             dropset_program: dropset::ID,
@@ -281,7 +284,7 @@ impl MarketContext {
                 market_account: self.market,
                 user_ata: self.get_base_ata(&user),
                 market_ata: self.base_market_ata,
-                mint: self.base.mint,
+                mint: self.base.mint_address,
                 token_program: self.base.token_program,
                 dropset_program: dropset::ID,
             },
@@ -291,7 +294,7 @@ impl MarketContext {
                 market_account: self.market,
                 user_ata: self.get_quote_ata(&user),
                 market_ata: self.quote_market_ata,
-                mint: self.quote.mint,
+                mint: self.quote.mint_address,
                 token_program: self.quote.token_program,
                 dropset_program: dropset::ID,
             },
@@ -314,7 +317,7 @@ impl MarketContext {
                 market_account: self.market,
                 user_ata: self.get_base_ata(&user),
                 market_ata: self.base_market_ata,
-                mint: self.base.mint,
+                mint: self.base.mint_address,
                 token_program: self.base.token_program,
                 dropset_program: dropset::ID,
             },
@@ -324,7 +327,7 @@ impl MarketContext {
                 market_account: self.market,
                 user_ata: self.get_quote_ata(&user),
                 market_ata: self.quote_market_ata,
-                mint: self.quote.mint,
+                mint: self.quote.mint_address,
                 token_program: self.quote.token_program,
                 dropset_program: dropset::ID,
             },

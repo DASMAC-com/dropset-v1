@@ -1,13 +1,8 @@
-use std::collections::HashSet;
-
 use clap::{
     command,
     Parser,
 };
-use client::transactions::{
-    CustomRpcClient,
-    SendTransactionConfig,
-};
+use client::transactions::CustomRpcClient;
 use solana_address::Address;
 
 use crate::{
@@ -27,7 +22,7 @@ use crate::{
 
 #[derive(Parser)]
 #[command(name = "market-maker")]
-pub struct MakerConfigArgs {
+pub struct CliArgs {
     /// Base mint address.
     #[arg(short = 'b', long)]
     pub base_mint: Address,
@@ -48,28 +43,22 @@ pub struct MakerConfigArgs {
 }
 
 pub async fn initialize_context_from_cli(
+    rpc: &CustomRpcClient,
     reqwest_client: &reqwest::Client,
 ) -> anyhow::Result<MakerContext> {
-    let MakerConfigArgs {
+    let CliArgs {
         base_mint,
         quote_mint,
         pair,
         target_base,
-    } = MakerConfigArgs::parse();
-    let rpc = CustomRpcClient::new(
-        None,
-        Some(SendTransactionConfig {
-            compute_budget: Some(2000000),
-            debug_logs: Some(true),
-            program_id_filter: HashSet::from([dropset_interface::program::ID]),
-        }),
-    );
+    } = CliArgs::parse();
+
     let maker = load_env::maker_keypair().insecure_clone();
 
     let initial_price_feed_response = query_price_feed(
         &OandaArgs {
             auth_token: oanda_auth_token(),
-            pair: pair.clone(),
+            pair,
             granularity: GRANULARITY,
             num_candles: NUM_CANDLES,
         },
@@ -78,7 +67,7 @@ pub async fn initialize_context_from_cli(
     .await?;
 
     MakerContext::init(
-        &rpc,
+        rpc,
         maker,
         base_mint,
         quote_mint,

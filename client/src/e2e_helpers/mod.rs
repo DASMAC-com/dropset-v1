@@ -73,7 +73,7 @@ impl E2e {
             rpc.fund_account(&default_payer.pubkey()).await?;
         }
 
-        // Create and register the market derived from the base/quote token pair.
+        // Create and register the market derived from the created base/quote token pair.
         let market = MarketContext::create_market(&rpc).await?;
         let register_market_txn = market
             .register_market(default_payer.pubkey(), 10)

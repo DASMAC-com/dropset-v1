@@ -127,14 +127,13 @@ mod tests {
         check(dec!(0.95123), (95_123_000, -8));
         check(dec!(123_456_789.0), (12_345_678, 1));
         check(dec!(78.12300001), (78_123_000, -6));
+        check(dec!(0.000_000_000_000_012_345_678), (12_345_678, -21));
+        check(dec!(0.000_000_000_001), (10_000_000, -19));
 
         assert!(ValidatedPriceMantissa::try_into_with_scale(dec!(0.000000)).is_err());
         assert!(ValidatedPriceMantissa::try_into_with_scale(dec!(0.0)).is_err());
         assert!(ValidatedPriceMantissa::try_into_with_scale(Decimal::ZERO).is_err());
         assert!(ValidatedPriceMantissa::try_into_with_scale(dec!(-1.0)).is_err());
         assert!(ValidatedPriceMantissa::try_into_with_scale(dec!(-0.0000000000001)).is_err());
-
-        check(dec!(0.000_000_000_000_012_345_678), (12_345_678, -21));
-        check(dec!(0.000_000_000_001), (10_000_000, -19));
     }
 }

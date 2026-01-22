@@ -117,7 +117,7 @@ pub enum CandlestickGranularity {
     M,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CurrencyPair {
     pub base: Currency,
     pub quote: Currency,

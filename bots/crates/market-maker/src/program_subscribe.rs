@@ -19,13 +19,18 @@ use solana_client::{
         RpcFilterType,
     },
 };
+use tokio::sync::watch;
 use tokio_stream::StreamExt;
 use transaction_parser::views::try_market_view_all_from_owner_and_data;
 
-use crate::maker_context::MakerContext;
+use crate::{
+    maker_context::MakerContext,
+    Update,
+};
 
 pub async fn program_subscribe(
     maker_ctx: Rc<RefCell<MakerContext>>,
+    sender: watch::Sender<Update>,
     ws_url: &str,
 ) -> anyhow::Result<()> {
     let ws_client = PubsubClient::new(ws_url).await?;
@@ -62,12 +67,13 @@ pub async fn program_subscribe(
         let market_view = try_market_view_all_from_owner_and_data(owner, &account_data)
             .expect("Should convert to a valid market account's data");
 
-        // For now debug with print statement, eventually, this will mutate the MakerContext
-        // state and update it.
-        println!("new maker state\n{market_view:#?}");
+        // Update the maker state in the maker context and notify with `watch::Sender` that a
+        // mutation has occurred.
         maker_ctx
             .try_borrow_mut()?
             .update_maker_state(&market_view)?;
+
+        sender.send(Update::MakerState)?;
     }
 
     Ok(())

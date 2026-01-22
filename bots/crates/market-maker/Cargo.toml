@@ -8,6 +8,7 @@ anyhow.workspace = true
 clap.workspace = true
 client = { path = "../../../client" }
 chrono.workspace = true
+colored.workspace = true
 dropset-interface = { path = "../../../interface" }
 itertools.workspace = true
 price = { path = "../../../price", features = ["client" ] }

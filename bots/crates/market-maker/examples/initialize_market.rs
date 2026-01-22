@@ -24,6 +24,8 @@ pub struct Info {
     pub maker_keypair: String,
     pub market: Address,
     pub maker_seat: MarketSeatView,
+    pub base_mint_authority_keypair: String,
+    pub quote_mint_authority_keypair: String,
 }
 
 #[tokio::main]
@@ -47,9 +49,19 @@ async fn main() -> anyhow::Result<()> {
         .send_single_signer(&e2e.rpc, maker)
         .await?;
 
+    let seat = e2e
+        .find_seat(&maker_address)?
+        .expect("Should have a seat")
+        .index;
+
+    e2e.market
+        .deposit_quote(maker_address, 10000, seat)
+        .send_single_signer(&e2e.rpc, maker)
+        .await?;
+
     let info = Info {
-        base_mint: e2e.market.base.mint,
-        quote_mint: e2e.market.quote.mint,
+        base_mint: e2e.market.base.mint_address,
+        quote_mint: e2e.market.quote.mint_address,
         maker_address: maker.pubkey(),
         maker_keypair: maker.insecure_clone().to_base58_string(),
         market: e2e.market.market,
@@ -60,6 +72,8 @@ async fn main() -> anyhow::Result<()> {
             .find(|s| s.user == maker_address)
             .expect("Should find seat")
             .clone(),
+        base_mint_authority_keypair: e2e.market.base.mint_authority()?.to_base58_string(),
+        quote_mint_authority_keypair: e2e.market.quote.mint_authority()?.to_base58_string(),
     };
     println!("{info:#?}");
 

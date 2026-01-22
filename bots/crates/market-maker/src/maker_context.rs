@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use client::{
     context::market::MarketContext,
     transactions::CustomRpcClient,
@@ -13,9 +15,13 @@ use dropset_interface::{
     },
 };
 use itertools::Itertools;
-use price::client_helpers::{
-    decimal_pow10_i16,
-    to_order_info_args,
+use price::{
+    client_helpers::{
+        decimal_pow10_i16,
+        to_order_info_args,
+    },
+    to_order_info,
+    OrderInfo,
 };
 use rust_decimal::Decimal;
 use solana_address::Address;
@@ -41,8 +47,9 @@ use crate::{
     },
 };
 
-const ORDER_SIZE: u64 = 10_000;
+const ORDER_SIZE: u64 = 1_000;
 
+#[derive(Debug)]
 pub struct MakerState {
     pub address: Address,
     pub seat: MarketSeatView,
@@ -134,10 +141,10 @@ impl MakerState {
 
 pub struct MakerContext {
     /// The maker's keypair.
-    keypair: Keypair,
-    market_ctx: MarketContext,
+    pub keypair: Keypair,
+    pub market_ctx: MarketContext,
     /// The maker's address.
-    maker_address: Address,
+    pub maker_address: Address,
     /// The currency pair.
     pub pair: CurrencyPair,
     /// The maker's latest state.
@@ -170,7 +177,8 @@ impl MakerContext {
         base_target_atoms: u64,
         initial_price_feed_response: OandaCandlestickResponse,
     ) -> anyhow::Result<Self> {
-        let market_ctx = MarketContext::new_from_token_pair(rpc, base_mint, quote_mint)?;
+        let market_ctx =
+            MarketContext::new_from_token_pair(rpc, base_mint, quote_mint, None, None)?;
         let market = market_ctx.view_market(rpc)?;
         let latest_state = MakerState::new_from_market(maker.pubkey(), &market)?;
         let mid_price = get_normalized_mid_price(initial_price_feed_response, &pair, &market_ctx)?;
@@ -212,10 +220,11 @@ impl MakerContext {
     ///   [`crate::calculate_spreads::reservation_price`] price and bid prices are further away.
     ///   This effectively increases the likelihood of getting asks filled and vice versa for bids.
     pub fn q(&self) -> Decimal {
-        Decimal::from(self.latest_state.base_inventory) - Decimal::from(self.base_target_atoms)
+        (Decimal::from(self.latest_state.base_inventory) - Decimal::from(self.base_target_atoms))
+            / Decimal::from(10u64.pow(self.market_ctx.base.mint_decimals as u32))
     }
 
-    pub async fn cancel_all_and_post_new(&mut self, rpc: &CustomRpcClient) -> anyhow::Result<()> {
+    pub fn create_cancel_and_post_instructions(&self) -> anyhow::Result<Vec<Instruction>> {
         // NOTE: The bids and asks here might be stale due to fills. This will cause the cancel
         // order attempt to fail. This is an expected possible error.
         let cancel_bid_instructions = self
@@ -242,6 +251,7 @@ impl MakerContext {
             .collect_vec();
 
         let (bid_price, ask_price) = self.get_bid_and_ask_prices();
+
         let to_post_ixn = |price: Decimal, size: u64, is_bid: bool, seat_index: SectorIndex| {
             to_order_info_args(price, size)
                 .map_err(|e| anyhow::anyhow! {"{e:#?}"})
@@ -271,17 +281,7 @@ impl MakerContext {
         .into_iter()
         .concat();
 
-        rpc.send_and_confirm_txn(
-            &self.keypair,
-            &[&self.keypair],
-            ixns.into_iter()
-                .map(Instruction::from)
-                .collect_vec()
-                .as_ref(),
-        )
-        .await?;
-
-        Ok(())
+        Ok(ixns.into_iter().map(Instruction::from).collect_vec())
     }
 
     pub fn update_maker_state(&mut self, new_market_state: &MarketViewAll) -> anyhow::Result<()> {
@@ -309,6 +309,73 @@ impl MakerContext {
 
         (bid_price, ask_price)
     }
+}
+
+/// The maker essentially cancels all orders and then re-posts them. If any orders would be canceled
+/// and then reposted in the same transaction, simply filter out the corresponding cancel + post
+/// instruction for that order.
+fn get_non_redundant_order_flow(
+    latest_state: &MakerState,
+    // Vec of (price, size) tuples.
+    bid_posts: Vec<(Decimal, u64)>,
+    // Vec of (price, size) tuples.
+    ask_posts: Vec<(Decimal, u64)>,
+) -> anyhow::Result<(
+    Vec<CancelOrderInstructionData>,
+    Vec<PostOrderInstructionData>,
+)> {
+    let post_bid_args = bid_posts
+        .into_iter()
+        .map(|(price, size)| {to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}"))})
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
+    let post_ask_args = ask_posts
+        .into_iter()
+        .map(|(price, size)| to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}")))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
+    let bid_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
+        latest_state
+            .bids
+            .iter()
+            .map(|bid| (bid.encoded_price, bid.base_remaining, bid.quote_remaining)),
+    );
+
+    let ask_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
+        latest_state
+            .asks
+            .iter()
+            .map(|ask| (ask.encoded_price, ask.base_remaining, ask.quote_remaining)),
+    );
+
+    let mut unique_bid_cancels = vec![];
+    let mut unique_bid_posts = vec![];
+
+    for args in post_bid_args {
+        let o =
+            to_order_info(args.0, args.1, args.2, args.3).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+
+        if bid_cancels.contains(&(o.encoded_price.as_u32(), o.base_atoms, o.quote_atoms)) {
+            // Do nothing
+        } else {
+            unique_bid_cancels.push(CancelOrderInstructionData::new())
+            // keep the cancel and post
+            unique_bid_cancels.push(/* create the cancel here and push it */);
+            // push the post
+            unique_bid_posts.push(/* create the post here and push */)
+        }
+    }
+
+    // bid_posts.iter().filter(|new_bid| bid_cancels.)
+    // ask_posts.iter().filter
+
+    let ask_cancels: HashSet<(u32, u64, u64)> = HashSet::from_iter(
+        latest_state
+            .asks
+            .iter()
+            .map(|bid| (bid.encoded_price, bid.base_remaining, bid.quote_remaining)),
+    );
+    (vec![], vec![])
 }
 
 fn get_normalized_mid_price(

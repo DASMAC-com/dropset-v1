@@ -36,9 +36,9 @@ macro_rules! fmt_kv {
 /// Prints a key/value pair with optional color overrides.
 ///
 /// Examples, where `key_color` and `value_color` are `LogColor` values:
-/// - fmt_kv!(key, value)
-/// - fmt_kv!(key, value, key_color)
-/// - fmt_kv!(key, value, key_color, value_color)
+/// - print_kv!(key, value)
+/// - print_kv!(key, value, key_color)
+/// - print_kv!(key, value, key_color, value_color)
 #[macro_export]
 macro_rules! print_kv {
     ($key:expr, $value:expr $(,)?) => {

@@ -9,17 +9,19 @@ use rust_decimal::{
     Decimal,
 };
 
-const RISK_AVERSION: Decimal = dec!(1.0);
-const VOLATILITY_ESTIMATE: Decimal = dec!(1.0);
-const TIME_HORIZON: Decimal = dec!(300.0);
-const FILL_DECAY: Decimal = dec!(1.5);
+const TICK_SIZE: Decimal = dec!(0.0001);
+const RISK_AVERSION: Decimal = dec!(0.1);
+const VOLATILITY_ESTIMATE: Decimal = TICK_SIZE;
+const TIME_HORIZON: Decimal = dec!(0.1);
+
+const FILL_DECAY_TICKS: Decimal = dec!(10);
 
 /// Calculates the reservation price, also known as the indifference price and the central price.
 ///
 /// The reservation price is the price at which a maker is indifferent to buying or selling a single
 /// unit of the base asset.
 ///
-/// Put simply, it is a function of the pair's mid price and `q`, a value that  represents how long
+/// Put simply, it is a function of the pair's mid price and `q`, a value that represents how long
 /// or short the maker is.
 ///
 /// This calculation also depends on various tuning parameters. The A-S model defines them as:
@@ -54,9 +56,10 @@ fn ln_decimal_f64(d: Decimal) -> Option<Decimal> {
 /// Thus half that value is half the spread.
 pub fn half_spread() -> Decimal {
     static HALF_SPREAD: LazyLock<Decimal> = LazyLock::new(|| {
+        let fill_decay = dec!(1.0) / FILL_DECAY_TICKS / TICK_SIZE;
         let spread = (RISK_AVERSION * volatility_estimate_squared() * TIME_HORIZON)
             + (dec!(2.0) / RISK_AVERSION)
-                * ln_decimal_f64(dec!(1.0) + (RISK_AVERSION / FILL_DECAY))
+                * ln_decimal_f64(dec!(1.0) + (RISK_AVERSION / fill_decay))
                     .expect("Should calculate natural log");
 
         spread / dec!(2.0)
@@ -69,4 +72,16 @@ fn volatility_estimate_squared() -> Decimal {
     static VOL_SQ: LazyLock<Decimal> = LazyLock::new(|| VOLATILITY_ESTIMATE * VOLATILITY_ESTIMATE);
 
     *LazyLock::force(&VOL_SQ)
+}
+
+#[test]
+fn asdf() {
+    const RISK: Decimal = dec!(0.1);
+    const TIME_HOR: Decimal = dec!(0.01);
+    const VOL: Decimal = dec!(0.0001);
+    let fill_decay = dec!(1.0) / FILL_DECAY_TICKS / TICK_SIZE;
+    let spread = (RISK * VOL * VOL * TIME_HOR)
+        + ((dec!(2.0) / RISK) * ln_decimal_f64(dec!(1.0) + (RISK / fill_decay)).unwrap());
+
+    println!("{}", spread);
 }

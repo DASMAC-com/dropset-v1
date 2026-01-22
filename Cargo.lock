@@ -2847,6 +2847,7 @@ dependencies = [
  "chrono",
  "clap",
  "client",
+ "colored",
  "dropset-interface",
  "itertools 0.14.0",
  "price",
