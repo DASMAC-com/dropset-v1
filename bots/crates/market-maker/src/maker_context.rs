@@ -99,7 +99,7 @@ impl MakerState {
         let bid_prices = to_prices(&seat.user_order_sectors.bids);
         let ask_prices = to_prices(&seat.user_order_sectors.asks);
 
-        // Given a price and a collection of orders, find the unique order associated with the pric
+        // Given a price and a collection of orders, find the unique order associated with the price
         // passed. This is just for the bids and asks in this local function so all passed prices
         // should map to a valid order, hence the `.expect(...)` calls instead of returning Results.
         let find_order_by_price = |price: &u32, orders: &[OrderView]| {
