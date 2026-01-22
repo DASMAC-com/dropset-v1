@@ -436,7 +436,9 @@ fn get_normalized_mid_price(
 ) -> anyhow::Result<Decimal> {
     let response_pair = &candlestick_response.instrument;
     if expected_pair != response_pair {
-        anyhow::bail!("Maker and and candlestick response pair don't match. {expected_pair} != {response_pair}");
+        anyhow::bail!(
+            "Maker and candlestick response pair don't match. {expected_pair} != {response_pair}"
+        );
     }
 
     if !candlestick_response.candles.is_sorted_by_key(|c| c.time) {
