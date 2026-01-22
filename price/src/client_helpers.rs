@@ -56,7 +56,9 @@ pub fn to_order_info_args(
 
     // price_exponent == quote_exponent - base_exponent.
     // quote_exponent == price_exponent + base_exponent.
-    let quote_exponent_unbiased = price_exponent + base_exponent_unbiased;
+    let quote_exponent_unbiased = price_exponent
+        .checked_add(base_exponent_unbiased)
+        .ok_or(OrderInfoError::InvalidBiasedExponent)?;
 
     let quote_exponent_biased = try_to_biased_exponent(quote_exponent_unbiased)?;
     let base_exponent_biased = try_to_biased_exponent(base_exponent_unbiased)?;
