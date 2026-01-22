@@ -129,6 +129,10 @@ impl From<(u32, u64, u8, u8)> for OrderInfoArgs {
 /// This function accepts a **price mantissa**, a **base scalar**, and **biased base/quote
 /// exponents**, and produces an order whose amounts are fully expressed in atomic units.
 ///
+/// This function is primarily intended to be used on-chain. If your intention is to go from a
+/// decimal price to order instruction data, use [`crate::client_helpers::to_order_info_args`] to
+/// get the input args to this function.
+///
 /// # Example
 ///
 /// The following example shows how to place an order for 500 EUR at a price of 1.25 USD / 1 EUR.
@@ -193,7 +197,7 @@ impl From<(u32, u64, u8, u8)> for OrderInfoArgs {
 ///     price::to_biased_exponent!(BASE_EXPONENT_UNBIASED),
 ///     price::to_biased_exponent!(QUOTE_EXPONENT_UNBIASED),
 /// ).into();
-/// let order = price::to_order_info().expect("Should create order info");
+/// let order = price::to_order_info(args).expect("Should create order info");
 ///
 /// let derived_price = order.quote_atoms as f64 / order.base_atoms as f64;
 ///
