@@ -5,6 +5,7 @@ use std::{
 
 use client::{
     context::market::MarketContext,
+    print_kv,
     transactions::CustomRpcClient,
 };
 use dropset_interface::{
@@ -22,6 +23,7 @@ use price::{
     client_helpers::{
         decimal_pow10_i16,
         to_order_info_args,
+        try_encoded_u32_to_decoded_decimal,
     },
     to_order_info,
     OrderInfo,
@@ -237,6 +239,8 @@ impl MakerContext {
             vec![(ask_price, ORDER_SIZE)],
         )?;
 
+        log_orders(&posts, &cancels)?;
+
         let ixns = cancels
             .into_iter()
             .map(|cancel| self.market_ctx.cancel_order(self.maker_address, cancel))
@@ -335,8 +339,8 @@ fn to_order_args_and_key(
     price_and_size: (Decimal, u64),
 ) -> anyhow::Result<(OrderAsKey, OrderInfoArgs)> {
     let (price, size) = price_and_size;
-    let args = to_order_info_args(price, size).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
-    let order_info = to_order_info(args.clone()).map_err(|e| anyhow::anyhow!("{e:#?}"))?;
+    let args = to_order_info_args(price, size)?;
+    let order_info = to_order_info(args.clone())?;
     Ok((order_info.into(), args))
 }
 
@@ -387,14 +391,14 @@ fn get_non_redundant_order_flow(
     let (unique_bid_posts, unique_bid_cancels) = split_symmetric_difference(p_bid, c_bid);
     let (unique_ask_posts, unique_ask_cancels) = split_symmetric_difference(p_ask, c_ask);
 
-    let seat = latest_state.seat.index;
+    let seat_index = latest_state.seat.index;
     let cancels = unique_bid_cancels
         .iter()
-        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, seat))
+        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, seat_index))
         .chain(
             unique_ask_cancels
                 .iter()
-                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, seat)),
+                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, seat_index)),
         )
         .collect_vec();
 
@@ -407,7 +411,7 @@ fn get_non_redundant_order_flow(
                 p.base_exponent_biased,
                 p.quote_exponent_biased,
                 true,
-                seat,
+                seat_index,
             )
         })
         .chain(unique_ask_posts.iter().map(|p| {
@@ -417,7 +421,7 @@ fn get_non_redundant_order_flow(
                 p.base_exponent_biased,
                 p.quote_exponent_biased,
                 false,
-                seat,
+                seat_index,
             )
         }))
         .collect_vec();
@@ -472,6 +476,35 @@ fn normalize_non_atoms_price(
         non_atoms_price,
         quote_decimals as i16 - base_decimals as i16,
     )
+}
+
+fn log_orders(
+    posts: &[PostOrderInstructionData],
+    cancels: &[CancelOrderInstructionData],
+) -> anyhow::Result<()> {
+    for cancel in cancels.iter() {
+        let side = if cancel.is_bid { "bid" } else { "ask" };
+        let decimal_price = try_encoded_u32_to_decoded_decimal(cancel.encoded_price)?;
+        print_kv!(format!("Canceling {side} at"), format!("{decimal_price}"),);
+    }
+
+    for post in posts.iter() {
+        let side = if post.is_bid { "bid" } else { "ask" };
+        let encoded_price = to_order_info(
+            (
+                post.price_mantissa,
+                post.base_scalar,
+                post.base_exponent_biased,
+                post.quote_exponent_biased,
+            )
+                .into(),
+        )?
+        .encoded_price;
+        let decimal_price = try_encoded_u32_to_decoded_decimal(encoded_price.as_u32())?;
+        print_kv!(format!("Posting {side} at"), format!("{decimal_price}"));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

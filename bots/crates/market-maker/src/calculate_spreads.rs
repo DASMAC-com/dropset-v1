@@ -9,12 +9,39 @@ use rust_decimal::{
     Decimal,
 };
 
-const TICK_SIZE: Decimal = dec!(0.0001);
+/// Risk-aversion parameter (γ). Higher => stronger inventory penalty. This value skews quotes more
+/// to mean-revert inventory.
 const RISK_AVERSION: Decimal = dec!(0.1);
-const VOLATILITY_ESTIMATE: Decimal = TICK_SIZE;
+
+/// Volatility estimate (σ) in *price units per sqrt(second)* (i.e. stddev of mid-price change over
+/// 1 second). If you want “X% per second”, set `sigma = mid_price * X` (e.g. 0.01% => X=1e-4).
+const VOLATILITY_ESTIMATE: Decimal = dec!(0.0001);
+
+/// Effective time horizon in seconds (T - t or τ). Longer => more inventory risk => wider spread +
+/// stronger skew.
 const TIME_HORIZON: Decimal = dec!(0.1);
 
-const FILL_DECAY_TICKS: Decimal = dec!(10);
+/// Smallest representable increment of price utilized by the model (aka one tick), in price units.
+/// This can match the smallest representable increment on-chain or be arbitrary- but it must be
+/// consistent with
+const PRICE_STEP: Decimal = dec!(0.0001);
+
+/// Human-friendly fill-decay knob:
+/// This value represents how many [`PRICE_STEP`]s away from mid price until the fill intensity
+/// drops by e⁻¹.
+/// Converted into `k` (units: 1/price) for λ(δ)=A·exp(-k·δ).
+const FILL_DECAY_STEPS: Decimal = dec!(10);
+
+/// The model `k` value representing the distance from mid price indicating where fill intensity
+/// drops off.
+fn fill_decay() -> Decimal {
+    static K: LazyLock<Decimal> = LazyLock::new(|| {
+        // k = 1 / (steps * price_step)
+        Decimal::ONE / (FILL_DECAY_STEPS * PRICE_STEP)
+    });
+
+    *LazyLock::force(&K)
+}
 
 /// Calculates the reservation price, also known as the indifference price and the central price.
 ///
@@ -56,10 +83,9 @@ fn ln_decimal_f64(d: Decimal) -> Option<Decimal> {
 /// Thus half that value is half the spread.
 pub fn half_spread() -> Decimal {
     static HALF_SPREAD: LazyLock<Decimal> = LazyLock::new(|| {
-        let fill_decay = dec!(1.0) / FILL_DECAY_TICKS / TICK_SIZE;
         let spread = (RISK_AVERSION * volatility_estimate_squared() * TIME_HORIZON)
             + (dec!(2.0) / RISK_AVERSION)
-                * ln_decimal_f64(dec!(1.0) + (RISK_AVERSION / fill_decay))
+                * ln_decimal_f64(dec!(1.0) + (RISK_AVERSION / fill_decay()))
                     .expect("Should calculate natural log");
 
         spread / dec!(2.0)
@@ -72,16 +98,4 @@ fn volatility_estimate_squared() -> Decimal {
     static VOL_SQ: LazyLock<Decimal> = LazyLock::new(|| VOLATILITY_ESTIMATE * VOLATILITY_ESTIMATE);
 
     *LazyLock::force(&VOL_SQ)
-}
-
-#[test]
-fn asdf() {
-    const RISK: Decimal = dec!(0.1);
-    const TIME_HOR: Decimal = dec!(0.01);
-    const VOL: Decimal = dec!(0.0001);
-    let fill_decay = dec!(1.0) / FILL_DECAY_TICKS / TICK_SIZE;
-    let spread = (RISK * VOL * VOL * TIME_HOR)
-        + ((dec!(2.0) / RISK) * ln_decimal_f64(dec!(1.0) + (RISK / fill_decay)).unwrap());
-
-    println!("{}", spread);
 }

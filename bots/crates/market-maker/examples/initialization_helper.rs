@@ -28,6 +28,16 @@ pub struct Info {
     pub quote_mint_authority_keypair: String,
 }
 
+const MAKER_INITIAL_BASE: u64 = 10_000;
+const MAKER_INITIAL_QUOTE: u64 = 10_000;
+
+/// A helper example to bootstrap a market and a market maker. It does the following:
+///
+/// - Creates a market from two new tokens.
+/// - Mints [`MAKER_INITIAL_BASE`] and sends it to the maker.
+/// - Mints [`MAKER_INITIAL_QUOTE`] and sends it to the maker.
+/// - Prints out all related info, including the generated base/quote token mint keypairs in case
+///   more should be minted later.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let rpc = CustomRpcClient::new(
@@ -42,10 +52,14 @@ async fn main() -> anyhow::Result<()> {
     let maker = test_accounts::acc_FFFF();
     let maker_address = maker.pubkey();
 
-    let e2e = E2e::new_traders_and_market(Some(rpc), [Trader::new(maker, 10000, 10000)]).await?;
+    let e2e = E2e::new_traders_and_market(
+        Some(rpc),
+        [Trader::new(maker, MAKER_INITIAL_BASE, MAKER_INITIAL_QUOTE)],
+    )
+    .await?;
 
     e2e.market
-        .deposit_base(maker_address, 10000, NIL)
+        .deposit_base(maker_address, MAKER_INITIAL_BASE, NIL)
         .send_single_signer(&e2e.rpc, maker)
         .await?;
 
@@ -55,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
         .index;
 
     e2e.market
-        .deposit_quote(maker_address, 10000, seat)
+        .deposit_quote(maker_address, MAKER_INITIAL_QUOTE, seat)
         .send_single_signer(&e2e.rpc, maker)
         .await?;
 

@@ -72,7 +72,7 @@ impl EncodedPrice {
     }
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(feature = "client", debug_assertions))]
 impl TryFrom<u32> for EncodedPrice {
     type Error = OrderInfoError;
 

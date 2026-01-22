@@ -9,6 +9,8 @@ use rust_decimal::{
 };
 
 use crate::{
+    DecodedPrice,
+    EncodedPrice,
     OrderInfoArgs,
     OrderInfoError,
     ValidatedPriceMantissa,
@@ -82,6 +84,16 @@ pub fn decimal_pow10_i16(value: Decimal, pow: i16) -> Decimal {
             },
         )
         .normalize()
+}
+
+/// Converts a u32 encoded price to a decoded decimal price. Typical usage would be converting the
+/// on-chain u32 in an order to the decoded decimal price.
+pub fn try_encoded_u32_to_decoded_decimal(encoded_u32: u32) -> Result<Decimal, OrderInfoError> {
+    let encoded_price: EncodedPrice = encoded_u32.try_into()?;
+    let decoded_price: DecodedPrice = encoded_price.try_into()?;
+    let decimal_price: Decimal = decoded_price.try_into()?;
+
+    Ok(decimal_price)
 }
 
 #[cfg(test)]
