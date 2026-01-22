@@ -451,10 +451,7 @@ fn get_normalized_mid_price(
             candlestick
                 .mid
                 .as_ref()
-                .ok_or_else(|| {
-                    let err = anyhow::anyhow!("`mid` price not found in the last candlestick.");
-                    err
-                })?
+                .ok_or_else(|| anyhow::anyhow!("`mid` price not found in the last candlestick."))?
                 .c
         }
         None => anyhow::bail!("There are zero candlesticks in the candlestick response"),
