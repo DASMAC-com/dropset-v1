@@ -42,6 +42,8 @@ pub struct CliArgs {
     pub target_base: u64,
 }
 
+/// Loads the maker context from passed CLI arguments and a few expected environment variables.
+/// See [`crate::load_env`] for the expected environment variables.
 pub async fn initialize_context_from_cli(
     rpc: &CustomRpcClient,
     reqwest_client: &reqwest::Client,
