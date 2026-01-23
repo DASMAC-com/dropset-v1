@@ -50,6 +50,7 @@ use crate::{
 
 pub mod calculate_spreads;
 pub mod maker_context;
+pub mod model_parameters;
 pub mod oanda;
 
 pub mod cli;

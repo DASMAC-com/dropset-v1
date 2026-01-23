@@ -1,5 +1,8 @@
 //! Calculation functions used to implement the market making strategy defined in the
 //! Avellaneda-Stoikov paper here: <https://people.orie.cornell.edu/sfs33/LimitOrderBook.pdf>
+//!
+//! Tune the model parameters to your specific market's characteristics in
+//! [`crate::model_parameters`].
 
 use std::sync::LazyLock;
 
@@ -9,39 +12,7 @@ use rust_decimal::{
     Decimal,
 };
 
-/// Risk-aversion parameter (γ). Higher => stronger inventory penalty. This value skews quotes more
-/// to mean-revert inventory.
-const RISK_AVERSION: Decimal = dec!(0.1);
-
-/// Volatility estimate (σ) in *price units per sqrt(second)* (i.e. stddev of mid-price change over
-/// 1 second). If you want “X% per second”, set `sigma = mid_price * X` (e.g. 0.01% => X=1e-4).
-const VOLATILITY_ESTIMATE: Decimal = dec!(0.0001);
-
-/// Effective time horizon in seconds (T - t or τ). Longer => more inventory risk => wider spread +
-/// stronger skew.
-const TIME_HORIZON: Decimal = dec!(0.1);
-
-/// Smallest representable increment of price utilized by the model (aka one tick), in price units.
-/// This can match the smallest representable increment on-chain or be arbitrary- but it must be
-/// consistent with [`VOLATILITY_ESTIMATE`].
-const PRICE_STEP: Decimal = dec!(0.0001);
-
-/// Human-friendly fill-decay knob:
-/// This value represents how many [`PRICE_STEP`]s away from mid price until the fill intensity
-/// drops by e⁻¹.
-/// Converted into `k` (units: 1/price) for λ(δ)=A·exp(-k·δ).
-const FILL_DECAY_STEPS: Decimal = dec!(10);
-
-/// The model `k` value representing the distance from mid price indicating where fill intensity
-/// drops off.
-fn fill_decay() -> Decimal {
-    static K: LazyLock<Decimal> = LazyLock::new(|| {
-        // k = 1 / (steps * price_step)
-        Decimal::ONE / (FILL_DECAY_STEPS * PRICE_STEP)
-    });
-
-    *LazyLock::force(&K)
-}
+use crate::model_parameters::*;
 
 /// Calculates the reservation price, also known as the indifference price and the central price.
 ///
@@ -98,4 +69,15 @@ fn volatility_estimate_squared() -> Decimal {
     static VOL_SQ: LazyLock<Decimal> = LazyLock::new(|| VOLATILITY_ESTIMATE * VOLATILITY_ESTIMATE);
 
     *LazyLock::force(&VOL_SQ)
+}
+
+/// The model `k` value representing the distance from mid price indicating where fill intensity
+/// drops off.
+fn fill_decay() -> Decimal {
+    static K: LazyLock<Decimal> = LazyLock::new(|| {
+        // k = 1 / (steps * price_step)
+        Decimal::ONE / (FILL_DECAY_STEPS * PRICE_STEP)
+    });
+
+    *LazyLock::force(&K)
 }
