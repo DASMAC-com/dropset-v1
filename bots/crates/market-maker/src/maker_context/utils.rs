@@ -294,4 +294,44 @@ mod tests {
             assert!(find_order::<BidOrders>(10000, &bids, seat).is_none());
         }
     }
+
+    #[test]
+    fn split_symmetric_difference_doc_example() {
+        // From doc comment: a = {1: "a", 2: "b", 3: "c"}, b = {3: "c", 4: "d", 5: "e"}
+        // Expected: ([a, b], [d, e])
+        let a: HashMap<i32, &str> = [(1, "a"), (2, "b"), (3, "c")].into();
+        let b: HashMap<i32, &str> = [(3, "c"), (4, "d"), (5, "e")].into();
+
+        let (mut a_uniques, mut b_uniques) = split_symmetric_difference(&a, &b);
+        a_uniques.sort();
+        b_uniques.sort();
+
+        assert_eq!(a_uniques, vec![&"a", &"b"]);
+        assert_eq!(b_uniques, vec![&"d", &"e"]);
+    }
+
+    #[test]
+    fn split_symmetric_difference_all_keys_shared() {
+        // Same keys, different values returns empty vectors since filtering is by key.
+        let a: HashMap<i32, &str> = [(1, "a"), (2, "b")].into();
+        let b: HashMap<i32, &str> = [(1, "x"), (2, "y")].into();
+
+        let (a_uniques, b_uniques) = split_symmetric_difference(&a, &b);
+
+        assert!(a_uniques.is_empty());
+        assert!(b_uniques.is_empty());
+    }
+
+    #[test]
+    fn split_symmetric_difference_disjoint() {
+        let a: HashMap<i32, &str> = [(1, "a"), (2, "b")].into();
+        let b: HashMap<i32, &str> = [(3, "c"), (4, "d")].into();
+
+        let (mut a_uniques, mut b_uniques) = split_symmetric_difference(&a, &b);
+        a_uniques.sort();
+        b_uniques.sort();
+
+        assert_eq!(a_uniques, vec![&"a", &"b"]);
+        assert_eq!(b_uniques, vec![&"c", &"d"]);
+    }
 }
