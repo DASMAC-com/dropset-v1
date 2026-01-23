@@ -23,7 +23,7 @@ const TIME_HORIZON: Decimal = dec!(0.1);
 
 /// Smallest representable increment of price utilized by the model (aka one tick), in price units.
 /// This can match the smallest representable increment on-chain or be arbitrary- but it must be
-/// consistent with
+/// consistent with [`VOLATILITY_ESTIMATE`].
 const PRICE_STEP: Decimal = dec!(0.0001);
 
 /// Human-friendly fill-decay knob:
