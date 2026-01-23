@@ -155,16 +155,17 @@ pub fn split_symmetric_difference<'a, K: Eq + Hash, V1, V2>(
     a: &'a HashMap<K, V1>,
     b: &'a HashMap<K, V2>,
 ) -> (Vec<&'a V1>, Vec<&'a V2>) {
-    (
-        a.iter()
-            .filter(|(k, _)| !b.contains_key(k))
-            .map(|(_, v)| v)
-            .collect(),
-        b.iter()
-            .filter(|(k, _)| !a.contains_key(k))
-            .map(|(_, v)| v)
-            .collect(),
-    )
+    let a_uniques = a
+        .iter()
+        .filter(|(k, _)| !b.contains_key(k))
+        .map(|(_, v)| v)
+        .collect();
+    let b_uniques = b
+        .iter()
+        .filter(|(k, _)| !a.contains_key(k))
+        .map(|(_, v)| v)
+        .collect();
+    (a_uniques, b_uniques)
 }
 
 pub fn log_orders(
