@@ -265,9 +265,11 @@ impl MakerContext {
         let (bid_price, ask_price) = self.get_bid_and_ask_prices();
 
         let (cancels, posts) = get_non_redundant_order_flow(
-            &self.latest_state,
+            self.latest_state.bids.clone(),
+            self.latest_state.asks.clone(),
             vec![(bid_price, ORDER_SIZE)],
             vec![(ask_price, ORDER_SIZE)],
+            self.latest_state.seat.index,
         )?;
 
         log_orders(&posts, &cancels)?;
@@ -366,55 +368,54 @@ fn split_symmetric_difference<'a, K: Eq + Hash, V1, V2>(
     )
 }
 
-fn to_order_args_and_key(
-    price_and_size: (Decimal, u64),
-) -> anyhow::Result<(OrderAsKey, OrderInfoArgs)> {
-    let (price, size) = price_and_size;
-    let args = to_order_info_args(price, size)?;
-    let order_info = to_order_info(args.clone())?;
-    Ok((order_info.into(), args))
+fn to_order_args_map(
+    prices_and_sizes: Vec<(Decimal, u64)>,
+) -> anyhow::Result<HashMap<OrderAsKey, OrderInfoArgs>> {
+    prices_and_sizes
+        .into_iter()
+        .map(|(price, size)| {
+            let args = to_order_info_args(price, size)?;
+            let order_info = to_order_info(args.clone())?;
+            Ok((order_info.into(), args))
+        })
+        .collect()
 }
 
-/// The maker essentially cancels all orders and then re-posts them. If any orders would be canceled
-/// and then reposted in the same transaction, simply filter out the corresponding cancel + post
-/// instruction for that order.
+fn to_order_view_map(orders: Vec<OrderView>) -> HashMap<OrderAsKey, OrderView> {
+    orders
+        .into_iter()
+        .map(|order| (order.clone().into(), order))
+        .collect()
+}
+
+/// Given the collections of bids/asks to cancel and bids/asks to post, determine which orders would
+/// be redundant and then filter them out from the set of resulting instructions.
+///
+/// That is, if an order would be canceled and then reposted, the cancel and post instruction are
+/// both redundant and should be filtered out.
 ///
 /// The bids and asks in the latest stored state might be stale due to fills.
 /// This will cause the cancel order attempts to fail and should be expected intermittently.
 fn get_non_redundant_order_flow(
-    latest_state: &MakerState,
+    bids_to_cancel: Vec<OrderView>,
+    asks_to_cancel: Vec<OrderView>,
     // Vec of (price, size) tuples.
-    bid_posts: Vec<(Decimal, u64)>,
+    bids_to_post: Vec<(Decimal, u64)>,
     // Vec of (price, size) tuples.
-    ask_posts: Vec<(Decimal, u64)>,
+    asks_to_post: Vec<(Decimal, u64)>,
+    maker_seat_index: SectorIndex,
 ) -> anyhow::Result<(
     Vec<CancelOrderInstructionData>,
     Vec<PostOrderInstructionData>,
 )> {
-    // Map the incoming (to-be-posted) key-able order infos to their respective order info args.
-    let bid_posts: HashMap<OrderAsKey, OrderInfoArgs> = bid_posts
-        .into_iter()
-        .map(to_order_args_and_key)
-        .collect::<anyhow::Result<HashMap<_, _>>>()?;
-
-    let ask_posts: HashMap<OrderAsKey, OrderInfoArgs> = ask_posts
-        .into_iter()
-        .map(to_order_args_and_key)
-        .collect::<anyhow::Result<HashMap<_, _>>>()?;
-
     // Map the existing maker's key-able order infos to their respective orders.
     // These will be the orders that are canceled.
-    let bids = latest_state.bids.clone();
-    let asks = latest_state.asks.clone();
-    let bid_cancels: HashMap<OrderAsKey, OrderView> = bids
-        .into_iter()
-        .map(|bid| (bid.clone().into(), bid))
-        .collect();
+    let bid_cancels = to_order_view_map(bids_to_cancel);
+    let ask_cancels = to_order_view_map(asks_to_cancel);
 
-    let ask_cancels: HashMap<OrderAsKey, OrderView> = asks
-        .into_iter()
-        .map(|ask| (ask.clone().into(), ask))
-        .collect();
+    // Map the incoming (to-be-posted) key-able order infos to their respective order info args.
+    let bid_posts = to_order_args_map(bids_to_post)?;
+    let ask_posts = to_order_args_map(asks_to_post)?;
 
     // Retain only the unique values in two hash maps `a` and `b`, where each item in `a` does not
     // have a corresponding matching key in `b`.
@@ -422,14 +423,13 @@ fn get_non_redundant_order_flow(
     let (unique_bid_posts, unique_bid_cancels) = split_symmetric_difference(p_bid, c_bid);
     let (unique_ask_posts, unique_ask_cancels) = split_symmetric_difference(p_ask, c_ask);
 
-    let seat_index = latest_state.seat.index;
     let cancels = unique_bid_cancels
         .iter()
-        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, seat_index))
+        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, maker_seat_index))
         .chain(
             unique_ask_cancels
                 .iter()
-                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, seat_index)),
+                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, maker_seat_index)),
         )
         .collect_vec();
 
@@ -442,7 +442,7 @@ fn get_non_redundant_order_flow(
                 p.base_exponent_biased,
                 p.quote_exponent_biased,
                 true,
-                seat_index,
+                maker_seat_index,
             )
         })
         .chain(unique_ask_posts.iter().map(|p| {
@@ -452,7 +452,7 @@ fn get_non_redundant_order_flow(
                 p.base_exponent_biased,
                 p.quote_exponent_biased,
                 false,
-                seat_index,
+                maker_seat_index,
             )
         }))
         .collect_vec();
