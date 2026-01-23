@@ -119,6 +119,8 @@ pub async fn program_subscribe(
     sender: watch::Sender<TaskUpdate>,
     ws_url: &str,
 ) -> anyhow::Result<()> {
+    // The market address should never change, so store it once for filtering later.
+    let market_address = maker_ctx.try_borrow()?.market_ctx.market.to_string();
     let ws_client = PubsubClient::new(ws_url).await?;
 
     let config = RpcProgramAccountsConfig {
@@ -142,6 +144,9 @@ pub async fn program_subscribe(
         .context("Couldn't subscribe to program")?;
 
     while let Some(account) = stream.next().await {
+        if account.value.pubkey != market_address {
+            continue;
+        }
         let owner = Address::from_str(account.value.account.owner.as_str())
             .expect("Should be a valid address");
         let account_data = account

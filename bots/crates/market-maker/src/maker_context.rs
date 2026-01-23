@@ -13,10 +13,7 @@ use dropset_interface::{
         CancelOrderInstructionData,
         PostOrderInstructionData,
     },
-    state::{
-        sector::SectorIndex,
-        user_order_sectors::OrderSectors,
-    },
+    state::user_order_sectors::OrderSectors,
 };
 use itertools::Itertools;
 use price::{
@@ -156,7 +153,7 @@ pub struct MakerContext {
     pub keypair: Keypair,
     pub market_ctx: MarketContext,
     /// The maker's address.
-    pub maker_address: Address,
+    maker_address: Address,
     /// The currency pair.
     pub pair: CurrencyPair,
     /// The maker's latest state.
@@ -210,10 +207,6 @@ impl MakerContext {
     /// See [`MakerContext::mid_price`].
     pub fn mid_price(&self) -> Decimal {
         self.mid_price
-    }
-
-    pub fn maker_seat(&self) -> SectorIndex {
-        self.latest_state.seat.index
     }
 
     /// In the A-S model `q` represents the base inventory as a reflection of the maker's net short
