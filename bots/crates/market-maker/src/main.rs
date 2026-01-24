@@ -96,13 +96,13 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::select! {
         r1 = program_subscribe(maker_ctx.clone(), sender.clone(), WS_URL) => {
-            println!("Program subscription errored out: {r1:#?}");
+            println!("Program subscription terminated: {r1:#?}");
         },
         r2 = poll_price_feed(maker_ctx.clone(), sender.clone(), reqwest_client, oanda_args) => {
-            println!("Price feed poller errored out: {r2:#?}");
+            println!("Price feed poll loop terminated: {r2:#?}");
         },
         r3 = throttled_order_update(maker_ctx.clone(), receiver, &rpc, THROTTLE_WINDOW_MS) => {
-            println!("Throttled order update errored out: {r3:#?}");
+            println!("Throttled order update loop terminated: {r3:#?}");
         }
     }
 
