@@ -170,7 +170,9 @@ pub async fn program_subscribe(
     Ok(())
 }
 
-/// Oanda recommends limiting to twice per second (500ms interval).
+/// Oanda recommends limiting to twice per second (500ms interval). Thus anything other greater
+/// than 500ms here should be fine.
+///
 /// See: <https://developer.oanda.com/rest-live-v20/best-practices/>
 const POLL_INTERVAL_MS: u64 = 5000;
 
