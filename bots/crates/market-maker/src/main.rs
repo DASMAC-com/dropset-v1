@@ -232,8 +232,10 @@ async fn throttled_order_update(
             (maker_keypair, instructions)
         };
 
-        rpc.send_and_confirm_txn(&maker_keypair, &[&maker_keypair], &instructions)
-            .await?;
+        if !instructions.is_empty() {
+            rpc.send_and_confirm_txn(&maker_keypair, &[&maker_keypair], &instructions)
+                .await?;
+        }
 
         // Sleep for the throttle window in milliseconds before doing work again.
         // This effectively means the loop only does the cancel/post work once every window of time.
