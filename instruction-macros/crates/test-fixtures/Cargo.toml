@@ -15,6 +15,7 @@ solana-address = { workspace = true, features = ["copy"] }
 solana-cpi = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
 solana-instruction-view = { workspace = true, optional = true, features = ["cpi"] }
+solana-program-error.workspace = true
 solana-sdk = { workspace = true, optional = true}
 
 [dev-dependencies]

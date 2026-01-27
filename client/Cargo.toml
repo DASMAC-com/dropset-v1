@@ -24,6 +24,7 @@ solana-compute-budget-interface = { workspace = true, features = ["serde"] }
 solana-cpi.workspace = true
 solana-instruction.workspace = true
 solana-instruction-error.workspace = true
+solana-program-error.workspace = true
 solana-sdk.workspace = true
 solana-system-interface = { workspace = true, features = ["serde", "bincode"] }
 solana-transaction-error.workspace = true

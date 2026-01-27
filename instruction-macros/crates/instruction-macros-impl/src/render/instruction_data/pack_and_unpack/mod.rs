@@ -29,7 +29,7 @@ pub fn render(
         size_with_tag,
         layout_docs,
         pack_statements,
-        unpack_assignments_map,
+        unpack_assignments,
     } = StatementsAndLayoutInfo::new(instruction_variant);
 
     let pack = pack::render(
@@ -41,7 +41,7 @@ pub fn render(
         size_with_tag,
     );
 
-    let unpack = unpack::render(&size_without_tag, field_names, unpack_assignments_map);
+    let unpack = unpack::render(&size_without_tag, field_names, unpack_assignments);
 
     (pack, unpack)
 }

@@ -1027,6 +1027,7 @@ dependencies = [
  "solana-cpi",
  "solana-instruction",
  "solana-instruction-error",
+ "solana-program-error",
  "solana-sdk",
  "solana-system-interface 3.0.0",
  "solana-transaction-error",
@@ -1508,6 +1509,7 @@ dependencies = [
  "solana-cpi",
  "solana-instruction",
  "solana-instruction-view",
+ "solana-program-error",
  "solana-sdk",
  "static_assertions",
  "strum",
@@ -2507,6 +2509,7 @@ dependencies = [
  "solana-cpi",
  "solana-instruction",
  "solana-instruction-view",
+ "solana-program-error",
  "solana-sdk",
 ]
 

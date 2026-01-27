@@ -7,17 +7,14 @@ use proc_macro2::{
 use quote::quote;
 use syn::Ident;
 
-use crate::{
-    parse::{
-        argument_type::{
-            ArgumentType,
-            ParsedPackableType,
-        },
-        error_path::ErrorPath,
-        error_type::ErrorType,
-        primitive_arg::PrimitiveArg,
+use crate::parse::{
+    argument_type::{
+        ArgumentType,
+        ParsedPackableType,
     },
-    render::Feature,
+    error_path::ErrorPath,
+    error_type::ErrorType,
+    primitive_arg::PrimitiveArg,
 };
 
 impl ArgumentType {
@@ -44,12 +41,7 @@ impl ArgumentType {
         }
     }
 
-    pub fn unpack_statement(
-        &self,
-        arg_name: &Ident,
-        offset: usize,
-        feature: Feature,
-    ) -> TokenStream {
+    pub fn unpack_statement(&self, arg_name: &Ident, offset: usize) -> TokenStream {
         let size_lit = Literal::usize_unsuffixed(self.size());
         let offset_lit = Literal::usize_unsuffixed(offset);
         let parsed_type = self.as_parsed_type();
@@ -59,7 +51,7 @@ impl ArgumentType {
             _ => quote! { p.add(#offset_lit) },
         };
 
-        let ErrorPath { base, variant } = ErrorType::InvalidInstructionData.to_path(feature);
+        let ErrorPath { base, variant } = ErrorType::InvalidInstructionData.to_path();
 
         match self {
             Self::PrimitiveArg(arg) => match arg {

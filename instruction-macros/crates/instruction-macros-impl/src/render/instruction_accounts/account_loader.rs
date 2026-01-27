@@ -37,7 +37,7 @@ pub fn render_account_loader(
         .map(|acc| format_ident!("{}", acc.name))
         .collect::<Vec<_>>();
 
-    let ErrorPath { base, variant } = ErrorType::IncorrectNumAccounts.to_path(feature);
+    let ErrorPath { base, variant } = ErrorType::IncorrectNumAccounts.to_path();
 
     quote! {
         #[inline(always)]

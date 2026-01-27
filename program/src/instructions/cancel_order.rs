@@ -43,7 +43,7 @@ pub unsafe fn process_cancel_order<'a>(
         encoded_price,
         is_bid,
         user_sector_index_hint,
-    } = CancelOrderInstructionData::unpack_pinocchio(instruction_data)?;
+    } = CancelOrderInstructionData::unpack(instruction_data)?;
     let mut ctx = CancelOrderContext::load(accounts)?;
 
     // Remove the order from the user seat's order sectors mapping.

@@ -98,6 +98,8 @@ pub enum DropsetInstruction {
     #[args(user_sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
     CancelOrder,
 
+    BatchReplace,
+
     #[account(0,           name = "event_authority",     desc = "The event authority PDA signer.")]
     #[account(1, signer,   name = "user",                desc = "The user creating the market order, aka the taker.")]
     #[account(2, writable, name = "market_account",      desc = "The market account PDA.")]
@@ -119,8 +121,6 @@ pub enum DropsetInstruction {
     // instruction data, but it is not used by the program.
     #[account(0, signer,   name = "event_authority", desc = "The event authority PDA signer.")]
     FlushEvents,
-
-    Batch,
 }
 
 impl TryFrom<u8> for DropsetInstruction {

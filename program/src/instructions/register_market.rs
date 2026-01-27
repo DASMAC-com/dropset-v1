@@ -44,8 +44,7 @@ pub unsafe fn process_register_market<'a>(
     instruction_data: &[u8],
     event_buffer: &mut EventBuffer,
 ) -> Result<EventBufferContext<'a>, ProgramError> {
-    let num_sectors =
-        RegisterMarketInstructionData::unpack_pinocchio(instruction_data)?.num_sectors;
+    let num_sectors = RegisterMarketInstructionData::unpack(instruction_data)?.num_sectors;
     let ctx = RegisterMarketContext::load(accounts)?;
 
     // It's not necessary to check the returned PDA here because `CreateAccount` will fail if the

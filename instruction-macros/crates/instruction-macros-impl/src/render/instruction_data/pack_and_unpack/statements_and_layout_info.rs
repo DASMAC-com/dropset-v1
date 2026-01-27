@@ -1,25 +1,19 @@
 //! Builds intermediate representations describing layout, ordering, and serialization statements
 //! used by pack/unpack code generation.
 
-use std::collections::HashMap;
-
 use proc_macro2::{
     Literal,
     TokenStream,
 };
 use quote::quote;
-use strum::IntoEnumIterator;
 use syn::Ident;
 
-use crate::{
-    parse::{
-        argument_type::{
-            ArgumentType,
-            ParsedPackableType,
-        },
-        instruction_variant::InstructionVariant,
+use crate::parse::{
+    argument_type::{
+        ArgumentType,
+        ParsedPackableType,
     },
-    render::Feature,
+    instruction_variant::InstructionVariant,
 };
 
 pub struct StatementsAndLayoutInfo {
@@ -31,8 +25,8 @@ pub struct StatementsAndLayoutInfo {
     pub layout_docs: Vec<TokenStream>,
     /// Each field's individual `pack` statement.
     pub pack_statements: Vec<TokenStream>,
-    /// Each field's tuple of feature + unpack assignments.
-    pub unpack_assignments_map: HashMap<Feature, Vec<TokenStream>>,
+    /// Each field's individual `unpack` statement.
+    pub unpack_assignments: Vec<TokenStream>,
 }
 
 impl StatementsAndLayoutInfo {
@@ -40,13 +34,8 @@ impl StatementsAndLayoutInfo {
         let instruction_args = &instruction_variant.arguments;
         let (size_without_tag, layout_docs, pack_statements, unpack_assignments) =
             instruction_args.iter().fold(
-                (
-                    0,
-                    vec![],
-                    vec![],
-                    HashMap::from_iter(Feature::iter().map(|f| (f, vec![]))),
-                ),
-                |(curr, mut layout_docs, mut pack_statements, mut unpack_assignments_map), arg| {
+                (0, vec![], vec![], vec![]),
+                |(curr, mut layout_docs, mut pack_statements, mut unpack_assignments), arg| {
                     // Pack statements must also pack the discriminant first, so start at byte `1`
                     let pack_offset = curr + 1;
                     // Unpack statements operate on the instruction data *after* the tag byte has
@@ -59,24 +48,17 @@ impl StatementsAndLayoutInfo {
 
                     let layout_comment = layout_doc_comment(arg_name, arg_type, pack_offset, size);
                     let pack = arg_type.pack_statement(arg_name, pack_offset);
+                    let unpack = arg_type.unpack_statement(arg_name, unpack_offset);
 
                     layout_docs.push(layout_comment);
                     pack_statements.push(pack);
-
-                    // Push to each individual namespaced `unpack` statements vec.
-                    for feature in Feature::iter() {
-                        let statement = arg_type.unpack_statement(arg_name, unpack_offset, feature);
-                        unpack_assignments_map
-                            .get_mut(&feature)
-                            .expect("Should have feature")
-                            .push(statement);
-                    }
+                    unpack_assignments.push(unpack);
 
                     (
                         curr + size,
                         layout_docs,
                         pack_statements,
-                        unpack_assignments_map,
+                        unpack_assignments,
                     )
                 },
             );
@@ -86,7 +68,7 @@ impl StatementsAndLayoutInfo {
             size_with_tag: Literal::usize_unsuffixed(size_without_tag + 1),
             layout_docs,
             pack_statements,
-            unpack_assignments_map: unpack_assignments,
+            unpack_assignments,
         }
     }
 }

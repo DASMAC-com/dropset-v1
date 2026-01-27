@@ -70,7 +70,7 @@ pub fn process_instruction(
             DropsetInstruction::FlushEvents => {
                 return process_flush_events(accounts, instruction_data)
             }
-            DropsetInstruction::Batch => return process_batch(accounts, instruction_data),
+            DropsetInstruction::BatchReplace => return process_batch(accounts, instruction_data),
         }
     }?;
 
