@@ -131,7 +131,7 @@ impl<'a> Stack<'a> {
     ///
     /// An Ok([`SectorIndex`]) is always in-bounds and non-NIL.
     ///
-    /// NOTE: If the returned index is discarded without being re-inserted into a data structure
+    /// NOTE: If the returned index is discarded without being reinserted into a data structure
     /// (or pushed back onto the free stack), that sector becomes unreachable and is effectively
     /// leaked from future use.
     ///
