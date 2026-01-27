@@ -16,7 +16,7 @@ impl InstructionAccount {
     pub fn render_instruction_account_view(&self, feature: Feature) -> TokenStream {
         let field_ident = format_ident!("{}", self.name);
         match feature {
-            Feature::SolanaProgram | Feature::Pinocchio => {
+            Feature::Program => {
                 let ctor_method = match (self.is_writable, self.is_signer) {
                     (true, true) => quote! { writable_signer },
                     (true, false) => quote! { writable },

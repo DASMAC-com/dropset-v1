@@ -1,6 +1,6 @@
 //! See [`CloseSeatContext`].
 
-use dropset_interface::instructions::generated_pinocchio::CloseSeat;
+use dropset_interface::instructions::generated_program::CloseSeat;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,

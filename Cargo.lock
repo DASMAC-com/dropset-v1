@@ -2503,14 +2503,12 @@ version = "0.1.0"
 dependencies = [
  "instruction-macros",
  "macrotest",
- "pinocchio 0.10.1",
  "solana-account-view",
  "solana-address 2.0.0",
  "solana-cpi",
  "solana-instruction",
  "solana-instruction-view",
  "solana-program-error",
- "solana-sdk",
 ]
 
 [[package]]

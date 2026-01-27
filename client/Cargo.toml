@@ -9,7 +9,7 @@ bincode.workspace = true
 borsh.workspace = true
 colored.workspace = true
 dropset = { path = "../program" }
-dropset-interface = { path = "../interface", features = ["client", "solana-program", "std"], default-features = false }
+dropset-interface = { path = "../interface", features = ["client", "std"], default-features = false }
 itertools.workspace = true
 futures.workspace = true
 lazy-regex.workspace = true

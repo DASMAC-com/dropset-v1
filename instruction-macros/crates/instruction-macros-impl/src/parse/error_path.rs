@@ -8,7 +8,7 @@ use syn::{
 /// Helper type for representing fully qualified error paths (base + variant) in generated code.
 #[derive(Debug, Clone)]
 pub struct ErrorPath {
-    /// The error base segment; e.g. `pinocchio::error::ProgramError`
+    /// The error base segment; e.g. `solana_program_error::ProgramError`
     pub base: Path,
     /// The error variant; e.g. `InvalidInstructionData`
     pub variant: Ident,

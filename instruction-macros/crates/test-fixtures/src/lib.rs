@@ -1,16 +1,14 @@
 //! Test fixtures for verifying macro expansion across feature namespaces.
 //!
 //! This crate provides isolated environments for testing generated instruction
-//! code under different compilation features (`client`, `pinocchio`, and
-//! `solana-program`).
+//! code under the two different compilation features: `client` and `program`.
 
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
 mod client;
 mod events;
-mod pinocchio;
-mod solana_program;
+mod program;
 
 use solana_address::Address;
 

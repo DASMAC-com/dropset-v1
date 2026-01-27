@@ -1,6 +1,6 @@
 //! See [`CancelOrderContext`].
 
-use dropset_interface::instructions::generated_pinocchio::CancelOrder;
+use dropset_interface::instructions::generated_program::CancelOrder;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,

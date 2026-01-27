@@ -19,7 +19,7 @@ use crate::{
     render::Feature,
 };
 
-/// Renders the `invoke_`, `invoke_signed` for pinocchio/solana-program and the create
+/// Renders the `invoke_`, `invoke_signed` for program-based invocations and the create
 /// instruction method for the client.
 pub fn render_invoke_methods(
     feature: Feature,
@@ -43,8 +43,7 @@ pub fn render_invoke_methods(
         .collect::<(Vec<_>, Vec<_>)>();
 
     match feature {
-        Feature::Pinocchio => invoke_functions(program_id_path, data_ident, accounts, names),
-        Feature::SolanaProgram => invoke_functions(program_id_path, data_ident, accounts, names),
+        Feature::Program => invoke_functions(program_id_path, data_ident, accounts, names),
         Feature::Client => client_create_instruction(program_id_path, data_ident, accounts),
     }
 }
@@ -57,12 +56,12 @@ fn invoke_functions(
 ) -> TokenStream {
     quote! {
         #[inline(always)]
-        pub fn invoke(self, data: #instruction_data_type) -> ::pinocchio::ProgramResult {
+        pub fn invoke(self, data: #instruction_data_type) -> ::solana_program_error::ProgramResult {
             self.invoke_signed(&[], data)
         }
 
         #[inline(always)]
-        pub fn invoke_signed(self, signers_seeds: &[::solana_instruction_view::cpi::Signer], data: #instruction_data_type) -> ::pinocchio::ProgramResult {
+        pub fn invoke_signed(self, signers_seeds: &[::solana_instruction_view::cpi::Signer], data: #instruction_data_type) -> ::solana_program_error::ProgramResult {
             let accounts = &[ #(#account_views),* ];
             let Self {
                 #(#account_names),*

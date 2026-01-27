@@ -37,7 +37,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in
-/// [`dropset_interface::instructions::generated_pinocchio::RegisterMarket`].
+/// [`dropset_interface::instructions::generated_program::RegisterMarket`].
 #[inline(never)]
 pub unsafe fn process_register_market<'a>(
     accounts: &'a [AccountView],

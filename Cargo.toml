@@ -88,7 +88,6 @@ check-cfg = [
     'cfg(target_feature, values("static-syscalls"))',
     'cfg(feature, values("no-entrypoint"))',
     'cfg(feature, values("std"))',
-    'cfg(feature, values("pinocchio"))',
-    'cfg(feature, values("solana-program"))',
+    'cfg(feature, values("program"))',
     'cfg(feature, values("client"))',
 ]

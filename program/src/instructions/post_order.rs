@@ -42,7 +42,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in
-/// [`dropset_interface::instructions::generated_pinocchio::PostOrder`].
+/// [`dropset_interface::instructions::generated_program::PostOrder`].
 #[inline(never)]
 pub unsafe fn process_post_order<'a>(
     accounts: &'a [AccountView],

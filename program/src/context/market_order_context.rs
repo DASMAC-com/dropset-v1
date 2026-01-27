@@ -1,6 +1,6 @@
 //! See [`MarketOrderContext`].
 
-use dropset_interface::instructions::generated_pinocchio::MarketOrder;
+use dropset_interface::instructions::generated_program::MarketOrder;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,
