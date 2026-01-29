@@ -1,8 +1,10 @@
 //! Internal implementation crate for `instruction-macros`, providing parsing and rendering
 //! utilities used by the proc macro.
 
+pub mod pack;
 pub mod parse;
 pub mod render;
+pub mod unpack;
 
 use parse::parsing_error::ParsingError;
 
