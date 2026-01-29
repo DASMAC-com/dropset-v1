@@ -71,6 +71,7 @@ unsafe impl Pack for bool {
 unsafe impl Pack for Address {
     const LEN: usize = size_of::<Address>();
 
+    #[inline(always)]
     unsafe fn pack(&self, dst: *mut u8) {
         core::ptr::copy_nonoverlapping(self as *const Address as *const u8, dst, Self::LEN);
     }
@@ -127,6 +128,7 @@ unsafe impl Unpack for u8 {
 ///
 /// Reads exactly 1 byte from `src` and fails if the byte is not 0 or 1.
 unsafe impl Unpack for bool {
+    #[inline(always)]
     unsafe fn unpack(src: *const u8) -> Result<Self, ProgramError> {
         match src.read() {
             0 => Ok(false),
@@ -140,6 +142,7 @@ unsafe impl Unpack for bool {
 ///
 /// Reads exactly 32 bytes from `src`.
 unsafe impl Unpack for Address {
+    #[inline(always)]
     unsafe fn unpack(src: *const u8) -> Result<Self, ProgramError> {
         Ok(Address::new_from_array(*(src as *const [u8; Address::LEN])))
     }
