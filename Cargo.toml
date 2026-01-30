@@ -5,6 +5,7 @@ members = [
   "bots/crates/market-taker",
   "client",
   "instruction-macros/crates/instruction-macros",
+  "instruction-macros/crates/instruction-macros-derive",
   "instruction-macros/crates/instruction-macros-impl",
   "instruction-macros/crates/test-fixtures",
   "interface",
