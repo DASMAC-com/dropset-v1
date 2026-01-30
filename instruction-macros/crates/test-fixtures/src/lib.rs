@@ -8,7 +8,7 @@
 
 mod client;
 mod events;
-mod pack;
+mod pack_and_unpack;
 mod program;
 
 use solana_address::Address;

@@ -4,7 +4,9 @@
 mod instruction_accounts;
 mod instruction_data;
 mod pack;
+mod unpack;
 
 pub use instruction_accounts::*;
 pub use instruction_data::*;
 pub use pack::*;
+pub use unpack::*;

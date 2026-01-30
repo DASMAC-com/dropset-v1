@@ -23,7 +23,10 @@ use derive::{
     DeriveInstructionData,
 };
 
-use crate::derive::derive_pack;
+use crate::derive::{
+    derive_pack,
+    derive_unpack,
+};
 
 /// The entrypoint for the proc macro derive [`ProgramInstruction`].
 #[proc_macro_derive(ProgramInstruction, attributes(account, args, program_id))]
@@ -109,6 +112,20 @@ pub fn pack(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     debug_paths_if_env_var_set(&[&pack_impl]);
 
     pack_impl.into()
+}
+
+/// The entrypoint for the proc macro derive [`Unpack`].
+#[proc_macro_derive(Unpack)]
+pub fn unpack(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let unpack_impl = match derive_unpack(input) {
+        Ok(render) => render,
+        Err(e) => return e.into_compile_error().into(),
+    };
+
+    debug_paths_if_env_var_set(&[&unpack_impl]);
+
+    unpack_impl.into()
 }
 
 /// Provides functionality for viewing all multi-segment paths.

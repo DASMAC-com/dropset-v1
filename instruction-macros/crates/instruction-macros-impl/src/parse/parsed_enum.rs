@@ -8,10 +8,11 @@ use syn::{
     Path,
 };
 
+use super::require_repr::ReprType;
 use crate::parse::{
     data_enum::require_data_enum,
     program_id::ProgramID,
-    require_repr_u8::require_repr_u8,
+    require_repr::require_repr,
 };
 
 /// The validated, in-memory model of the instruction enum used by parsing and rendering functions.
@@ -26,7 +27,7 @@ impl ParsedEnum {
     pub fn new(input: DeriveInput, as_instruction_events: bool) -> Result<Self, syn::Error> {
         let enum_ident = input.ident.clone();
         let program_id = ProgramID::try_from(&input)?;
-        require_repr_u8(&input)?;
+        require_repr(&input, ReprType::U8)?;
         let data_enum = require_data_enum(input)?;
 
         Ok(Self {
