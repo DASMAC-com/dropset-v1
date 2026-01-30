@@ -18,6 +18,6 @@ pub fn expand_events() {
 }
 
 #[test]
-pub fn expand_pack() {
-    macrotest::expand("src/pack.rs");
+pub fn expand_pack_and_unpack() {
+    macrotest::expand_args("src/pack_and_unpack.rs", ["--features", "no_extra_derives"]);
 }
