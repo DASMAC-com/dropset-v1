@@ -2478,6 +2478,14 @@ dependencies = [
 name = "instruction-macros"
 version = "0.1.0"
 dependencies = [
+ "instruction-macros-derive",
+ "instruction-macros-impl",
+]
+
+[[package]]
+name = "instruction-macros-derive"
+version = "0.1.0"
+dependencies = [
  "instruction-macros-impl",
  "itertools 0.14.0",
  "proc-macro2",

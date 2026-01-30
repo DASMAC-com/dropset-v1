@@ -1,11 +1,17 @@
 [package]
-name = "instruction-macros"
+name = "instruction-macros-derive"
 version.workspace = true
 edition.workspace = true
+
+[lib]
+proc-macro = true
 
 [lints]
 workspace = true
 
 [dependencies]
 instruction-macros-impl = { path = "../instruction-macros-impl" }
-instruction-macros-derive = { path = "../instruction-macros-derive" }
+itertools.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+syn.workspace = true
