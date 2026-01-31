@@ -72,7 +72,6 @@ fn render_variant(
     } = InstructionArgumentInfo::new(instruction_args);
 
     let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
-    let size_without_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag);
     let size_with_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag + 1);
 
     let (
