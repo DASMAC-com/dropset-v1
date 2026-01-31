@@ -2479,7 +2479,7 @@ name = "instruction-macros"
 version = "0.1.0"
 dependencies = [
  "instruction-macros-derive",
- "instruction-macros-impl",
+ "instruction-macros-traits",
 ]
 
 [[package]]
@@ -2500,8 +2500,6 @@ dependencies = [
  "itertools 0.14.0",
  "proc-macro2",
  "quote",
- "solana-address 2.0.0",
- "solana-program-error",
  "strum",
  "strum_macros",
  "syn 2.0.114",
@@ -2518,6 +2516,14 @@ dependencies = [
  "solana-cpi",
  "solana-instruction",
  "solana-instruction-view",
+ "solana-program-error",
+]
+
+[[package]]
+name = "instruction-macros-traits"
+version = "0.1.0"
+dependencies = [
+ "solana-address 2.0.0",
  "solana-program-error",
 ]
 

@@ -8,8 +8,10 @@ use proc_macro2::{
 use quote::quote;
 use syn::Ident;
 
+use crate::render::pack_struct_fields::fully_qualified_pack_trait;
+
 pub struct Packs {
-    pub pack: TokenStream,
+    pub pack_tagged: TokenStream,
     pub pack_into_slice: TokenStream,
 }
 
@@ -33,17 +35,21 @@ pub fn render(
     };
 
     let buf_len_check_line = format!(" - `buf.len() >= offset + {}`.", size_with_tag);
+    let pack_trait = fully_qualified_pack_trait();
 
-    let pack = quote! {
+    let pack_tagged = quote! {
         #[doc = " Instruction data layout:"]
         #[doc = #discriminant_description]
         #(#layout_docs)*
         #[inline(always)]
-        pub fn pack(&self) -> [u8; #size_with_tag] {
+        pub fn pack_tagged(&self) -> [u8; #size_with_tag] {
             use ::core::mem::MaybeUninit;
             let mut data: [MaybeUninit<u8>; #size_with_tag] = [MaybeUninit::uninit(); #size_with_tag];
-            data[0].write(Self::TAG_BYTE);
-            #pack_statements_tokens
+            let ptr = data.as_mut_ptr() as *mut u8;
+            unsafe {
+                ptr.write(Self::TAG_BYTE);
+                <Self as #pack_trait>::write_bytes(self, ptr.add(1));
+            }
 
             // All bytes initialized during the construction above.
             unsafe { *(data.as_ptr() as *const [u8; #size_with_tag]) }
@@ -82,7 +88,7 @@ pub fn render(
     };
 
     Packs {
-        pack,
+        pack_tagged,
         pack_into_slice,
     }
 }

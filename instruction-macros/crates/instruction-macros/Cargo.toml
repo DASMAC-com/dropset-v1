@@ -7,5 +7,5 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-instruction-macros-impl = { path = "../instruction-macros-impl" }
 instruction-macros-derive = { path = "../instruction-macros-derive" }
+instruction-macros-traits = { path = "../instruction-macros-traits" }

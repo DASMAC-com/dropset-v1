@@ -71,7 +71,7 @@ fn invoke_functions(
                 &::solana_instruction_view::InstructionView {
                     program_id: &#program_id_path.into(),
                     accounts,
-                    data: &data.pack(),
+                    data: &data.pack_tagged(),
                 },
                 &[
                     #(#account_names),*
@@ -95,7 +95,7 @@ fn client_create_instruction(
             ::solana_instruction::Instruction {
                 program_id: #program_id_path.into(),
                 accounts,
-                data: data.pack().to_vec(),
+                data: data.pack_tagged().to_vec(),
             }
         }
     }

@@ -21,9 +21,15 @@ use crate::{
         instruction_variant::InstructionVariant,
         parsed_enum::ParsedEnum,
     },
-    render::instruction_data::{
-        pack_and_unpack::Packs,
-        unzipped_argument_infos::InstructionArgumentInfo,
+    render::{
+        instruction_data::{
+            pack_and_unpack::Packs,
+            unzipped_argument_infos::InstructionArgumentInfo,
+        },
+        pack_struct_fields::{
+            fully_qualified_pack_trait,
+            fully_qualified_unpack_trait,
+        },
     },
 };
 
@@ -71,11 +77,14 @@ fn render_variant(
 
     let (
         Packs {
-            pack: pack_fn,
+            pack_tagged: pack_fn,
             pack_into_slice,
         },
         unpacks,
     ) = pack_and_unpack::render(parsed_enum, instruction_variant, &names);
+
+    let pack_trait = fully_qualified_pack_trait();
+    let unpack_trait = fully_qualified_unpack_trait();
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -84,7 +93,8 @@ fn render_variant(
     // - The implementations for `pack` and `unpack`
     quote! {
         #struct_doc
-        #[derive(Clone, Debug, PartialEq, Eq)]
+        #[repr(C)]
+        #[derive(#pack_trait, #unpack_trait, Clone, Debug, PartialEq, Eq)]
         pub struct #struct_name {
             #(
                 #doc_descriptions
@@ -96,9 +106,6 @@ fn render_variant(
         #const_assertion
 
         impl #struct_name {
-            /// This is the byte length **not including** the tag byte; i.e., the size of `Self`.
-            pub const LEN: usize = #size_without_tag_unsuffixed;
-
             /// This is the byte length **including** the tag byte; i.e., the size of the full event
             /// instruction data in an `instruction_data: &[u8]` slice with the tag.
             pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;

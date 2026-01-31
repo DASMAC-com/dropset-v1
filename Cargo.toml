@@ -7,6 +7,7 @@ members = [
   "instruction-macros/crates/instruction-macros",
   "instruction-macros/crates/instruction-macros-derive",
   "instruction-macros/crates/instruction-macros-impl",
+  "instruction-macros/crates/instruction-macros-traits",
   "instruction-macros/crates/test-fixtures",
   "interface",
   "grpc-stream",
