@@ -15,9 +15,9 @@ pub struct Packs {
     pub pack_into_slice: TokenStream,
 }
 
-/// Render the `pack` function for an instruction data variant.
+/// Render the `pack_tagged` function for an instruction data variant.
 ///
-/// `pack` serializes instruction arguments into their on-chain binary layout.
+/// `pack_tagged` serializes instruction arguments into their on-chain binary layout.
 pub fn render(
     enum_ident: &Ident,
     struct_name: &Ident,

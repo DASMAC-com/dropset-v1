@@ -47,7 +47,7 @@ pub unsafe fn process_market_order<'a>(
         order_size,
         is_buy,
         is_base,
-    } = MarketOrderInstructionData::unpack(instruction_data)?;
+    } = MarketOrderInstructionData::unpack_untagged(instruction_data)?;
     let mut ctx = MarketOrderContext::load(accounts)?;
 
     let AmountsFilled {
