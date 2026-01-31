@@ -1,6 +1,11 @@
-//! Proc-macro entrypoint for `#[derive(ProgramInstruction)]`, generating
-//! namespaced instruction data, account layouts, and helper APIs from an
-//! instruction enum definition.
+//! Proc-macro entrypoints for the various derives. They generate namespaced instruction data,
+//! account layouts, and helper APIs from an instruction enum definition.
+//!
+//! [`ProgramInstruction`] also generates helper methods for cross-program invocations if the
+//! `program` feature is enabled.
+//!
+//! [`ProgramInstructionEvent`] has the same output as [`ProgramInstruction`] but without the
+//! helper methods and structs used for cross-program invocation.
 
 use instruction_macros_impl::render::merge_namespaced_token_streams;
 use quote::quote;
@@ -18,11 +23,7 @@ use derive::{
     DeriveInstructionData,
 };
 
-use crate::derive::{
-    derive_instruction_event_data,
-    DeriveInstructionEventData,
-};
-
+/// The entrypoint for the proc macro derive [`ProgramInstruction`].
 #[proc_macro_derive(ProgramInstruction, attributes(account, args, program_id))]
 pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -31,7 +32,7 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         try_from_u8,
         pack_into_slice_trait,
         instruction_data,
-    } = match derive_instruction_data(input.clone()) {
+    } = match derive_instruction_data(input.clone(), false) {
         Ok(render) => render,
         Err(e) => return e.into_compile_error().into(),
     };
@@ -72,15 +73,18 @@ pub fn instruction(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     .into()
 }
 
+/// The entrypoint for the proc macro derive [`ProgramInstructionEvent`].
+/// The primary difference between this and [`ProgramInstruction`] is that this derive won't
+/// generate invocation functions.
 #[proc_macro_derive(ProgramInstructionEvent, attributes(args, program_id))]
 pub fn instruction_event(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    let DeriveInstructionEventData {
+    let DeriveInstructionData {
         try_from_u8,
         pack_into_slice_trait,
         instruction_data,
-    } = match derive_instruction_event_data(input.clone()) {
+    } = match derive_instruction_data(input.clone(), true) {
         Ok(render) => render,
         Err(e) => return e.into_compile_error().into(),
     };

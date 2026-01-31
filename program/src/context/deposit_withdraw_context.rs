@@ -1,6 +1,6 @@
 //! See [`DepositWithdrawContext`].
 
-use dropset_interface::instructions::generated_pinocchio::Deposit;
+use dropset_interface::instructions::generated_program::Deposit;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,
@@ -13,7 +13,7 @@ use crate::validation::{
 };
 
 /// The account context for the [`Deposit`] and
-/// [`dropset_interface::instructions::generated_pinocchio::Withdraw`] instructions, verifying token
+/// [`dropset_interface::instructions::generated_program::Withdraw`] instructions, verifying token
 /// ownership, mint consistency, and associated token account correctness.
 #[derive(Clone)]
 pub struct DepositWithdrawContext<'a> {
@@ -92,7 +92,7 @@ impl<'a> DepositWithdrawContext<'a> {
 
 #[cfg(debug_assertions)]
 fn debug_assert_deposit_withdraw(accounts: &[AccountView]) {
-    use dropset_interface::instructions::generated_pinocchio::{
+    use dropset_interface::instructions::generated_program::{
         Deposit,
         Withdraw,
     };

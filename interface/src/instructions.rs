@@ -4,11 +4,8 @@
 //! This module re-exports proc-macro generated code in multiple forms, depending on which features
 //! are enabled.
 //!
-//! The `pinocchio` feature: [`crate::instructions::generated_pinocchio`]
+//! The `program` feature: [`crate::instructions::generated_program`]
 //! The `client` feature: [`crate::instructions::generated_client`]
-//!
-//! The `solana-sdk` feature is disabled but enables `crate::instructions::generated_solana_sdk` for
-//! use with non-pinocchio based programs.
 
 use instruction_macros::ProgramInstruction;
 

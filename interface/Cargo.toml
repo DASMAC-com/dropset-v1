@@ -29,8 +29,7 @@ solana-sdk = { workspace = true }
 workspace = true
 
 [features]
-default = ["pinocchio"]
+default = ["program"]
 std = []
-pinocchio = []
+program = []
 client = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk", "dep:strum", "dep:strum_macros"]
-solana-program = ["dep:solana-instruction", "dep:solana-cpi", "dep:solana-sdk"]

@@ -1,6 +1,6 @@
 //! See [`RegisterMarketContext`].
 
-use dropset_interface::instructions::generated_pinocchio::RegisterMarket;
+use dropset_interface::instructions::generated_program::RegisterMarket;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,

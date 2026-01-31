@@ -1,5 +1,5 @@
-//! Derive helper for generating namespaced instruction data types and a `try_from_u8`-style tag
-//! macro from an instruction enum definition.
+//! Derive helper for generating namespaced instruction data types and a TryFrom<u8> for each
+//! instruction enum variant.
 
 use instruction_macros_impl::{
     parse::{
@@ -21,8 +21,11 @@ pub struct DeriveInstructionData {
     pub instruction_data: TokenStream,
 }
 
-pub fn derive_instruction_data(input: DeriveInput) -> syn::Result<DeriveInstructionData> {
-    let parsed_enum = ParsedEnum::try_from((false, input))?;
+pub fn derive_instruction_data(
+    input: DeriveInput,
+    as_instruction_events: bool,
+) -> syn::Result<DeriveInstructionData> {
+    let parsed_enum = ParsedEnum::new(input, as_instruction_events)?;
     let instruction_variants = parse_instruction_variants(&parsed_enum)?;
 
     let try_from_u8 = render_try_from_u8(&parsed_enum, &instruction_variants);

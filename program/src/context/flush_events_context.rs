@@ -1,6 +1,6 @@
 //! See [`FlushEventsContext`].
 
-use dropset_interface::instructions::generated_pinocchio::FlushEvents;
+use dropset_interface::instructions::generated_program::FlushEvents;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,

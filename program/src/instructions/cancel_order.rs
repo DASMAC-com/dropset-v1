@@ -32,7 +32,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in
-/// [`dropset_interface::instructions::generated_pinocchio::CancelOrder`].
+/// [`dropset_interface::instructions::generated_program::CancelOrder`].
 #[inline(never)]
 pub unsafe fn process_cancel_order<'a>(
     accounts: &'a [AccountView],

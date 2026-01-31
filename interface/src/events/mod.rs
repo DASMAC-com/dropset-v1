@@ -1,19 +1,8 @@
 //! Definitions and re-exports of all program instruction event structs and their respective pack
 //! and unpack implementations.
 //!
-//! Since instruction data events share the same pack/unpack implementations for instruction data
-//! as full-fledged instructions but are not actual instructions that can be invoked with accounts,
-//! [`DropsetEventTag`] derives [`ProgramInstructionEvent`] instead of
+//! Note that [`DropsetEventTag`] derives [`ProgramInstructionEvent`] instead of
 //! [`instruction_macros::ProgramInstruction`].
-//!
-//! Notably, the differences in generated code are:
-//!
-//! - the struct definitions and their `pack` implementations are feature-independent and thus not
-//!   namespaced; e.g. [`HeaderEventInstructionData`], [`HeaderEventInstructionData::pack`]
-//! - the `unpack` methods are only generated for the `client` feature, since instruction events
-//!   should never be viewed/parsed on-chain.
-//! - variants cannot define accounts
-//! - invocation methods or anything that uses instruction accounts are not generated
 
 #[cfg(test)]
 mod tests;

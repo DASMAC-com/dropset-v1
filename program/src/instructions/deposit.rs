@@ -45,7 +45,7 @@ use crate::{
 /// # Safety
 ///
 /// Caller guarantees the safety contract detailed in
-/// [`dropset_interface::instructions::generated_pinocchio::Deposit`].
+/// [`dropset_interface::instructions::generated_program::Deposit`].
 #[inline(never)]
 pub unsafe fn process_deposit<'a>(
     accounts: &'a [AccountView],

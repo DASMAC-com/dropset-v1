@@ -8,13 +8,8 @@ pub fn expand_client() {
 }
 
 #[test]
-pub fn expand_pinocchio() {
-    macrotest::expand_args("src/pinocchio.rs", ["--features", "pinocchio"]);
-}
-
-#[test]
-pub fn expand_solana_program() {
-    macrotest::expand_args("src/solana_program.rs", ["--features", "solana-program"]);
+pub fn expand_program() {
+    macrotest::expand_args("src/program.rs", ["--features", "program"]);
 }
 
 #[test]

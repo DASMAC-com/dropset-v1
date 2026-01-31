@@ -48,7 +48,7 @@ fn parse_as_file(ts: &TokenStream) -> syn::Result<File> {
 /// ::core::mem::MaybeUninit::uninit
 /// ::core::mem::MaybeUninit<u8>
 /// ::core::ptr::copy_nonoverlapping
-/// ::pinocchio::ProgramResult
+/// ::solana_program_error::ProgramResult
 /// ::solana_account_view::AccountView
 /// ::solana_instruction_view::cpi::invoke_signed
 /// ::solana_instruction_view::InstructionView

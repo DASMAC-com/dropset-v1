@@ -1,6 +1,6 @@
 //! See [`PostOrderContext`].
 
-use dropset_interface::instructions::generated_pinocchio::PostOrder;
+use dropset_interface::instructions::generated_program::PostOrder;
 use pinocchio::{
     account::AccountView,
     error::ProgramError,

@@ -7,7 +7,7 @@ edition.workspace = true
 anyhow.workspace = true
 derive_more = { workspace = true, features = ["into_iterator", "index", "as_ref", "deref"]}
 dropset = { path = "../program" }
-dropset-interface = { path = "../interface", features = ["client", "solana-program"], default-features = false }
+dropset-interface = { path = "../interface", features = ["client"], default-features = false }
 itertools.workspace = true
 lazy-regex.workspace = true
 price = { path = "../price" }
