@@ -1,57 +1,33 @@
 //! Renders the code that deserializes raw instruction data into structured arguments for program
 //! execution.
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Ident;
 
-use crate::parse::{
-    error_path::ErrorPath,
-    error_type::ErrorType,
+use crate::{
+    parse::{
+        error_path::ErrorPath,
+        error_type::ErrorType,
+    },
+    render::pack_struct_fields::fully_qualified_unpack_trait,
 };
 
-/// Render the fallible `unpack_*` method.
+/// Render the fallible `unpack_untagged*` method.
 ///
-/// `unpack_*` deserializes raw instruction data bytes into structured arguments according to the
-/// corresponding instruction variant's instruction arguments.
-pub fn render(
-    size_without_tag: &Literal,
-    field_names: &[Ident],
-    unpack_assignments: Vec<TokenStream>,
-) -> TokenStream {
-    let ErrorPath { base, variant } = ErrorType::InvalidInstructionData.to_path();
+/// `unpack_untagged*` deserializes raw instruction data bytes into structured arguments according
+/// to the corresponding instruction variant's instruction arguments.
+pub fn render() -> TokenStream {
+    let unpack_trait = fully_qualified_unpack_trait();
 
-    let unpack_body = match size_without_tag.to_string().as_str() {
-        // If the instruction has 0 bytes of data after the tag, simply return the Ok(empty data
-        // struct) because all passed slices are valid.
-        "0" => quote! { Ok(Self {}) },
-        _ => quote! {
-            if instruction_data.len() < #size_without_tag {
-                return Err(#base::#variant);
-            }
-
-            // Safety: The length was just verified; all dereferences are valid.
-            unsafe {
-                let p = instruction_data.as_ptr();
-                #(#unpack_assignments)*
-
-                Ok(Self {
-                    #(#field_names),*
-                })
-            }
-        },
-    };
+    let ErrorPath { base, variant: _ } = ErrorType::InvalidInstructionData.to_path();
 
     quote! {
         /// This method unpacks the instruction data that comes *after* the discriminant has
         /// already been peeled off of the front of the slice.
         /// Trailing bytes are ignored; the length must be sufficient, not exact.
         #[inline(always)]
-        pub fn unpack(instruction_data: &[u8]) -> Result<Self, #base> {
-            #unpack_body
+        pub fn unpack_untagged(instruction_data: &[u8]) -> Result<Self, #base> {
+            <Self as #unpack_trait>::unpack(instruction_data)
         }
     }
 }

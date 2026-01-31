@@ -5,8 +5,16 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 use crate::{
-    parse::parsed_struct::ParsedStruct,
-    render::pack_struct_fields::PackStructFields,
+    parse::{
+        error_path::ErrorPath,
+        error_type::ErrorType,
+        parsed_struct::ParsedStruct,
+    },
+    render::pack_struct_fields::{
+        fully_qualified_pack_trait,
+        fully_qualified_unpack_trait,
+        PackStructFields,
+    },
 };
 
 pub fn render(parsed_struct: ParsedStruct) -> TokenStream {
@@ -18,19 +26,28 @@ pub fn render(parsed_struct: ParsedStruct) -> TokenStream {
 
     let field_offsets = PackStructFields::new(&parsed_struct).field_offsets;
 
-    // Fully qualify the path, otherwise it collides with the proc macro derive with the same name.
-    let unpack_trait = quote! { ::instruction_macros::Unpack };
+    let ErrorPath { base, variant } = ErrorType::InvalidInstructionData.to_path();
 
-    let struct_fields = quote! {
-        #(#field_names: <#field_types as #unpack_trait>::unpack(src.add(#field_offsets))?,)*
-    };
+    let pack_trait = fully_qualified_pack_trait();
+    let unpack_trait = fully_qualified_unpack_trait();
 
     quote! {
         unsafe impl #unpack_trait for #struct_ident {
-            unsafe fn unpack(src: *const u8) -> Result<Self, ::solana_program_error::ProgramError> {
+            #[inline(always)]
+            unsafe fn read_bytes(src: *const u8) -> Result<Self, #base> {
                 Ok(Self {
-                    #struct_fields
+                    #(#field_names: <#field_types as #unpack_trait>::read_bytes(src.add(#field_offsets))?,)*
                 })
+            }
+
+            #[inline(always)]
+            fn unpack(data: &[u8]) -> Result<Self, #base> {
+                if data.len() < <Self as #pack_trait>::LEN {
+                    return Err(#base::#variant);
+                }
+
+                /// Safety: The length of `data` was just verified as sufficient.
+                unsafe { Self::read_bytes(data.as_ptr()) }
             }
         }
     }

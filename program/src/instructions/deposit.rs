@@ -55,7 +55,7 @@ pub unsafe fn process_deposit<'a>(
     let DepositInstructionData {
         amount,
         sector_index_hint,
-    } = DepositInstructionData::unpack(instruction_data)?;
+    } = DepositInstructionData::unpack_untagged(instruction_data)?;
 
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;
     // Safety: No account data is currently borrowed.

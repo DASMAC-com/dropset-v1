@@ -1,12 +1,12 @@
 //! Code generation utilities for packing and unpacking instruction data, including field layout and
 //! serialization logic.
 
-mod pack;
+mod pack_tagged;
 mod statements;
 mod statements_and_layout_info;
 mod unpack;
 
-pub use pack::Packs;
+pub use pack_tagged::Packs;
 use proc_macro2::TokenStream;
 use statements_and_layout_info::*;
 use syn::Ident;
@@ -32,7 +32,7 @@ pub fn render(
         unpack_assignments,
     } = StatementsAndLayoutInfo::new(instruction_variant);
 
-    let pack = pack::render(
+    let pack = pack_tagged::render(
         enum_ident,
         &instruction_variant.instruction_data_struct_ident(),
         tag_variant,
@@ -41,7 +41,7 @@ pub fn render(
         size_with_tag,
     );
 
-    let unpack = unpack::render(&size_without_tag, field_names, unpack_assignments);
+    let unpack = unpack::render();
 
     (pack, unpack)
 }

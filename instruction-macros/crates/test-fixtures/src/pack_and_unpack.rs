@@ -107,7 +107,7 @@ pub(crate) mod tests {
         let bytes = test_struct_packed_bytes();
         assert_eq!(TestStruct::LEN, bytes.len());
         // Safety: The length of the bytes vec was just checked as equal to the expected length.
-        let res = unsafe { TestStruct::unpack(bytes.as_ptr()) };
+        let res = unsafe { TestStruct::read_bytes(bytes.as_ptr()) };
 
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), TEST_STRUCT);
@@ -118,7 +118,7 @@ pub(crate) mod tests {
         let bytes = complex_test_struct_packed_bytes();
         assert_eq!(StructWithStructs::LEN, bytes.len());
         // Safety: The length of the bytes vec was just checked as equal to the expected length.
-        let res = unsafe { StructWithStructs::unpack(bytes.as_ptr()) };
+        let res = unsafe { StructWithStructs::read_bytes(bytes.as_ptr()) };
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), COMPLEX_TEST_STRUCT);
     }
