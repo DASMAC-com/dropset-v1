@@ -4,8 +4,11 @@ use quote::quote;
 use crate::parse::parsed_struct::ParsedStruct;
 
 pub fn fully_qualified_pack_trait() -> TokenStream {
-    // Fully qualify the path, otherwise it collides with the proc macro derive with the same name.
     quote! { ::instruction_macros::Pack }
+}
+
+pub fn fully_qualified_unpack_trait() -> TokenStream {
+    quote! { ::instruction_macros::Unpack }
 }
 
 pub struct PackStructFields {
