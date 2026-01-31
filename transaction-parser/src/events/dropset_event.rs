@@ -94,32 +94,32 @@ impl DropsetEvent {
         let err = || EventError::UnpackError(tag);
         match tag {
             DropsetEventTag::HeaderEvent => Ok(DropsetEvent::Header(
-                HeaderEventInstructionData::unpack(data)
+                HeaderEventInstructionData::unpack_untagged(data)
                     .map_err(|_| err())?
                     .into(),
             )),
             DropsetEventTag::DepositEvent => Ok(DropsetEvent::Deposit(
-                DepositEventInstructionData::unpack(data).map_err(|_| err())?,
+                DepositEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
             DropsetEventTag::WithdrawEvent => Ok(DropsetEvent::Withdraw(
-                WithdrawEventInstructionData::unpack(data).map_err(|_| err())?,
+                WithdrawEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
             DropsetEventTag::RegisterMarketEvent => Ok(DropsetEvent::RegisterMarket(
-                RegisterMarketEventInstructionData::unpack(data)
+                RegisterMarketEventInstructionData::unpack_untagged(data)
                     .map_err(|_| err())?
                     .into(),
             )),
             DropsetEventTag::CloseSeatEvent => Ok(DropsetEvent::CloseSeat(
-                CloseSeatEventInstructionData::unpack(data).map_err(|_| err())?,
+                CloseSeatEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
             DropsetEventTag::PostOrderEvent => Ok(DropsetEvent::PostOrder(
-                PostOrderEventInstructionData::unpack(data).map_err(|_| err())?,
+                PostOrderEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
             DropsetEventTag::CancelOrderEvent => Ok(DropsetEvent::CancelOrder(
-                CancelOrderEventInstructionData::unpack(data).map_err(|_| err())?,
+                CancelOrderEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
             DropsetEventTag::MarketOrderEvent => Ok(DropsetEvent::MarketOrder(
-                MarketOrderEventInstructionData::unpack(data).map_err(|_| err())?,
+                MarketOrderEventInstructionData::unpack_untagged(data).map_err(|_| err())?,
             )),
         }
     }

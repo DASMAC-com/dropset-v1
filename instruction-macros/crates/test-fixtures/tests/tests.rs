@@ -16,3 +16,8 @@ pub fn expand_program() {
 pub fn expand_events() {
     macrotest::expand_args("src/events.rs", ["--features", "client"]);
 }
+
+#[test]
+pub fn expand_pack_and_unpack() {
+    macrotest::expand_args("src/pack_and_unpack.rs", ["--features", "no_extra_derives"]);
+}

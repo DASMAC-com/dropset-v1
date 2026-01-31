@@ -56,7 +56,7 @@ pub unsafe fn process_post_order<'a>(
         quote_exponent_biased,
         is_bid,
         user_sector_index_hint,
-    } = PostOrderInstructionData::unpack(instruction_data)?;
+    } = PostOrderInstructionData::unpack_untagged(instruction_data)?;
     let mut ctx = PostOrderContext::load(accounts)?;
 
     let order_info = to_order_info(OrderInfoArgs::new(

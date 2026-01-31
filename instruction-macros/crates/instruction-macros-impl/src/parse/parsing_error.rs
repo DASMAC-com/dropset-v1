@@ -25,14 +25,17 @@ pub enum ParsingError {
     ExpectedArgumentDescription,
     ExpectedNameValueLiteral(String),
     ExpectedReprU8,
+    ExpectedReprC,
     InstructionEventHasAccounts,
+    NotAStruct,
+    UnnamedFields,
 }
 
 impl From<ParsingError> for String {
     #[inline]
     fn from(value: ParsingError) -> Self {
         match value {
-            ParsingError::NotAnEnum => "Derive macro only works on enums".into(),
+            ParsingError::NotAnEnum => "This derive macro only works on enums".into(),
             ParsingError::ProgramIdMissing =>
                 "Program ID not found. Specify the program ID path like so: `#[program_id(program::ID)]`".into(),
             ParsingError::InvalidProgramIdPath =>
@@ -59,7 +62,10 @@ impl From<ParsingError> for String {
             ParsingError::ExpectedNameValueLiteral(value) =>
                 format!("Expected name = \"value\" literal, got: {value}"),
             ParsingError::ExpectedReprU8 => "Enum does not have the attribute `#[repr(u8)]`".into(),
+            ParsingError::ExpectedReprC => "Enum does not have the attribute `#[repr(C)]`".into(),
             ParsingError::InstructionEventHasAccounts => "Instruction event should not have any accounts".into(),
+            ParsingError::NotAStruct => "This derive macro only works on structs".into(),
+            ParsingError::UnnamedFields => "Packed struct must have named fields.".into(),
         }
     }
 }
