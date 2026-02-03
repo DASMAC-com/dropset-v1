@@ -20,7 +20,7 @@ pub const ID: Address = Address::from_str_const("TESTnXwv2eHoftsSd5NEdpH4zEu7XRC
 /// so they all must declare/create the struct.
 /// This means test logic can't be consolidated with helper functions, so the best solution to avoid
 /// repeating this in every file is just to output it with a macro to make it readable and DRY.
-macro_rules! create_big_order_info_test {
+macro_rules! create_big_order_info_pack_and_unpack_test {
     () => {
         const fn const_addr(array: [u8; 32]) -> Address {
             Address::new_from_array(array)

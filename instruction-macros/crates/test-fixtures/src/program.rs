@@ -5,7 +5,7 @@ use instruction_macros::{
 };
 use solana_address::Address;
 
-use crate::create_big_order_info_test;
+use crate::create_big_order_info_pack_and_unpack_test;
 
 pub mod program_inner {
     use solana_address::Address;
@@ -97,5 +97,5 @@ mod tests {
 
     use super::*;
 
-    crate::create_big_order_info_test!();
+    crate::create_big_order_info_pack_and_unpack_test!();
 }
