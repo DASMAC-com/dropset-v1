@@ -1479,6 +1479,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "dropset-interface",
+ "instruction-macros-traits",
  "pinocchio 0.10.1",
  "pinocchio-associated-token-account",
  "pinocchio-log",
@@ -7432,6 +7433,7 @@ dependencies = [
  "derive_more",
  "dropset",
  "dropset-interface",
+ "instruction-macros-traits",
  "itertools 0.14.0",
  "lazy-regex",
  "price",

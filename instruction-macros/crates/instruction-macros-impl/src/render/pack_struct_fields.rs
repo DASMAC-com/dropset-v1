@@ -7,6 +7,10 @@ pub fn fully_qualified_pack_trait() -> TokenStream {
     quote! { ::instruction_macros::Pack }
 }
 
+pub fn fully_qualified_tagged_trait() -> TokenStream {
+    quote! { ::instruction_macros::Tagged }
+}
+
 pub fn fully_qualified_unpack_trait() -> TokenStream {
     quote! { ::instruction_macros::Unpack }
 }

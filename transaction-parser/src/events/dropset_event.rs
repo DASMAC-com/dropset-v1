@@ -12,6 +12,7 @@ use dropset_interface::events::{
     RegisterMarketEventInstructionData,
     WithdrawEventInstructionData,
 };
+use instruction_macros_traits::Tagged;
 
 use crate::events::display_types;
 

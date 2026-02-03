@@ -1,10 +1,7 @@
 //! Builds intermediate representations describing layout, ordering, and serialization statements
 //! used by pack/unpack code generation.
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
@@ -12,63 +9,43 @@ use crate::parse::{
     argument_type::{
         ArgumentType,
         ParsedPackableType,
+        Size,
     },
     instruction_variant::InstructionVariant,
 };
 
 pub struct StatementsAndLayoutInfo {
-    /// The total size of the struct without the tag byte as a literal `usize`.
-    pub size_without_tag: Literal,
-    /// The total size of the struct with the tag byte as a literal `usize`.
-    pub size_with_tag: Literal,
+    /// The total [`Size`] of the struct with the tag byte.
+    pub size_with_tag: Size,
     /// The layout docs indicating which bytes each field occupies in the struct layout.
     pub layout_docs: Vec<TokenStream>,
-    /// Each field's individual `pack` statement.
-    pub pack_statements: Vec<TokenStream>,
-    /// Each field's individual `unpack` statement.
-    pub unpack_assignments: Vec<TokenStream>,
 }
 
 impl StatementsAndLayoutInfo {
     pub fn new(instruction_variant: &InstructionVariant) -> StatementsAndLayoutInfo {
         let instruction_args = &instruction_variant.arguments;
-        let (size_without_tag, layout_docs, pack_statements, unpack_assignments) =
-            instruction_args.iter().fold(
-                (0, vec![], vec![], vec![]),
-                |(curr, mut layout_docs, mut pack_statements, mut unpack_assignments), arg| {
+        let (size_without_tag, layout_docs) =
+            instruction_args
+                .iter()
+                .fold((Size::Lit(0), vec![]), |(curr, mut layout_docs), arg| {
                     // Pack statements must also pack the discriminant first, so start at byte `1`
-                    let pack_offset = curr + 1;
-                    // Unpack statements operate on the instruction data *after* the tag byte has
-                    // been peeled.
-                    let unpack_offset = curr;
+                    let pack_offset = curr.clone().plus(Size::Lit(1));
 
                     let arg_name = &arg.name;
                     let arg_type = &arg.ty;
                     let size = arg.ty.size();
 
-                    let layout_comment = layout_doc_comment(arg_name, arg_type, pack_offset, size);
-                    let pack = arg_type.pack_statement(arg_name, pack_offset);
-                    let unpack = arg_type.unpack_statement(arg_name, unpack_offset);
+                    let layout_comment =
+                        layout_doc_comment(arg_name, arg_type, pack_offset, size.clone());
 
                     layout_docs.push(layout_comment);
-                    pack_statements.push(pack);
-                    unpack_assignments.push(unpack);
 
-                    (
-                        curr + size,
-                        layout_docs,
-                        pack_statements,
-                        unpack_assignments,
-                    )
-                },
-            );
+                    (curr.plus(size), layout_docs)
+                });
 
         StatementsAndLayoutInfo {
-            size_without_tag: Literal::usize_unsuffixed(size_without_tag),
-            size_with_tag: Literal::usize_unsuffixed(size_without_tag + 1),
+            size_with_tag: Size::Lit(1).plus(size_without_tag),
             layout_docs,
-            pack_statements,
-            unpack_assignments,
         }
     }
 }
@@ -77,12 +54,12 @@ impl StatementsAndLayoutInfo {
 fn layout_doc_comment(
     arg_name: &Ident,
     arg_type: &ArgumentType,
-    pack_offset: usize,
-    size: usize,
+    pack_offset: Size,
+    size: Size,
 ) -> TokenStream {
-    let end = pack_offset + size;
+    let end = pack_offset.clone().plus(size.clone());
     let layout_doc_string = match size {
-        1 => format!(
+        Size::Lit(1) => format!(
             " - `[{}]` **{}** (`{}`, 1 byte)",
             pack_offset, arg_name, arg_type
         ),

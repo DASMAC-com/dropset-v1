@@ -5,10 +5,7 @@ mod pack_and_unpack;
 mod struct_doc_comment;
 mod unzipped_argument_infos;
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::{
     format_ident,
     quote,
@@ -17,6 +14,7 @@ use syn::Ident;
 
 use crate::{
     parse::{
+        argument_type::Size,
         instruction_argument::InstructionArgument,
         instruction_variant::InstructionVariant,
         parsed_enum::ParsedEnum,
@@ -28,6 +26,7 @@ use crate::{
         },
         pack_struct_fields::{
             fully_qualified_pack_trait,
+            fully_qualified_tagged_trait,
             fully_qualified_unpack_trait,
         },
     },
@@ -71,19 +70,21 @@ fn render_variant(
         total_size_without_tag,
     } = InstructionArgumentInfo::new(instruction_args);
 
-    let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
-    let size_with_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag + 1);
+    let const_assertion =
+        render_const_assertion(instruction_args, total_size_without_tag.clone(), &sizes);
+    let size_with_tag_unsuffixed = total_size_without_tag.plus(Size::Lit(1));
 
     let (
         Packs {
-            pack_tagged: pack_fn,
-            pack_into_slice,
+            pack_tagged_fn,
+            write_bytes_tagged_fn,
         },
         unpacks,
-    ) = pack_and_unpack::render(parsed_enum, instruction_variant, &names);
+    ) = pack_and_unpack::render(parsed_enum, instruction_variant);
 
     let pack_trait = fully_qualified_pack_trait();
     let unpack_trait = fully_qualified_unpack_trait();
+    let tagged_trait = fully_qualified_tagged_trait();
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -105,13 +106,6 @@ fn render_variant(
         #const_assertion
 
         impl #struct_name {
-            /// This is the byte length **including** the tag byte; i.e., the size of the full event
-            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
-            pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
-
-            /// This is the instruction variant discriminant as a `u8` byte.
-            pub const TAG_BYTE: u8 = #enum_ident::#tag_variant as u8;
-
             #struct_doc
             #[inline(always)]
             pub fn new(
@@ -120,20 +114,30 @@ fn render_variant(
                 Self { #(#names),* }
             }
 
-            #pack_fn
+            #pack_tagged_fn
             #unpacks
         }
 
-        #pack_into_slice
+        impl #tagged_trait for #struct_name {
+            /// This is the byte length **including** the tag byte; i.e., the size of the full event
+            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
+            const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
+
+            /// This is the instruction variant discriminant as a `u8` byte.
+            const TAG_BYTE: u8 = #enum_ident::#tag_variant as u8;
+
+            #write_bytes_tagged_fn
+        }
+
     }
 }
 
 fn render_const_assertion(
     instruction_args: &[InstructionArgument],
-    total_size_without_tag: usize,
-    sizes: &[Literal],
+    total_size_without_tag: Size,
+    sizes: &[Size],
 ) -> TokenStream {
-    let total_with_tag = Literal::usize_unsuffixed(total_size_without_tag + 1);
+    let total_with_tag = total_size_without_tag.plus(Size::Lit(1));
 
     if instruction_args.is_empty() {
         quote! { const _: [(); #total_with_tag] = [(); 1]; }

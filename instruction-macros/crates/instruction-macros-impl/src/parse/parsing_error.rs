@@ -1,7 +1,5 @@
 //! See [`ParsingError`].
 
-use crate::parse::argument_type::ArgumentType;
-
 /// Error types for reporting malformed macro inputs.
 ///
 /// Can be converted to a clear, user-facing string message.
@@ -21,7 +19,6 @@ pub enum ParsingError {
     TooManyNames(String, String),
     TooManyDescriptions,
     IndexOutOfOrder(u8, usize),
-    InvalidArgumentType,
     ExpectedArgumentDescription,
     ExpectedNameValueLiteral(String),
     ExpectedReprU8,
@@ -53,10 +50,6 @@ impl From<ParsingError> for String {
             ParsingError::TooManyNames(a, b) => format!("Account has too many names: {a}, {b}"),
             ParsingError::TooManyIndices(a, b) => format!("Account has too many indices: {a}, {b}"),
             ParsingError::IndexOutOfOrder(idx, pos) => format!("Account index {idx} doesn't match position {pos}"),
-            ParsingError::InvalidArgumentType => format!(
-                "Invalid argument type, valid types are: {}",
-                ArgumentType::all_valid_types(),
-            ),
             ParsingError::ExpectedArgumentDescription =>
                 "Expected a string literal for the argument description".into(),
             ParsingError::ExpectedNameValueLiteral(value) =>

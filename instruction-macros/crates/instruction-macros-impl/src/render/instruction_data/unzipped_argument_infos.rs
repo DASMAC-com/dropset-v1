@@ -1,10 +1,7 @@
 //! Extracts and formats instruction argument metadata, like the argument's `name`, `type`, byte
 //! `size`, and `description`. This metadata is then used in various code generation functions.
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     Ident,
@@ -12,7 +9,10 @@ use syn::{
 };
 
 use crate::parse::{
-    argument_type::ParsedPackableType,
+    argument_type::{
+        ParsedPackableType,
+        Size,
+    },
     instruction_argument::InstructionArgument,
 };
 
@@ -35,12 +35,12 @@ pub struct InstructionArgumentInfo {
     pub names: Vec<Ident>,
     /// Each argument's type; e.g. `u32`
     pub types: Vec<Type>,
-    /// Each argument's size as a literal.
-    pub sizes: Vec<Literal>,
+    /// Each argument's [`Size`].
+    pub sizes: Vec<Size>,
     /// Each argument's doc comment description.
     pub doc_descriptions: Vec<TokenStream>,
     /// The total size of all arguments, without the tag byte.
-    pub total_size_without_tag: usize,
+    pub total_size_without_tag: Size,
 }
 
 impl InstructionArgumentInfo {
@@ -55,15 +55,15 @@ impl InstructionArgumentInfo {
                         quote! { #[doc = #description] }
                     }
                 };
-                let parsed_type = &arg.ty.as_parsed_type();
+                let parsed_type = &arg.ty.as_fully_qualified_type();
                 let name = &arg.name;
                 let arg_size = arg.ty.size();
 
                 info.names.push(name.clone());
                 info.types.push(parsed_type.clone());
-                info.sizes.push(Literal::usize_unsuffixed(arg_size));
+                info.sizes.push(arg_size.clone());
                 info.doc_descriptions.push(doc_description);
-                info.total_size_without_tag += arg_size;
+                info.total_size_without_tag = info.total_size_without_tag.plus(arg_size);
 
                 info
             })

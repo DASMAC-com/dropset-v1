@@ -3,14 +3,15 @@
 use core::mem::MaybeUninit;
 
 use dropset_interface::{
-    events::{
-        HeaderEventInstructionData,
-        PackIntoSlice,
-    },
+    events::HeaderEventInstructionData,
     instructions::DropsetInstruction,
     program,
     seeds::event_authority,
     syscalls,
+};
+use instruction_macros_traits::{
+    Pack,
+    Tagged,
 };
 use pinocchio::{
     account::AccountView,
@@ -90,6 +91,10 @@ impl EventBuffer {
         buf.data[0].write(DropsetInstruction::FlushEvents as u8);
 
         // Zero out the space reserved for the header event data.
+        // Event data comes later in the buffer but is written to earlier than header data, which is
+        // written last (right before emission). So in order to write event data with a pointer
+        // to offset [`HEADER_SIZE_WITH_TAGS`], bytes at [0..HEADER_SIZE_WITH_TAGS] must have
+        // already been written to.
         // Safety: `data` is valid for EVENT_BUFFER_LEN - HEADER_DATA_OFFSET bytes and is align 1.
         unsafe {
             syscalls::sol_memset_(
@@ -133,7 +138,7 @@ impl EventBuffer {
                 market_ref_mut.header.num_events(),
                 market_address,
             )
-            .pack_into_slice(&mut self.data, HEADER_DATA_OFFSET);
+            .write_bytes(self.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8);
         }
 
         // Safety: `data` has exactly `self.len` initialized, contiguous bytes.
@@ -159,14 +164,18 @@ impl EventBuffer {
     }
 
     #[inline(always)]
-    pub fn add_to_buffer<'a, T: PackIntoSlice>(
+    pub fn add_to_buffer<'a, T: Tagged>(
         &mut self,
         packable_event: T,
         event_authority: &'a AccountView,
         market_account: MarketAccountView<'a>,
     ) -> ProgramResult {
-        let len = self.len;
-        if len + T::LEN_WITH_TAG > EVENT_BUFFER_LEN {
+        // Hint to the compiler that this is a const value by evaluating it as a const expression,
+        // since `const LEN_WITH_TAG: ...` results in a compiler error.
+        let const_len_with_tag: usize = const { T::LEN + 1 };
+
+        let len: usize = self.len;
+        if len + const_len_with_tag > EVENT_BUFFER_LEN {
             // Safety: `market_account` is not currently borrowed in any capacity.
             unsafe { self.flush_events(event_authority, market_account) }?;
         }
@@ -175,16 +184,16 @@ impl EventBuffer {
         // edge case that we've defined an event that's larger than the size of a newly
         // flushed event buffer.
         debug_assert!(
-            T::LEN_WITH_TAG < EVENT_BUFFER_LEN - HEADER_SIZE_WITH_TAGS,
+            const_len_with_tag < EVENT_BUFFER_LEN - HEADER_SIZE_WITH_TAGS,
             "Event is way too big"
         );
 
         // Safety: The buffer length is either sufficient or has recently been flushed.
         // The tracked length is incremented below.
-        unsafe { packable_event.pack_into_slice(&mut self.data, len) };
+        unsafe { packable_event.write_bytes_tagged(self.data.as_mut_ptr().add(len) as *mut u8) };
 
         self.emitted_count += 1;
-        self.len += T::LEN_WITH_TAG;
+        self.len += const_len_with_tag;
 
         Ok(())
     }

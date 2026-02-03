@@ -3,78 +3,109 @@
 
 use std::fmt::Display;
 
-use itertools::Itertools;
-use quote::ToTokens;
-use strum::IntoEnumIterator;
+use proc_macro2::{
+    Literal,
+    TokenStream,
+};
+use quote::{
+    quote,
+    ToTokens,
+};
 use syn::{
     parse::Parse,
-    Ident,
-    Token,
     Type,
 };
 
-use crate::parse::{
-    parsing_error::ParsingError,
-    primitive_arg::PrimitiveArg,
+use crate::{
+    parse::known_type::KnownType,
+    render::pack_struct_fields::fully_qualified_pack_trait,
 };
 
 #[derive(Debug, Clone)]
 pub enum ArgumentType {
-    PrimitiveArg(PrimitiveArg),
-    Address,
+    KnownType(KnownType),
+    UnknownType(Type),
 }
 
-impl ArgumentType {
-    pub fn all_valid_types() -> String {
-        format!("{}, {}", PrimitiveArg::iter().join(", "), ADDRESS_TYPE_STR)
+#[derive(Debug, Clone)]
+pub enum Size {
+    Lit(usize),
+    Expr(TokenStream),
+}
+
+impl Default for Size {
+    fn default() -> Self {
+        Size::Lit(0)
+    }
+}
+
+impl Size {
+    /// Add two sizes, folding where possible.
+    pub fn plus(self, rhs: Size) -> Size {
+        match (self, rhs) {
+            // Two size literals can be reduced to a single literal instead of an expression.
+            (Size::Lit(a), Size::Lit(b)) => Size::Lit(a + b),
+            // 0 + Size or Size + 0 is simplified to Size.
+            (Size::Lit(0), v) | (v, Size::Lit(0)) => v,
+            // Create an expression of the two sizes added together.
+            (a, b) => Size::Expr(quote! { #a + #b }),
+        }
+    }
+}
+
+impl ToTokens for Size {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let size_tokens = match self {
+            Size::Lit(n) => {
+                let unsuffixed = Literal::usize_unsuffixed(*n);
+                quote! { #unsuffixed }
+            }
+            Size::Expr(ts) => ts.clone(),
+        };
+
+        tokens.extend(size_tokens)
+    }
+}
+
+impl Display for Size {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Remove spaces for the Display impl to make types more readable in doc comments.
+        write!(f, "{}", self.to_token_stream().to_string().replace(" ", ""))
     }
 }
 
 impl Parse for ArgumentType {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let is_address = input.peek(Ident)
-            && input
-                .fork()
-                .parse::<Ident>()
-                .ok()
-                .is_some_and(|id| id == "Address")
-            && !input.peek2(Token![::]);
+        let ty: Type = input.parse()?;
 
-        if is_address {
-            // Parse and consume the `Address` type.
-            let _addr: syn::Ident = input.parse()?;
-            Ok(Self::Address)
-        } else {
-            let ty: Type = input
-                .parse()
-                .map_err(|_| ParsingError::InvalidArgumentType.new_err(input.span()))?;
-            Ok(Self::PrimitiveArg(PrimitiveArg::try_from(&ty)?))
-        }
+        let res = match KnownType::new(ty.clone()) {
+            Some(known_type) => Self::KnownType(known_type),
+            None => Self::UnknownType(ty),
+        };
+
+        Ok(res)
     }
 }
 
 pub trait ParsedPackableType {
-    /// Returns the byte size of the argument type.
-    fn size(&self) -> usize;
+    fn size(&self) -> Size;
 
-    fn as_parsed_type(&self) -> Type;
+    fn as_fully_qualified_type(&self) -> Type;
 }
 
-const ADDRESS_BYTES: usize = 32;
-pub const ADDRESS_TYPE_STR: &str = "::solana_address::Address";
-
 impl ParsedPackableType for ArgumentType {
-    fn size(&self) -> usize {
+    fn size(&self) -> Size {
+        let pack_trait = fully_qualified_pack_trait();
         match self {
-            Self::Address => ADDRESS_BYTES,
-            Self::PrimitiveArg(arg) => arg.size(),
+            Self::KnownType(k) => k.size(),
+            Self::UnknownType(uk) => Size::Expr(quote! { <#uk as #pack_trait>::LEN }),
         }
     }
 
-    fn as_parsed_type(&self) -> Type {
+    fn as_fully_qualified_type(&self) -> Type {
         match self {
-            Self::Address => syn::parse_str(ADDRESS_TYPE_STR).expect("Should be a valid type"),
-            Self::PrimitiveArg(arg) => arg.as_parsed_type(),
+            Self::KnownType(k) => k.as_fully_qualified_type(),
+            Self::UnknownType(uk) => uk.clone(),
         }
     }
 }
@@ -82,10 +113,11 @@ impl ParsedPackableType for ArgumentType {
 impl Display for ArgumentType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            // Print the string type for the address because `TokenStream`'s `Display` adds spaces.
-            ArgumentType::Address => write!(f, "{}", ADDRESS_TYPE_STR),
+            // Format the known types as simplified strings rather than fully qualified paths to
+            // keep them simple and readable.
+            ArgumentType::KnownType(k) => write!(f, "{k}"),
             // Otherwise just use the `TokenStream` `Display` implementation.
-            _ => write!(f, "{}", self.as_parsed_type().to_token_stream()),
+            _ => write!(f, "{}", self.as_fully_qualified_type().to_token_stream()),
         }
     }
 }

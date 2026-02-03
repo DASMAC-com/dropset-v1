@@ -1,18 +1,21 @@
 //! Renders the `pack` function code that serializes instruction arguments into their on-chain
 //! binary layout.
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-use crate::render::pack_struct_fields::fully_qualified_pack_trait;
+use crate::{
+    parse::argument_type::Size,
+    render::pack_struct_fields::{
+        fully_qualified_pack_trait,
+        fully_qualified_tagged_trait,
+    },
+};
 
 pub struct Packs {
-    pub pack_tagged: TokenStream,
-    pub pack_into_slice: TokenStream,
+    pub pack_tagged_fn: TokenStream,
+    pub write_bytes_tagged_fn: TokenStream,
 }
 
 /// Render the `pack_tagged` function for an instruction data variant.
@@ -20,24 +23,18 @@ pub struct Packs {
 /// `pack_tagged` serializes instruction arguments into their on-chain binary layout.
 pub fn render(
     enum_ident: &Ident,
-    struct_name: &Ident,
+    size_with_tag: Size,
     tag_variant: &Ident,
     layout_docs: Vec<TokenStream>,
-    pack_statements: Vec<TokenStream>,
-    size_with_tag: Literal,
 ) -> Packs {
     let discriminant_description =
         format!(" - `[0]` **the discriminant** `{enum_ident}::{tag_variant}` (`u8`, 1 byte)");
 
-    let pack_statements_tokens = match pack_statements.len() {
-        0 => quote! {},
-        _ => quote! { unsafe { #(#pack_statements)* } },
-    };
-
-    let buf_len_check_line = format!(" - `buf.len() >= offset + {}`.", size_with_tag);
+    let safety_check_line = format!(" - `dst` has {} writable bytes.", quote! { #size_with_tag });
     let pack_trait = fully_qualified_pack_trait();
+    let tagged_trait = fully_qualified_tagged_trait();
 
-    let pack_tagged = quote! {
+    let pack_tagged_fn = quote! {
         #[doc = " Instruction data layout:"]
         #[doc = #discriminant_description]
         #(#layout_docs)*
@@ -45,50 +42,37 @@ pub fn render(
         pub fn pack_tagged(&self) -> [u8; #size_with_tag] {
             use ::core::mem::MaybeUninit;
             let mut data: [MaybeUninit<u8>; #size_with_tag] = [MaybeUninit::uninit(); #size_with_tag];
-            let ptr = data.as_mut_ptr() as *mut u8;
-            unsafe {
-                ptr.write(Self::TAG_BYTE);
-                <Self as #pack_trait>::write_bytes(self, ptr.add(1));
-            }
+            let dst = data.as_mut_ptr() as *mut u8;
+            // # Safety: `dst` has sufficient writable bytes.
+            unsafe { <Self as #tagged_trait>::write_bytes_tagged(self, dst) };
 
             // All bytes initialized during the construction above.
             unsafe { *(data.as_ptr() as *const [u8; #size_with_tag]) }
         }
     };
 
-    let pack_into_slice = quote! {
-        impl PackIntoSlice for #struct_name {
-            /// This is the byte length **including** the tag byte; i.e., the size of the full event
-            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
-            const LEN_WITH_TAG: usize = #size_with_tag;
-
-            #[doc = " Instruction data layout:"]
-            #[doc = #discriminant_description]
-            #(#layout_docs)*
-            #[doc = ""]
-            /// # Safety
-            ///
-            /// Caller must guarantee:
-            ///
-            #[doc = #buf_len_check_line]
-            ///
-            /// The caller is also responsible for tracking how much of `buf` is
-            /// considered initialized after the call.
-            #[inline(always)]
-            unsafe fn pack_into_slice(&self, buf: &mut [::core::mem::MaybeUninit<u8>], offset: usize) {
-                use ::core::{mem::MaybeUninit, slice};
-
-                let ptr = buf.as_mut_ptr().add(offset);
-                let data: &mut [MaybeUninit<u8>] = slice::from_raw_parts_mut(ptr, #size_with_tag);
-
-                data[0].write(Self::TAG_BYTE);
-                #pack_statements_tokens
-            }
+    let write_bytes_tagged_fn = quote! {
+        /// Writes the `Self::TAG_BYTE` to a destination pointer and *then* calls
+        /// `<Self as Pack>::write_bytes` starting at the 1-byte offset of the same pointer.
+        #[doc = ""]
+        #[doc = " Instruction data layout:"]
+        #[doc = #discriminant_description]
+        #(#layout_docs)*
+        #[doc = ""]
+        /// # Safety
+        ///
+        /// Caller must guarantee:
+        ///
+        #[doc = #safety_check_line]
+        #[inline(always)]
+        unsafe fn write_bytes_tagged(&self, dst: *mut u8) {
+            dst.write(Self::TAG_BYTE);
+            <Self as #pack_trait>::write_bytes(self, dst.add(1));
         }
     };
 
     Packs {
-        pack_tagged,
-        pack_into_slice,
+        pack_tagged_fn,
+        write_bytes_tagged_fn,
     }
 }
