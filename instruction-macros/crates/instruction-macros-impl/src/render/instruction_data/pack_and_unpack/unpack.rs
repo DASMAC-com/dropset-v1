@@ -25,6 +25,9 @@ pub fn render() -> TokenStream {
         /// This method unpacks the instruction data that comes *after* the discriminant has
         /// already been peeled off of the front of the slice.
         /// Trailing bytes are ignored; the length must be sufficient, not exact.
+        ///
+        /// This is effectively just `<Self as Unpack>::unpack`; it only exists to make it more
+        /// clear that the tag byte should not be in the input buffer.
         #[inline(always)]
         pub fn unpack_untagged(instruction_data: &[u8]) -> Result<Self, #base> {
             <Self as #unpack_trait>::unpack(instruction_data)
