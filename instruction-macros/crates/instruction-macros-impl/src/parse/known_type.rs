@@ -12,7 +12,6 @@ use crate::parse::argument_type::{
 
 /// An enum for argument types with known sizes.
 #[derive(Debug, Clone, strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString)]
-#[strum(serialize_all = "lowercase")]
 pub enum KnownType {
     #[strum(serialize = "bool")]
     Bool,
