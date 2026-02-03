@@ -1,32 +1,39 @@
 use solana_address::Address;
-/// A trait for packing values into little-endian bytes with zero overhead.
+
+/// A trait for packing structs into little-endian bytes with zero overhead.
 ///
 /// # Safety
 ///
 /// Implementors must:
 /// - Ensure [`write_bytes`](Pack::write_bytes) writes at least [`Pack::LEN`] little-endian
 ///   contiguous bytes to `dst`.
-/// - Not override the default implementation of [`Pack::LEN`], which is simply the size of the
+/// - Not override [`Pack::LEN`] to equal something other than the size and length of the
 ///   [`Pack::Packed`] array.
+/// - Ensure [`Packed`](Pack::Packed) has a length and total byte size of [`Pack::LEN`].
 ///
 /// Callers of [`write_bytes`](Pack::write_bytes) must:
 /// - Ensure `dst` points to at least [`Pack::LEN`] bytes of writable memory.
 pub unsafe trait Pack {
+    /// Materialize the size of [`Pack::Packed`] for convenience purposes.
+    ///
     /// # Safety
     ///
-    /// Do not override this value. This must equal `size_of::<Self::Packed>()`.
+    /// This value must equal the size of [`Pack::Packed`].
     const LEN: usize = size_of::<Self::Packed>();
 
-    /// This is essentially just a `[u8; N]` but without having to use generics on the trait.
+    /// This is essentially just a `[u8; N]` but achieved without generics on the trait. See
+    /// [`ByteArray`] for why it's necessary.
     ///
-    /// See [`ByteArray`] for why it's necessary.
+    /// # Safety
+    ///
+    /// This type must be `[u8; Pack::LEN]`.
     type Packed: ByteArray;
 
     /// Writes `self` into bytes at `dst`.
     ///
     /// # Safety
     ///
-    /// `dst` must point to at least [`Pack::LEN`] bytes of writable memory.
+    /// `dst` must point to at least [`Pack::LEN`] contiguous, writable bytes.
     unsafe fn write_bytes(&self, dst: *mut u8);
 
     /// Initializes an array with `Self`'s packed bytes.

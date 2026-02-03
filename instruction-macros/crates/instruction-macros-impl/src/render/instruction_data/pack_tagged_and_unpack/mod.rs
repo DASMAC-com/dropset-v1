@@ -5,7 +5,6 @@ mod pack_tagged;
 mod statements_and_layout_info;
 mod unpack;
 
-pub use pack_tagged::Packs;
 use proc_macro2::TokenStream;
 use statements_and_layout_info::*;
 
@@ -18,7 +17,7 @@ use crate::parse::{
 pub fn render(
     parsed_enum: &ParsedEnum,
     instruction_variant: &InstructionVariant,
-) -> (Packs, TokenStream) {
+) -> (TokenStream, TokenStream) {
     let enum_ident = &parsed_enum.enum_ident;
     let tag_variant = &instruction_variant.variant_name;
     let StatementsAndLayoutInfo {
@@ -26,9 +25,9 @@ pub fn render(
         layout_docs,
     } = StatementsAndLayoutInfo::new(instruction_variant);
 
-    let pack = pack_tagged::render(enum_ident, size_with_tag, tag_variant, layout_docs);
+    let pack_tagged = pack_tagged::render(enum_ident, size_with_tag, tag_variant, layout_docs);
 
     let unpack = unpack::render();
 
-    (pack, unpack)
+    (pack_tagged, unpack)
 }

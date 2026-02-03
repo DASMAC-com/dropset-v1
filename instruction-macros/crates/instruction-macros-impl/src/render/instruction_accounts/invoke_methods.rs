@@ -16,7 +16,10 @@ use crate::{
         instruction_variant::InstructionVariant,
         parsed_enum::ParsedEnum,
     },
-    render::Feature,
+    render::{
+        pack_struct_fields::fully_qualified_tagged_trait,
+        Feature,
+    },
 };
 
 /// Renders the `invoke_`, `invoke_signed` for program-based invocations and the create
@@ -54,6 +57,8 @@ fn invoke_functions(
     account_views: Vec<TokenStream>,
     account_names: Vec<Ident>,
 ) -> TokenStream {
+    let tagged_trait = fully_qualified_tagged_trait();
+
     quote! {
         #[inline(always)]
         pub fn invoke(self, data: #instruction_data_type) -> ::solana_program_error::ProgramResult {
@@ -71,7 +76,7 @@ fn invoke_functions(
                 &::solana_instruction_view::InstructionView {
                     program_id: &#program_id_path.into(),
                     accounts,
-                    data: &data.pack_tagged(),
+                    data: &#tagged_trait::pack_tagged(&data),
                 },
                 &[
                     #(#account_names),*
@@ -87,6 +92,8 @@ fn client_create_instruction(
     instruction_data_ident: TokenStream,
     account_views: Vec<TokenStream>,
 ) -> TokenStream {
+    let tagged_trait = fully_qualified_tagged_trait();
+
     quote! {
         #[inline(always)]
         pub fn create_instruction(&self, data: #instruction_data_ident) -> ::solana_instruction::Instruction {
@@ -95,7 +102,7 @@ fn client_create_instruction(
             ::solana_instruction::Instruction {
                 program_id: #program_id_path.into(),
                 accounts,
-                data: data.pack_tagged().to_vec(),
+                data: #tagged_trait::pack_tagged(&data).to_vec(),
             }
         }
     }

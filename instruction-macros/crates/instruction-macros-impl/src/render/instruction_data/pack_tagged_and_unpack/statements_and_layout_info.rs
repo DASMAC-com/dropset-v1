@@ -29,11 +29,11 @@ impl StatementsAndLayoutInfo {
                 .iter()
                 .fold((Size::Lit(0), vec![]), |(curr, mut layout_docs), arg| {
                     // Pack statements must also pack the discriminant first, so start at byte `1`
-                    let pack_offset = curr.clone().plus(Size::Lit(1));
+                    let pack_offset = Size::Lit(1).plus(curr.clone());
 
                     let arg_name = &arg.name;
                     let arg_type = &arg.ty;
-                    let size = arg.ty.size();
+                    let size = arg.ty.pack_len();
 
                     let layout_comment =
                         layout_doc_comment(arg_name, arg_type, pack_offset, size.clone());
@@ -64,7 +64,7 @@ fn layout_doc_comment(
             pack_offset, arg_name, arg_type
         ),
         size => format!(
-            " - `[{}..{}]` **{}** (`{}`, {} bytes)",
+            " - `[{} .. {}]` **{}** (`{}`, {} bytes)",
             pack_offset, end, arg_name, arg_type, size
         ),
     };

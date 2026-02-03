@@ -1,7 +1,7 @@
 //! Renders the core instruction data structures used by generated code, including argument packing,
 //! unpacking, and documentation helpers.
 
-mod pack_and_unpack;
+mod pack_tagged_and_unpack;
 mod struct_doc_comment;
 mod unzipped_argument_infos;
 
@@ -20,10 +20,7 @@ use crate::{
         parsed_enum::ParsedEnum,
     },
     render::{
-        instruction_data::{
-            pack_and_unpack::Packs,
-            unzipped_argument_infos::InstructionArgumentInfo,
-        },
+        instruction_data::unzipped_argument_infos::InstructionArgumentInfo,
         pack_struct_fields::{
             fully_qualified_pack_trait,
             fully_qualified_tagged_trait,
@@ -72,15 +69,10 @@ fn render_variant(
 
     let const_assertion =
         render_const_assertion(instruction_args, total_size_without_tag.clone(), &sizes);
-    let size_with_tag_unsuffixed = total_size_without_tag.plus(Size::Lit(1));
+    let size_with_tag_unsuffixed = Size::Lit(1).plus(total_size_without_tag);
 
-    let (
-        Packs {
-            pack_tagged_fn,
-            write_bytes_tagged_fn,
-        },
-        unpacks,
-    ) = pack_and_unpack::render(parsed_enum, instruction_variant);
+    let (pack_tagged_fn, unpacks) =
+        pack_tagged_and_unpack::render(parsed_enum, instruction_variant);
 
     let pack_trait = fully_qualified_pack_trait();
     let unpack_trait = fully_qualified_unpack_trait();
@@ -114,19 +106,16 @@ fn render_variant(
                 Self { #(#names),* }
             }
 
-            #pack_tagged_fn
             #unpacks
         }
 
         impl #tagged_trait for #struct_name {
-            /// This is the byte length **including** the tag byte; i.e., the size of the full event
-            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
-            const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
+            type PackedTagged = [u8; #size_with_tag_unsuffixed];
 
             /// This is the instruction variant discriminant as a `u8` byte.
             const TAG_BYTE: u8 = #enum_ident::#tag_variant as u8;
 
-            #write_bytes_tagged_fn
+            #pack_tagged_fn
         }
 
     }
@@ -137,7 +126,7 @@ fn render_const_assertion(
     total_size_without_tag: Size,
     sizes: &[Size],
 ) -> TokenStream {
-    let total_with_tag = total_size_without_tag.plus(Size::Lit(1));
+    let total_with_tag = Size::Lit(1).plus(total_size_without_tag);
 
     if instruction_args.is_empty() {
         quote! { const _: [(); #total_with_tag] = [(); 1]; }

@@ -30,7 +30,11 @@ pub enum ArgumentType {
 #[derive(Debug, Clone)]
 pub enum Size {
     Lit(usize),
-    Expr(TokenStream),
+    /// An expression with both codegen tokens and a display-friendly string.
+    Expr {
+        tokens: TokenStream,
+        display: String,
+    },
 }
 
 impl Default for Size {
@@ -40,6 +44,14 @@ impl Default for Size {
 }
 
 impl Size {
+    /// Create an expression-based size with both codegen tokens and display string.
+    pub fn from_type_len(tokens: TokenStream, type_name: String) -> Self {
+        Size::Expr {
+            tokens,
+            display: format!("{type_name}::LEN"),
+        }
+    }
+
     /// Add two sizes, folding where possible.
     pub fn plus(self, rhs: Size) -> Size {
         match (self, rhs) {
@@ -48,7 +60,13 @@ impl Size {
             // 0 + Size or Size + 0 is simplified to Size.
             (Size::Lit(0), v) | (v, Size::Lit(0)) => v,
             // Create an expression of the two sizes added together.
-            (a, b) => Size::Expr(quote! { #a + #b }),
+            (a, b) => {
+                let display = format!("{a} + {b}");
+                Size::Expr {
+                    tokens: quote! { #a + #b },
+                    display,
+                }
+            }
         }
     }
 }
@@ -60,7 +78,7 @@ impl ToTokens for Size {
                 let unsuffixed = Literal::usize_unsuffixed(*n);
                 quote! { #unsuffixed }
             }
-            Size::Expr(ts) => ts.clone(),
+            Size::Expr { tokens: ts, .. } => ts.clone(),
         };
 
         tokens.extend(size_tokens)
@@ -69,8 +87,10 @@ impl ToTokens for Size {
 
 impl Display for Size {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Remove spaces for the Display impl to make types more readable in doc comments.
-        write!(f, "{}", self.to_token_stream().to_string().replace(" ", ""))
+        match self {
+            Size::Lit(n) => write!(f, "{n}"),
+            Size::Expr { display, .. } => write!(f, "{display}"),
+        }
     }
 }
 
@@ -88,17 +108,34 @@ impl Parse for ArgumentType {
 }
 
 pub trait ParsedPackableType {
-    fn size(&self) -> Size;
+    fn pack_len(&self) -> Size;
 
     fn as_fully_qualified_type(&self) -> Type;
 }
 
+/// Extracts the simple type name (last path segment) from a type for display purposes.
+fn extract_type_name(ty: &Type) -> String {
+    match ty {
+        Type::Path(tp) => tp
+            .path
+            .segments
+            .last()
+            .map(|seg| seg.ident.to_string())
+            .unwrap_or_else(|| ty.to_token_stream().to_string()),
+        _ => ty.to_token_stream().to_string(),
+    }
+}
+
 impl ParsedPackableType for ArgumentType {
-    fn size(&self) -> Size {
+    fn pack_len(&self) -> Size {
         let pack_trait = fully_qualified_pack_trait();
         match self {
-            Self::KnownType(k) => k.size(),
-            Self::UnknownType(uk) => Size::Expr(quote! { <#uk as #pack_trait>::LEN }),
+            Self::KnownType(k) => k.pack_len(),
+            Self::UnknownType(uk) => {
+                let tokens = quote! { <#uk as #pack_trait>::LEN };
+                let type_name = extract_type_name(uk);
+                Size::from_type_len(tokens, type_name)
+            }
         }
     }
 

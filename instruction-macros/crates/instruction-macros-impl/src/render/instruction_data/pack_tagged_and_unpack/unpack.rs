@@ -12,9 +12,9 @@ use crate::{
     render::pack_struct_fields::fully_qualified_unpack_trait,
 };
 
-/// Render the fallible `unpack_untagged*` method.
+/// Render the fallible `unpack_untagged` method.
 ///
-/// `unpack_untagged*` deserializes raw instruction data bytes into structured arguments according
+/// `unpack_untagged` deserializes raw instruction data bytes into structured arguments according
 /// to the corresponding instruction variant's instruction arguments.
 pub fn render() -> TokenStream {
     let unpack_trait = fully_qualified_unpack_trait();

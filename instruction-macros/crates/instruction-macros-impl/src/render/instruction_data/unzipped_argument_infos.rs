@@ -57,7 +57,7 @@ impl InstructionArgumentInfo {
                 };
                 let parsed_type = &arg.ty.as_fully_qualified_type();
                 let name = &arg.name;
-                let arg_size = arg.ty.size();
+                let arg_size = arg.ty.pack_len();
 
                 info.names.push(name.clone());
                 info.types.push(parsed_type.clone());

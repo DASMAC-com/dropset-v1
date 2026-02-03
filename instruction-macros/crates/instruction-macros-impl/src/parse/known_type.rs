@@ -31,7 +31,7 @@ pub enum KnownType {
 }
 
 impl ParsedPackableType for KnownType {
-    fn size(&self) -> Size {
+    fn pack_len(&self) -> Size {
         match self {
             Self::Bool => Size::Lit(size_of::<bool>()),
             Self::U8 => Size::Lit(size_of::<u8>()),
