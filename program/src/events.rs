@@ -9,10 +9,7 @@ use dropset_interface::{
     seeds::event_authority,
     syscalls,
 };
-use instruction_macros_traits::{
-    Pack,
-    Tagged,
-};
+use instruction_macros_traits::Tagged;
 use pinocchio::{
     account::AccountView,
     cpi::invoke_signed,
@@ -138,7 +135,7 @@ impl EventBuffer {
                 market_ref_mut.header.num_events(),
                 market_address,
             )
-            .write_bytes(self.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8);
+            .write_bytes_tagged(self.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8);
         }
 
         // Safety: `data` has exactly `self.len` initialized, contiguous bytes.
@@ -170,12 +167,8 @@ impl EventBuffer {
         event_authority: &'a AccountView,
         market_account: MarketAccountView<'a>,
     ) -> ProgramResult {
-        // Hint to the compiler that this is a const value by evaluating it as a const expression,
-        // since `const LEN_WITH_TAG: ...` results in a compiler error.
-        let const_len_with_tag: usize = const { T::LEN + 1 };
-
         let len: usize = self.len;
-        if len + const_len_with_tag > EVENT_BUFFER_LEN {
+        if len + T::LEN_WITH_TAG > EVENT_BUFFER_LEN {
             // Safety: `market_account` is not currently borrowed in any capacity.
             unsafe { self.flush_events(event_authority, market_account) }?;
         }
@@ -184,7 +177,7 @@ impl EventBuffer {
         // edge case that we've defined an event that's larger than the size of a newly
         // flushed event buffer.
         debug_assert!(
-            const_len_with_tag < EVENT_BUFFER_LEN - HEADER_SIZE_WITH_TAGS,
+            T::LEN_WITH_TAG < EVENT_BUFFER_LEN - HEADER_SIZE_WITH_TAGS,
             "Event is way too big"
         );
 
@@ -193,7 +186,7 @@ impl EventBuffer {
         unsafe { packable_event.write_bytes_tagged(self.data.as_mut_ptr().add(len) as *mut u8) };
 
         self.emitted_count += 1;
-        self.len += const_len_with_tag;
+        self.len += T::LEN_WITH_TAG;
 
         Ok(())
     }

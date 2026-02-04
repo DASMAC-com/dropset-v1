@@ -37,7 +37,6 @@ pub enum ProgramDropsetInstruction {
     #[args(sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
     CloseSeat,
 
-
     #[account(0, signer,   name = "user",           desc = "The user depositing or registering their seat.")]
     #[account(1, writable, name = "market_account", desc = "The market account PDA.")]
     #[account(2, writable, name = "user_ata",       desc = "The user's associated token account.")]
@@ -62,6 +61,7 @@ pub enum ProgramDropsetInstruction {
     Withdraw,
 
     #[account(0, signer, name = "user")]
+    #[args(random_byte: u8, "Some random byte, to test unaligned offsets.")]
     #[args(big_info_1: BigOrderInfo, "Big order info 1.")]
     #[args(big_info_2: BigOrderInfo, "Big order info 2.")]
     #[args(big_info_3: BigOrderInfo, "Big order info 3.")]
@@ -76,6 +76,7 @@ pub enum ProgramDropsetInstruction {
 #[repr(C)]
 #[derive(Debug, Clone, Pack, Unpack, PartialEq, Eq)]
 pub struct BigOrderInfo {
+    pub byte_1: u8,
     pub deposit_1: DepositInstructionData,
     pub bool_1: bool,
     pub deposit_2: DepositInstructionData,
