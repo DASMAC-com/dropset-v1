@@ -8,7 +8,6 @@ use instruction_macros_impl::{
     },
     render::{
         render_instruction_data,
-        render_pack_into_slice_trait,
         render_try_from_u8,
     },
 };
@@ -17,7 +16,6 @@ use syn::DeriveInput;
 
 pub struct DeriveInstructionData {
     pub try_from_u8: TokenStream,
-    pub pack_into_slice_trait: TokenStream,
     pub instruction_data: TokenStream,
 }
 
@@ -30,11 +28,9 @@ pub fn derive_instruction_data(
 
     let try_from_u8 = render_try_from_u8(&parsed_enum, &instruction_variants);
     let instruction_data = render_instruction_data(&parsed_enum, instruction_variants);
-    let pack_into_slice_trait = render_pack_into_slice_trait();
 
     Ok(DeriveInstructionData {
         try_from_u8,
-        pack_into_slice_trait,
         instruction_data,
     })
 }

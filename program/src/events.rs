@@ -3,15 +3,13 @@
 use core::mem::MaybeUninit;
 
 use dropset_interface::{
-    events::{
-        HeaderEventInstructionData,
-        PackIntoSlice,
-    },
+    events::HeaderEventInstructionData,
     instructions::DropsetInstruction,
     program,
     seeds::event_authority,
     syscalls,
 };
+use instruction_macros_traits::Tagged;
 use pinocchio::{
     account::AccountView,
     cpi::invoke_signed,
@@ -90,6 +88,10 @@ impl EventBuffer {
         buf.data[0].write(DropsetInstruction::FlushEvents as u8);
 
         // Zero out the space reserved for the header event data.
+        // Event data comes later in the buffer but is written to earlier than header data, which is
+        // written last (right before emission). So in order to write event data with a pointer
+        // to offset [`HEADER_SIZE_WITH_TAGS`], bytes at [0..HEADER_SIZE_WITH_TAGS] must have
+        // already been written to.
         // Safety: `data` is valid for EVENT_BUFFER_LEN - HEADER_DATA_OFFSET bytes and is align 1.
         unsafe {
             syscalls::sol_memset_(
@@ -133,7 +135,7 @@ impl EventBuffer {
                 market_ref_mut.header.num_events(),
                 market_address,
             )
-            .pack_into_slice(&mut self.data, HEADER_DATA_OFFSET);
+            .write_bytes_tagged(self.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8);
         }
 
         // Safety: `data` has exactly `self.len` initialized, contiguous bytes.
@@ -159,13 +161,13 @@ impl EventBuffer {
     }
 
     #[inline(always)]
-    pub fn add_to_buffer<'a, T: PackIntoSlice>(
+    pub fn add_to_buffer<'a, T: Tagged>(
         &mut self,
         packable_event: T,
         event_authority: &'a AccountView,
         market_account: MarketAccountView<'a>,
     ) -> ProgramResult {
-        let len = self.len;
+        let len: usize = self.len;
         if len + T::LEN_WITH_TAG > EVENT_BUFFER_LEN {
             // Safety: `market_account` is not currently borrowed in any capacity.
             unsafe { self.flush_events(event_authority, market_account) }?;
@@ -181,7 +183,7 @@ impl EventBuffer {
 
         // Safety: The buffer length is either sufficient or has recently been flushed.
         // The tracked length is incremented below.
-        unsafe { packable_event.pack_into_slice(&mut self.data, len) };
+        unsafe { packable_event.write_bytes_tagged(self.data.as_mut_ptr().add(len) as *mut u8) };
 
         self.emitted_count += 1;
         self.len += T::LEN_WITH_TAG;

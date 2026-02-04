@@ -1,14 +1,11 @@
 //! Renders the core instruction data structures used by generated code, including argument packing,
 //! unpacking, and documentation helpers.
 
-mod pack_and_unpack;
+mod pack_tagged_and_unpack;
 mod struct_doc_comment;
 mod unzipped_argument_infos;
 
-use proc_macro2::{
-    Literal,
-    TokenStream,
-};
+use proc_macro2::TokenStream;
 use quote::{
     format_ident,
     quote,
@@ -17,13 +14,18 @@ use syn::Ident;
 
 use crate::{
     parse::{
+        argument_type::Size,
         instruction_argument::InstructionArgument,
         instruction_variant::InstructionVariant,
         parsed_enum::ParsedEnum,
     },
-    render::instruction_data::{
-        pack_and_unpack::Packs,
-        unzipped_argument_infos::InstructionArgumentInfo,
+    render::{
+        instruction_data::unzipped_argument_infos::InstructionArgumentInfo,
+        pack_struct_fields::{
+            fully_qualified_pack_trait,
+            fully_qualified_tagged_trait,
+            fully_qualified_unpack_trait,
+        },
     },
 };
 
@@ -65,17 +67,16 @@ fn render_variant(
         total_size_without_tag,
     } = InstructionArgumentInfo::new(instruction_args);
 
-    let const_assertion = render_const_assertion(instruction_args, total_size_without_tag, &sizes);
-    let size_without_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag);
-    let size_with_tag_unsuffixed = Literal::usize_unsuffixed(total_size_without_tag + 1);
+    let const_assertion =
+        render_const_assertion(instruction_args, total_size_without_tag.clone(), &sizes);
+    let size_with_tag_unsuffixed = Size::Lit(1).plus(total_size_without_tag);
 
-    let (
-        Packs {
-            pack: pack_fn,
-            pack_into_slice,
-        },
-        unpacks,
-    ) = pack_and_unpack::render(parsed_enum, instruction_variant, &names);
+    let (pack_tagged_fn, unpacks) =
+        pack_tagged_and_unpack::render(parsed_enum, instruction_variant);
+
+    let pack_trait = fully_qualified_pack_trait();
+    let unpack_trait = fully_qualified_unpack_trait();
+    let tagged_trait = fully_qualified_tagged_trait();
 
     // Outputs:
     // - The instruction data struct with doc comments
@@ -84,7 +85,8 @@ fn render_variant(
     // - The implementations for `pack` and `unpack`
     quote! {
         #struct_doc
-        #[derive(Clone, Debug, PartialEq, Eq)]
+        #[repr(C)]
+        #[derive(#pack_trait, #unpack_trait, Clone, Debug, PartialEq, Eq)]
         pub struct #struct_name {
             #(
                 #doc_descriptions
@@ -96,16 +98,6 @@ fn render_variant(
         #const_assertion
 
         impl #struct_name {
-            /// This is the byte length **not including** the tag byte; i.e., the size of `Self`.
-            pub const LEN: usize = #size_without_tag_unsuffixed;
-
-            /// This is the byte length **including** the tag byte; i.e., the size of the full event
-            /// instruction data in an `instruction_data: &[u8]` slice with the tag.
-            pub const LEN_WITH_TAG: usize = #size_with_tag_unsuffixed;
-
-            /// This is the instruction variant discriminant as a `u8` byte.
-            pub const TAG_BYTE: u8 = #enum_ident::#tag_variant as u8;
-
             #struct_doc
             #[inline(always)]
             pub fn new(
@@ -114,20 +106,27 @@ fn render_variant(
                 Self { #(#names),* }
             }
 
-            #pack_fn
             #unpacks
         }
 
-        #pack_into_slice
+        impl #tagged_trait for #struct_name {
+            type PackedTagged = [u8; #size_with_tag_unsuffixed];
+
+            /// This is the instruction variant discriminant as a `u8` byte.
+            const TAG_BYTE: u8 = #enum_ident::#tag_variant as u8;
+
+            #pack_tagged_fn
+        }
+
     }
 }
 
 fn render_const_assertion(
     instruction_args: &[InstructionArgument],
-    total_size_without_tag: usize,
-    sizes: &[Literal],
+    total_size_without_tag: Size,
+    sizes: &[Size],
 ) -> TokenStream {
-    let total_with_tag = Literal::usize_unsuffixed(total_size_without_tag + 1);
+    let total_with_tag = Size::Lit(1).plus(total_size_without_tag);
 
     if instruction_args.is_empty() {
         quote! { const _: [(); #total_with_tag] = [(); 1]; }

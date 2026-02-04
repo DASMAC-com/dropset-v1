@@ -1,0 +1,11 @@
+[package]
+name = "instruction-macros-traits"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+solana-address.workspace = true
+solana-program-error.workspace = true

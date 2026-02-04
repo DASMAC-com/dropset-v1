@@ -9,6 +9,7 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 bytemuck.workspace = true
 dropset-interface = { path = "../interface", features = ["program"], default-features = false }
+instruction-macros-traits = { path = "../instruction-macros/crates/instruction-macros-traits" }
 pinocchio.workspace = true
 pinocchio-associated-token-account.workspace = true
 pinocchio-log = { workspace = true, optional = true }

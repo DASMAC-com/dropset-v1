@@ -8,6 +8,7 @@ anyhow.workspace = true
 derive_more = { workspace = true, features = ["into_iterator", "index", "as_ref", "deref"]}
 dropset = { path = "../program" }
 dropset-interface = { path = "../interface", features = ["client"], default-features = false }
+instruction-macros-traits = { path = "../instruction-macros/crates/instruction-macros-traits" }
 itertools.workspace = true
 lazy-regex.workspace = true
 price = { path = "../price" }

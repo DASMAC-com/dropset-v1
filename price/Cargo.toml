@@ -4,8 +4,10 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-static_assertions.workspace = true
+instruction-macros = { path = "../instruction-macros/crates/instruction-macros" }
 pinocchio.workspace = true
+solana-program-error.workspace = true
+static_assertions.workspace = true
 rust_decimal = { workspace = true, optional = true }
 strum = { workspace = true, optional = true }
 strum_macros = { workspace = true, optional = true }

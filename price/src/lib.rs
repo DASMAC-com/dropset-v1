@@ -18,6 +18,10 @@ mod validated_mantissa;
 
 pub use encoded_price::*;
 pub use error::*;
+use instruction_macros::{
+    Pack,
+    Unpack,
+};
 pub use validated_mantissa::*;
 
 pub const MANTISSA_DIGITS_LOWER_BOUND: u32 = 10_000_000;
@@ -92,11 +96,16 @@ pub struct OrderInfo {
     pub quote_atoms: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(C)]
+#[derive(Debug, Clone, Pack, Unpack, PartialEq, Eq)]
 pub struct OrderInfoArgs {
+    /// The price mantissa.
     pub price_mantissa: u32,
+    /// The scalar for the base token.
     pub base_scalar: u64,
+    /// The biased base exponent.
     pub base_exponent_biased: u8,
+    /// The biased quote exponent.
     pub quote_exponent_biased: u8,
 }
 

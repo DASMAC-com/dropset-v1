@@ -65,27 +65,13 @@ pub fn get_non_redundant_order_flow(
         .collect_vec();
 
     let posts = unique_bid_posts
-        .iter()
-        .map(|p| {
-            PostOrderInstructionData::new(
-                p.price_mantissa,
-                p.base_scalar,
-                p.base_exponent_biased,
-                p.quote_exponent_biased,
-                true,
-                maker_seat_index,
-            )
-        })
-        .chain(unique_ask_posts.iter().map(|p| {
-            PostOrderInstructionData::new(
-                p.price_mantissa,
-                p.base_scalar,
-                p.base_exponent_biased,
-                p.quote_exponent_biased,
-                false,
-                maker_seat_index,
-            )
-        }))
+        .into_iter()
+        .map(|p| PostOrderInstructionData::new(p.clone(), true, maker_seat_index))
+        .chain(
+            unique_ask_posts
+                .into_iter()
+                .map(|p| PostOrderInstructionData::new(p.clone(), false, maker_seat_index)),
+        )
         .collect_vec();
 
     Ok((cancels, posts))
@@ -137,14 +123,9 @@ mod tests {
 
     /// Helper function to convert [`PostOrderInstructionData`] to an encoded price.
     fn post_data_to_encoded_price(data: PostOrderInstructionData) -> EncodedPrice {
-        to_order_info(OrderInfoArgs::new(
-            data.price_mantissa,
-            data.base_scalar,
-            data.base_exponent_biased,
-            data.quote_exponent_biased,
-        ))
-        .expect("Should create order info")
-        .encoded_price
+        to_order_info(data.order_info_args)
+            .expect("Should create order info")
+            .encoded_price
     }
 
     #[test]
@@ -234,22 +215,8 @@ mod tests {
         assert_eq!(
             posts,
             vec![
-                PostOrderInstructionData::new(
-                    p2.price_mantissa,
-                    p2.base_scalar,
-                    p2.base_exponent_biased,
-                    p2.quote_exponent_biased,
-                    true,
-                    MAKER_SEAT_INDEX
-                ),
-                PostOrderInstructionData::new(
-                    p2.price_mantissa,
-                    p2.base_scalar,
-                    p2.base_exponent_biased,
-                    p2.quote_exponent_biased,
-                    false,
-                    MAKER_SEAT_INDEX
-                ),
+                PostOrderInstructionData::new(p2.clone(), true, MAKER_SEAT_INDEX),
+                PostOrderInstructionData::new(p2, false, MAKER_SEAT_INDEX),
             ]
         );
     }

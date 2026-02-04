@@ -33,7 +33,8 @@ pub fn process_close_seat<'a>(
     instruction_data: &[u8],
     event_buffer: &mut EventBuffer,
 ) -> Result<EventBufferContext<'a>, ProgramError> {
-    let sector_index_hint = CloseSeatInstructionData::unpack(instruction_data)?.sector_index_hint;
+    let sector_index_hint =
+        CloseSeatInstructionData::unpack_untagged(instruction_data)?.sector_index_hint;
     let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;
 
     // Get the market bump and the base and quote amounts available for the user.
