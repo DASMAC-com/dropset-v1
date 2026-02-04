@@ -46,7 +46,7 @@ pub fn render(parsed_struct: ParsedStruct) -> TokenStream {
                     return Err(#base::#variant);
                 }
 
-                /// Safety: The length of `data` was just verified as sufficient.
+                // Safety: The length of `data` was just verified as sufficient.
                 unsafe { Self::read_bytes(data.as_ptr()) }
             }
         }
