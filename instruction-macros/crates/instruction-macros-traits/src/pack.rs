@@ -117,19 +117,22 @@ unsafe impl Pack for Address {
     }
 }
 
-/// All of this ceremony (for [`private::Sealed`] and [`ByteArray`]) is to facilitate requiring
-/// a fixed-size array in the [`Pack`] implementation *without* the usage of generics.
-///
-/// It's nice to not have to use generics in the trait because `impl Pack<1> for u8` is very odd,
-/// since you could also implement Pack<2> for it and it would make no sense.
-///
-/// With this sealed trait, implementors of [`Pack`] must provide a statically sized `[u8; N]` array
-/// type, which is then used in the return type and for calculating the overall length when packed.
 mod private {
     pub trait Sealed {}
     impl<const N: usize> Sealed for [u8; N] {}
 }
 
+/// The [`Sealed`](`private::Sealed`) [`ByteArray`] trait exists solely to facilitate requiring a
+/// fixed-size array in the [`Pack`] and [Tagged](`crate::Tagged`) implementations *without* the
+/// usage of generics.
+///
+/// This is to avoid odd and unintuitive generic-based traits that would require passing the size
+/// each time you use it. For example: `impl Pack<1> for u8` is very odd, since there should be no
+/// other generic implementation; e.g. Pack<2> for it would make no sense.
+///
+/// With this sealed trait, implementors of [`Pack`] and [Tagged](`crate::Tagged`) must provide a
+/// statically sized `[u8; N]` array type, which is then used in the return type and for calculating
+/// the overall length when packed.
 pub trait ByteArray: private::Sealed + AsRef<[u8]> + AsMut<[u8]> {}
 
 impl<const N: usize> ByteArray for [u8; N] {}
