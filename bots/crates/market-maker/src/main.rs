@@ -67,7 +67,7 @@ pub enum TaskUpdate {
     Price,
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize the maker context from the cli args.
     let reqwest_client = reqwest::Client::new();
