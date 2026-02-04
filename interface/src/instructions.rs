@@ -8,6 +8,7 @@
 //! The `client` feature: [`crate::instructions::generated_client`]
 
 use instruction_macros::ProgramInstruction;
+use price::OrderInfoArgs;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, ProgramInstruction)]
@@ -74,10 +75,7 @@ pub enum DropsetInstruction {
     #[account(1, signer,   name = "user",            desc = "The user posting an order.")]
     #[account(2, writable, name = "market_account",  desc = "The market account PDA.")]
     #[account(3,           name = "dropset_program", desc = "The dropset program itself, used for the self-CPI.")]
-    #[args(price_mantissa: u32, "The price mantissa.")]
-    #[args(base_scalar: u64, "The scalar for the base token.")]
-    #[args(base_exponent_biased: u8, "The biased base exponent.")]
-    #[args(quote_exponent_biased: u8, "The biased quote exponent.")]
+    #[args(order_info_args: OrderInfoArgs, "The order info arguments.")]
     #[args(is_bid: bool, "Whether or not the order is a bid. If false, the order is an ask.")]
     #[args(user_sector_index_hint: u32, "A hint indicating which sector the user's seat resides in.")]
     PostOrder,

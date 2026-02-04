@@ -3531,8 +3531,10 @@ dependencies = [
 name = "price"
 version = "0.1.0"
 dependencies = [
+ "instruction-macros",
  "pinocchio 0.10.1",
  "rust_decimal",
+ "solana-program-error",
  "static_assertions",
  "strum",
  "strum_macros",

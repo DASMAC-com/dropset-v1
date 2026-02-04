@@ -21,6 +21,7 @@ use dropset_interface::{
 use price::{
     to_biased_exponent,
     to_order_info,
+    OrderInfoArgs,
 };
 use solana_sdk::signer::Signer;
 
@@ -49,15 +50,14 @@ async fn main() -> anyhow::Result<()> {
         .find_seat(&trader.pubkey())?
         .expect("User should have been registered on deposit");
 
-    let (price_mantissa, base_scalar, base_exponent, quote_exponent) = (
+    let order_info_args = OrderInfoArgs::new(
         10_000_000,
         500,
         to_biased_exponent!(0),
         to_biased_exponent!(0),
     );
-    let order_info =
-        to_order_info((price_mantissa, base_scalar, base_exponent, quote_exponent).into())
-            .expect("Should be a valid order");
+
+    let order_info = to_order_info(order_info_args.clone()).expect("Should be a valid order");
 
     // Post an ask. The user provides base as collateral and receives quote when filled.
     let is_bid = false;
@@ -65,14 +65,7 @@ async fn main() -> anyhow::Result<()> {
         .market
         .post_order(
             trader.pubkey(),
-            PostOrderInstructionData::new(
-                price_mantissa,
-                base_scalar,
-                base_exponent,
-                quote_exponent,
-                is_bid,
-                user_seat.index,
-            ),
+            PostOrderInstructionData::new(order_info_args, is_bid, user_seat.index),
         )
         .send_single_signer(&e2e.rpc, trader)
         .await?;

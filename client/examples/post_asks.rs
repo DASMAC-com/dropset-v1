@@ -16,7 +16,10 @@ use dropset_interface::{
     state::sector::NIL,
 };
 use itertools::Itertools;
-use price::to_biased_exponent;
+use price::{
+    to_biased_exponent,
+    OrderInfoArgs,
+};
 use solana_sdk::signer::Signer;
 
 #[tokio::main]
@@ -44,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
         .find_seat(&trader.pubkey())?
         .expect("User should have been registered on deposit");
 
-    let (price_mantissa, base_scalar, base_exponent, quote_exponent) = (
+    let order_info_args = OrderInfoArgs::new(
         10_000_000,
         500,
         to_biased_exponent!(0),
@@ -57,14 +60,7 @@ async fn main() -> anyhow::Result<()> {
         .market
         .post_order(
             trader.pubkey(),
-            PostOrderInstructionData::new(
-                price_mantissa,
-                base_scalar,
-                base_exponent,
-                quote_exponent,
-                is_bid,
-                user_seat.index,
-            ),
+            PostOrderInstructionData::new(order_info_args.clone(), is_bid, user_seat.index),
         )
         .send_single_signer(&e2e.rpc, trader)
         .await?;
@@ -88,10 +84,12 @@ async fn main() -> anyhow::Result<()> {
                 .post_order(
                     trader.pubkey(),
                     PostOrderInstructionData::new(
-                        price_mantissa + i,
-                        base_scalar,
-                        base_exponent,
-                        quote_exponent,
+                        OrderInfoArgs::new(
+                            order_info_args.price_mantissa + i,
+                            order_info_args.base_scalar,
+                            order_info_args.base_exponent_biased,
+                            order_info_args.quote_exponent_biased,
+                        ),
                         is_bid,
                         user_seat.index,
                     ),

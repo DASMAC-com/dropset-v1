@@ -113,16 +113,7 @@ pub fn log_orders(
 
     for post in posts.iter() {
         let side = if post.is_bid { "bid" } else { "ask" };
-        let encoded_price = to_order_info(
-            (
-                post.price_mantissa,
-                post.base_scalar,
-                post.base_exponent_biased,
-                post.quote_exponent_biased,
-            )
-                .into(),
-        )?
-        .encoded_price;
+        let encoded_price = to_order_info(post.order_info_args.clone())?.encoded_price;
         let decimal_price = try_encoded_u32_to_decoded_decimal(encoded_price.as_u32())?;
         print_kv!(format!("Posting {side} at"), format!("{decimal_price}"));
     }

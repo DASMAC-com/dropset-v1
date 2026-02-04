@@ -151,10 +151,7 @@ impl MarketSnapshot {
 struct OrderContext<'a> {
     pub maker: &'a Keypair,
     pub taker: &'a Keypair,
-    pub price_mantissa: u32,
-    pub base_scalar: u64,
-    pub base_exponent_biased: u8,
-    pub quote_exponent_biased: u8,
+    pub order_info_args: OrderInfoArgs,
     pub maker_side: BookSide,
     // The number of taker fills required to fully fill the maker order.
     pub num_taker_fills: u64,
@@ -162,13 +159,8 @@ struct OrderContext<'a> {
 
 impl OrderContext<'_> {
     pub fn order_info(&'_ self) -> anyhow::Result<OrderInfo> {
-        to_order_info(OrderInfoArgs::new(
-            self.price_mantissa,
-            self.base_scalar,
-            self.base_exponent_biased,
-            self.quote_exponent_biased,
-        ))
-        .or(Err(anyhow::anyhow!("Couldn't create order info")))
+        to_order_info(self.order_info_args.clone())
+            .or(Err(anyhow::anyhow!("Couldn't create order info")))
     }
 
     pub fn taker_size_base(&self) -> anyhow::Result<u64> {
@@ -230,10 +222,7 @@ async fn post_maker_order(
         .post_order(
             ctx.maker.pubkey(),
             PostOrderInstructionData::new(
-                ctx.price_mantissa,
-                ctx.base_scalar,
-                ctx.base_exponent_biased,
-                ctx.quote_exponent_biased,
+                ctx.order_info_args.clone(),
                 matches!(ctx.maker_side, BookSide::Bid),
                 maker_seat.index,
             ),
@@ -244,13 +233,8 @@ async fn post_maker_order(
 
 /// Initializes the `E2e` helper and returns the maker and taker's balances, respectively.
 async fn initialize_traders_and_market(ctx: &OrderContext<'_>) -> anyhow::Result<E2e> {
-    let order_info = to_order_info(OrderInfoArgs::new(
-        ctx.price_mantissa,
-        ctx.base_scalar,
-        ctx.base_exponent_biased,
-        ctx.quote_exponent_biased,
-    ))
-    .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+    let order_info =
+        to_order_info(ctx.order_info_args.clone()).map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
     let base_atoms = order_info.base_atoms;
     let quote_atoms = order_info.quote_atoms;
@@ -358,10 +342,12 @@ async fn main() -> anyhow::Result<()> {
         let ctx = OrderContext {
             maker,
             taker,
-            price_mantissa: 11_000_000,
-            base_scalar: 5,
-            base_exponent_biased: to_biased_exponent!(8),
-            quote_exponent_biased: to_biased_exponent!(0),
+            order_info_args: OrderInfoArgs {
+                price_mantissa: 11_000_000,
+                base_scalar: 5,
+                base_exponent_biased: to_biased_exponent!(8),
+                quote_exponent_biased: to_biased_exponent!(0),
+            },
             maker_side: side,
             num_taker_fills: 2,
         };
