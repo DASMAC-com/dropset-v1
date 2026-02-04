@@ -15,14 +15,18 @@ pub enum DropsetEvent {
     #[args(nonce: u64, "The market nonce.")]
     #[args(emitted_count: u16, "The number of events in the following event buffer.")]
     Header,
+
     #[args(trader: Address, "The trader's address.")]
     #[args(amount: u64, "The amount deposited.")]
     #[args(is_base: bool, "Which token, i.e., `true` => base token, `false` => quote token.")]
     Deposit,
+
     #[args(trader: Address, "The trader's address.")]
     #[args(amount: u64, "The amount withdrawn.")]
     #[args(is_base: bool, "Which token, i.e., `true` => base token, `false` => quote token.")]
     Withdraw,
+
+    #[args(random_byte: u8, "Some random byte, to test unaligned offsets.")]
     #[args(big_info_1: BigOrderInfo, "Big order info 1.")]
     #[args(big_info_2: BigOrderInfo, "Big order info 2.")]
     #[args(big_info_3: BigOrderInfo, "Big order info 3.")]
@@ -32,6 +36,7 @@ pub enum DropsetEvent {
 #[repr(C)]
 #[derive(Debug, Clone, Pack, Unpack, PartialEq, Eq)]
 pub struct BigOrderInfo {
+    pub byte_1: u8,
     pub deposit_1: DepositInstructionData,
     pub bool_1: bool,
     pub deposit_2: DepositInstructionData,

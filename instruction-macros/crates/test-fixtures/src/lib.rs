@@ -29,7 +29,12 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
 
         #[test]
         fn composable_pack_unpack_happy_path() {
+            let random_byte = 17;
+            // Ensure the first field's singular byte isn't equal to the tag to avoid false positive
+            // equality checks.
+            assert_ne!(random_byte, BigOrderInfosInstructionData::TAG_BYTE);
             let info_1 = BigOrderInfo {
+                byte_1: 11,
                 deposit_1: DepositInstructionData::new(const_addr([0; 32]), 1011, true),
                 bool_1: false,
                 deposit_2: DepositInstructionData::new(const_addr([1; 32]), 1022, false),
@@ -41,6 +46,7 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
             };
 
             let info_2 = BigOrderInfo {
+                byte_1: 22,
                 deposit_1: DepositInstructionData::new(const_addr([4; 32]), 2011, false),
                 bool_1: true,
                 deposit_2: DepositInstructionData::new(const_addr([5; 32]), 2022, false),
@@ -52,6 +58,7 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
             };
 
             let info_3 = BigOrderInfo {
+                byte_1: 33,
                 deposit_1: DepositInstructionData::new(const_addr([8; 32]), 3011, true),
                 bool_1: false,
                 deposit_2: DepositInstructionData::new(const_addr([9; 32]), 3022, true),
@@ -62,8 +69,12 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
                 field_2: 60000,
             };
 
-            let big_infos =
-                BigOrderInfosInstructionData::new(info_1.clone(), info_2.clone(), info_3.clone());
+            let big_infos = BigOrderInfosInstructionData::new(
+                random_byte,
+                info_1.clone(),
+                info_2.clone(),
+                info_3.clone(),
+            );
 
             let untagged = big_infos.pack();
             let tagged = big_infos.pack_tagged();
@@ -74,7 +85,7 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
             assert_eq!(tagged.len(), BigOrderInfosInstructionData::LEN_WITH_TAG);
             assert_eq!(untagged, tagged[1..]);
 
-            assert_eq!(untagged.len(), BigOrderInfo::LEN * 3);
+            assert_eq!(untagged.len(), 1 + BigOrderInfo::LEN * 3);
 
             let unpacked = BigOrderInfosInstructionData::unpack_untagged(&untagged).unwrap();
             // Unpack and unpack_untagged should be equivalent.
@@ -87,12 +98,13 @@ macro_rules! create_big_order_info_pack_and_unpack_test {
             assert_eq!(unpacked.pack_tagged(), tagged);
 
             // Individual field equality checks.
-            assert_eq!(untagged[0..BigOrderInfo::LEN], info_1.pack());
+            assert_eq!(untagged[0], random_byte);
+            assert_eq!(untagged[1..1 + BigOrderInfo::LEN], info_1.pack());
             assert_eq!(
-                untagged[BigOrderInfo::LEN..BigOrderInfo::LEN * 2],
+                untagged[1 + BigOrderInfo::LEN..1 + BigOrderInfo::LEN * 2],
                 info_2.pack()
             );
-            assert_eq!(untagged[BigOrderInfo::LEN * 2..], info_3.pack());
+            assert_eq!(untagged[1 + BigOrderInfo::LEN * 2..], info_3.pack());
 
             // Equality checks with PartialEq/Eq instead of just bytes.
             assert_eq!(unpacked, big_infos);
