@@ -38,7 +38,7 @@ pub fn render(
             // # Safety: `dst` has sufficient writable bytes.
             unsafe { <Self as #tagged_trait>::write_bytes_tagged(self, dst) };
 
-            // All bytes are initialized during the construction above.
+            // # Safety: All bytes are initialized during the construction above.
             unsafe { *(data.as_ptr() as *const [u8; #size_with_tag]) }
         }
     }
