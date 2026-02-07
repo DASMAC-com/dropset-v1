@@ -1,18 +1,30 @@
 //! The top-level market structure tying together header, seats, and
 //! storage sectors into a unified on-chain representation.
 
-use crate::state::{
-    asks_dll::AskOrdersLinkedList,
-    bids_dll::BidOrdersLinkedList,
-    free_stack::Stack,
-    linked_list::LinkedListIter,
-    market_header::{
-        MarketHeader,
-        MARKET_ACCOUNT_DISCRIMINANT,
+use pinocchio::hint::unlikely;
+
+use crate::{
+    error::{
+        DropsetError,
+        DropsetResult,
     },
-    seats_dll::SeatsLinkedList,
-    sector::SECTOR_SIZE,
-    transmutable::Transmutable,
+    state::{
+        asks_dll::AskOrdersLinkedList,
+        bids_dll::BidOrdersLinkedList,
+        free_stack::Stack,
+        linked_list::LinkedListIter,
+        market_header::{
+            MarketHeader,
+            MARKET_ACCOUNT_DISCRIMINANT,
+        },
+        seats_dll::SeatsLinkedList,
+        sector::{
+            Sector,
+            SectorIndex,
+            SECTOR_SIZE,
+        },
+        transmutable::Transmutable,
+    },
 };
 
 pub struct Market<Header, SectorBytes> {
@@ -133,16 +145,5 @@ impl<H: AsRef<MarketHeader>, S: AsRef<[u8]>> Market<H, S> {
     #[inline(always)]
     pub fn is_initialized(&self) -> bool {
         self.header.as_ref().discriminant() == MARKET_ACCOUNT_DISCRIMINANT
-    }
-
-    #[inline(always)]
-    pub fn check_in_bounds(&self, index: SectorIndex) -> DropsetResult {
-        let sectors = self.sectors.as_ref();
-        let max_num_sectors = (sectors.len() / Self::LEN) as u32;
-        if index >= max_num_sectors {
-            return Err(DropsetError::IndexOutOfBounds);
-        };
-
-        Ok(())
     }
 }

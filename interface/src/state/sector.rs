@@ -3,6 +3,7 @@
 //!
 //! Also defines and implements [`Sector`] structs representing the fixed-size storage sector.
 
+use pinocchio::hint::unlikely;
 use static_assertions::const_assert_eq;
 
 use crate::{
@@ -156,13 +157,11 @@ impl Sector {
         unsafe { T::load_unchecked_mut(&mut self.payload) }
     }
 
+    /// Checks if a given sector index is in-bounds of the passed slice of sector bytes.
     #[inline(always)]
     pub fn check_in_bounds(sectors: &[u8], index: SectorIndex) -> DropsetResult {
-        // This should be enforced when sector bytes are allocated initially.
-        debug_assert_eq!(sectors.len() % Self::LEN, 0);
-
         let max_num_sectors = (sectors.len() / Self::LEN) as u32;
-        if pinocchio::hint::unlikely(index >= max_num_sectors) {
+        if unlikely(index >= max_num_sectors) {
             return Err(DropsetError::IndexOutOfBounds);
         };
 
@@ -173,7 +172,7 @@ impl Sector {
     ///
     /// # Safety
     ///
-    /// Caller guarantees `index * Self::LEN` is within the bounds of `sectors` bytes.
+    /// Caller guarantees index * [`Sector::LEN`] is within the bounds of `sectors` bytes.
     #[inline(always)]
     pub unsafe fn from_sector_index(sectors: &[u8], index: SectorIndex) -> &Self {
         let byte_offset = index as usize * Self::LEN;
@@ -184,7 +183,7 @@ impl Sector {
     ///
     /// # Safety
     ///
-    /// Caller guarantees `index * Self::LEN` is within the bounds of `sectors` bytes.
+    /// Caller guarantees index * [`Sector::LEN`] is within the bounds of `sectors` bytes.
     #[inline(always)]
     pub unsafe fn from_sector_index_mut(sectors: &mut [u8], index: SectorIndex) -> &mut Self {
         let byte_offset = index as usize * Self::LEN;
