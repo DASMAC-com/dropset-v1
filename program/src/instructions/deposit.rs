@@ -68,11 +68,11 @@ pub unsafe fn process_deposit<'a>(
     // 1) Update an existing seat.
     let sector_index = if sector_index_hint != NIL {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
-        let market = unsafe { ctx.market_account.load_unchecked_mut() };
+        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
         Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
         let seat =
-            unsafe { find_mut_seat_with_hint(market, sector_index_hint, ctx.user.address()) }?;
+            unsafe { find_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
 
         if ctx.mint.is_base_mint {
             seat.set_base_available(

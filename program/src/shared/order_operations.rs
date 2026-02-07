@@ -56,10 +56,10 @@ pub fn insert_order<T: OrdersCollection + LinkedListHeaderOperations>(
 /// # Safety
 ///
 /// Caller guarantees `validated_sector_index` is in-bounds of `market.sectors` bytes.
-pub unsafe fn load_order_from_sector_index<'a, H, S>(
-    market: &'a Market<H, S>,
+pub unsafe fn load_order_from_sector_index<H, S>(
+    market: &'_ Market<H, S>,
     validated_sector_index: SectorIndex,
-) -> &'a Order
+) -> &'_ Order
 where
     H: AsRef<MarketHeader>,
     S: AsRef<[u8]>,
@@ -77,10 +77,10 @@ where
 /// # Safety
 ///
 /// Caller guarantees `validated_sector_index` is in-bounds of `market.sectors` bytes.
-pub unsafe fn load_mut_order_from_sector_index<'a>(
-    market: &'a mut MarketRefMut<'a>,
+pub unsafe fn load_mut_order_from_sector_index<'m>(
+    market: &'m mut MarketRefMut<'_>,
     validated_sector_index: SectorIndex,
-) -> &'a mut Order {
+) -> &'m mut Order {
     // Safety: Caller guarantees 'validated_sector_index' is in-bounds.
     let sector = unsafe { Sector::from_sector_index_mut(market.sectors, validated_sector_index) };
     sector.load_payload_mut::<Order>()

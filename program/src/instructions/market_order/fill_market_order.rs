@@ -10,8 +10,8 @@ use dropset_interface::{
         bids_dll::BidOrders,
         linked_list::LinkedListHeaderOperations,
         market_seat::MarketSeat,
-        sector::Sector,
         sector::{
+            Sector,
             SectorIndex,
             NIL,
         },
@@ -168,7 +168,7 @@ fn top_of_book_snapshot<const IS_BUY: bool>(ctx: &'_ MarketOrderContext) -> Opti
         None
     } else {
         // Safety: The head index is a non-NIL sector index pointing to a valid order sector.
-        let order = unsafe { load_order_from_sector_index(market, head_index) };
+        let order = unsafe { load_order_from_sector_index(&market, head_index) };
         Some(OrderSnapshot {
             base_remaining: order.base_remaining(),
             quote_remaining: order.quote_remaining(),
@@ -265,10 +265,11 @@ fn partial_fill<const IS_BUY: bool, const BASE_DENOM: bool>(
     let (base_filled, quote_filled) = {
         // Now update the order to reflect the new remaining amounts after the partial fill.
         // Safety: Scoped mutable borrow of the market account data.
-        let market = unsafe { ctx.market_account.load_unchecked_mut() };
+        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
 
         // Safety: The order sector index is non-NIL and pointing to a valid order sector.
-        let order = unsafe { load_mut_order_from_sector_index(market, top_order.order_sector) };
+        let order =
+            unsafe { load_mut_order_from_sector_index(&mut market, top_order.order_sector) };
 
         #[rustfmt::skip]
         let (base_filled, quote_filled) = if BASE_DENOM {

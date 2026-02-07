@@ -45,7 +45,7 @@ pub fn process_close_seat<'a>(
 
         Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
-        let seat = find_seat_with_hint(market, sector_index_hint, ctx.user.address())?;
+        let seat = find_seat_with_hint(&market, sector_index_hint, ctx.user.address())?;
 
         // NOTE: The base/quote available and deposited do not need to be zeroed here because
         // they're zeroed out in the `push_free_sector` call in the `remove_at` method below.

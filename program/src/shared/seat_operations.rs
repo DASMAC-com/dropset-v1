@@ -80,11 +80,11 @@ fn find_new_seat_prev_and_next(
 /// # Safety
 ///
 /// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
-pub unsafe fn find_seat_with_hint<'a, H, S>(
-    market: &'a Market<H, S>,
+pub unsafe fn find_seat_with_hint<'m, H, S>(
+    market: &'m Market<H, S>,
     hint: SectorIndex,
     user: &Address,
-) -> Result<&'a MarketSeat, DropsetError>
+) -> Result<&'m MarketSeat, DropsetError>
 where
     H: AsRef<MarketHeader>,
     S: AsRef<[u8]>,
@@ -104,11 +104,11 @@ where
 /// # Safety
 ///
 /// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
-pub unsafe fn find_mut_seat_with_hint<'a>(
-    market: &'a mut MarketRefMut<'a>,
+pub unsafe fn find_mut_seat_with_hint<'m>(
+    market: &'m mut MarketRefMut<'_>,
     hint: SectorIndex,
     user: &Address,
-) -> Result<&'a mut MarketSeat, DropsetError> {
+) -> Result<&'m mut MarketSeat, DropsetError> {
     // Safety: Caller guarantees `hint` is in-bounds.
     let sector = unsafe { Sector::from_sector_index_mut(market.sectors, hint) };
     let seat = sector.load_payload_mut::<MarketSeat>();
