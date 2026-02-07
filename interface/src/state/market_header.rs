@@ -32,11 +32,11 @@ pub const MARKET_ACCOUNT_DISCRIMINANT: u64 = 0xd00d00b00b00f00du64;
 ///
 /// The metadata stored in the market header is central to interpreting the structures contained
 /// within the market’s `sectors` bytes. This region acts as an untagged union of data structures
-/// that share a common iterable layout, where each `Item` is a node with some payload type `T`.
+/// that share a common iterable layout, where each item is a sector with some payload type `T`.
 ///
-/// For example, [`MarketHeader::free_stack_top`] exposes the index of the top node in the free
+/// For example, [`MarketHeader::free_stack_top`] exposes the index of the top sector in the free
 /// stack, allowing traversal of all available sectors. The payload type `T` in this case is
-/// [`crate::state::free_stack::FreeNodePayload`].
+/// [`crate::state::free_stack::FreePayload`].
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct MarketHeader {
@@ -48,21 +48,21 @@ pub struct MarketHeader {
     num_bids: LeU32,
     /// The u32 total number of fully initialized ask orders as LE bytes.
     num_asks: LeU32,
-    /// The u32 total number of sectors in the free stack as LE bytes.
+    /// The u32 total number of sectors in the free sectors stack as LE bytes.
     num_free_sectors: LeU32,
-    /// The u32 sector index of the first node in the stack of free nodes as LE bytes.
+    /// The u32 sector index of the first sector in the free sectors stack as LE bytes.
     free_stack_top: LeSectorIndex,
-    /// The u32 sector index of the first node in the doubly linked list of seat nodes as LE bytes.
+    /// The u32 sector index of the first sector in the seat sectors DLL as LE bytes.
     seats_dll_head: LeSectorIndex,
-    /// The u32 sector index of the last node in the doubly linked list of seat nodes as LE bytes.
+    /// The u32 sector index of the last sector in the seat sectors DLL as LE bytes.
     seats_dll_tail: LeSectorIndex,
-    /// The u32 sector index of the first node in the doubly linked list of bid nodes as LE bytes.
+    /// The u32 sector index of the first sector in the bid sectors DLL as LE bytes.
     bids_dll_head: LeSectorIndex,
-    /// The u32 sector index of the last node in the doubly linked list of bid nodes as LE bytes.
+    /// The u32 sector index of the last sector in the bid sectors DLL as LE bytes.
     bids_dll_tail: LeSectorIndex,
-    /// The u32 sector index of the first node in the doubly linked list of ask nodes as LE bytes.
+    /// The u32 sector index of the first sector in the ask sectors DLL as LE bytes.
     asks_dll_head: LeSectorIndex,
-    /// The u32 sector index of the last node in the doubly linked list of ask nodes as LE bytes.
+    /// The u32 sector index of the last sector in the ask sectors DLL as LE bytes.
     asks_dll_tail: LeSectorIndex,
     /// The market's base mint public key.
     pub base_mint: Address,

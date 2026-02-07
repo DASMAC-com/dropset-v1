@@ -10,8 +10,8 @@ use dropset_interface::{
         bids_dll::BidOrders,
         linked_list::LinkedListHeaderOperations,
         market_seat::MarketSeat,
-        node::Node,
         sector::{
+            Sector,
             SectorIndex,
             NIL,
         },
@@ -167,8 +167,8 @@ fn top_of_book_snapshot<const IS_BUY: bool>(ctx: &'_ MarketOrderContext) -> Opti
     if head_index == NIL {
         None
     } else {
-        // Safety: The head index is a non-NIL sector index pointing to a valid order node.
-        let order = unsafe { load_order_from_sector_index(market, head_index) };
+        // Safety: The head index is a non-NIL sector index pointing to a valid order sector.
+        let order = unsafe { load_order_from_sector_index(&market, head_index) };
         Some(OrderSnapshot {
             base_remaining: order.base_remaining(),
             quote_remaining: order.quote_remaining(),
@@ -265,10 +265,11 @@ fn partial_fill<const IS_BUY: bool, const BASE_DENOM: bool>(
     let (base_filled, quote_filled) = {
         // Now update the order to reflect the new remaining amounts after the partial fill.
         // Safety: Scoped mutable borrow of the market account data.
-        let market = unsafe { ctx.market_account.load_unchecked_mut() };
+        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
 
-        // Safety: The order sector index is non-NIL and pointing to a valid order node.
-        let order = unsafe { load_mut_order_from_sector_index(market, top_order.order_sector) };
+        // Safety: The order sector index is non-NIL and pointing to a valid order sector.
+        let order =
+            unsafe { load_mut_order_from_sector_index(&mut market, top_order.order_sector) };
 
         #[rustfmt::skip]
         let (base_filled, quote_filled) = if BASE_DENOM {
@@ -333,8 +334,8 @@ unsafe fn update_maker_seat_after_fill<const IS_BUY: bool, const PARTIAL_FILL: b
     // Safety: Single, scoped mutable borrow of the market account data.
     let market = ctx.market_account.load_unchecked_mut();
     // Safety: The user seat sector index is in-bounds, as it came from the order.
-    let node = unsafe { Node::from_sector_index_mut(market.sectors, maker_seat_sector) };
-    let maker_seat = node.load_payload_mut::<MarketSeat>();
+    let sector = unsafe { Sector::from_sector_index_mut(market.sectors, maker_seat_sector) };
+    let maker_seat = sector.load_payload_mut::<MarketSeat>();
     if IS_BUY {
         // Market buy means a maker's ask got filled, so they receive quote.
         maker_seat.try_increment_quote_available(quote_filled)?;
@@ -370,8 +371,8 @@ unsafe fn ensure_order_has_been_removed<const IS_BUY: bool>(
     // Safety: Single, scoped mutable borrow of the market account data.
     let market = ctx.market_account.load_unchecked();
     // Safety: The user seat sector index is in-bounds, as it came from the order.
-    let node = unsafe { Node::from_sector_index(market.sectors, top_order.maker_seat_sector) };
-    let maker_seat = node.load_payload::<MarketSeat>();
+    let sector = unsafe { Sector::from_sector_index(market.sectors, top_order.maker_seat_sector) };
+    let maker_seat = sector.load_payload::<MarketSeat>();
     let encoded_price: EncodedPrice = top_order
         .encoded_price
         .try_into()

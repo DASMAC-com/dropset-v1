@@ -5,8 +5,10 @@ use dropset_interface::{
     instructions::DepositInstructionData,
     state::{
         market_seat::MarketSeat,
-        node::Node,
-        sector::NIL,
+        sector::{
+            Sector,
+            NIL,
+        },
     },
 };
 use pinocchio::{
@@ -66,11 +68,11 @@ pub unsafe fn process_deposit<'a>(
     // 1) Update an existing seat.
     let sector_index = if sector_index_hint != NIL {
         // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
-        let market = unsafe { ctx.market_account.load_unchecked_mut() };
-        Node::check_in_bounds(market.sectors, sector_index_hint)?;
+        let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
+        Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
         let seat =
-            unsafe { find_mut_seat_with_hint(market, sector_index_hint, ctx.user.address()) }?;
+            unsafe { find_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
 
         if ctx.mint.is_base_mint {
             seat.set_base_available(
@@ -96,7 +98,7 @@ pub unsafe fn process_deposit<'a>(
             == 0;
 
         if needs_resize {
-            // Safety: Scoped mutable borrow to resize the market account and add a new sector/node.
+            // Safety: Scoped mutable borrow to resize the market account and add a new sector.
             unsafe { ctx.market_account.resize(ctx.user, 1) }?;
         }
 

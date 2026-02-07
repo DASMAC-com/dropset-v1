@@ -10,13 +10,17 @@ use dropset_interface::{
             MarketRefMut,
         },
         market_header::MarketHeader,
-        sector::SECTOR_SIZE,
+        sector::{
+            Sector,
+            SECTOR_SIZE,
+        },
         transmutable::Transmutable,
     },
     utils::owned_by,
 };
 use pinocchio::{
     account::AccountView,
+    hint::unlikely,
     ProgramResult,
 };
 
@@ -55,16 +59,22 @@ impl<'a> MarketAccountView<'a> {
     ///   0. `[READ]` Market account
     #[inline(always)]
     pub unsafe fn new(account: &'a AccountView) -> Result<MarketAccountView<'a>, DropsetError> {
-        if !owned_by(account, &program::ID) {
+        if unlikely(!owned_by(account, &program::ID)) {
             return Err(DropsetError::InvalidMarketAccountOwner);
         }
 
         let data = unsafe { account.borrow_unchecked() };
-        if data.len() < MarketHeader::LEN {
+        if unlikely(data.len() < MarketHeader::LEN) {
             return Err(DropsetError::AccountNotInitialized);
         }
 
-        if !(Market::from_bytes(data).is_initialized()) {
+        // Sector size alignment is an invariant enforced by market initialization and resize
+        // functions. This check is here as a sanity check.
+        debug_assert_eq!((data.len() - MarketHeader::LEN) % Sector::LEN, 0);
+
+        // Safety: The owner and initialization state was just verified.
+        let market = unsafe { Market::from_bytes(data) };
+        if unlikely(!(market.is_initialized())) {
             return Err(DropsetError::AccountNotInitialized);
         }
 
@@ -91,7 +101,7 @@ impl<'a> MarketAccountView<'a> {
     #[inline(always)]
     pub unsafe fn load_unchecked(&self) -> MarketRef<'_> {
         let data = unsafe { self.account.borrow_unchecked() };
-        // Safety: `Self::new` guarantees the account is program-owned and initialized.
+        // Safety: Assumes the `Self` invariant: the market account is program-owned & initialized.
         unsafe { Market::from_bytes(data) }
     }
 
@@ -108,12 +118,12 @@ impl<'a> MarketAccountView<'a> {
     #[inline(always)]
     pub unsafe fn load_unchecked_mut(&mut self) -> MarketRefMut<'_> {
         let data = unsafe { self.account.borrow_unchecked_mut() };
-        // Safety: `Self::new` guarantees the account is program-owned and initialized.
+        // Safety: Assumes the `Self` invariant: the market account is program-owned & initialized.
         unsafe { Market::from_bytes_mut(data) }
     }
 
-    /// Resizes the market account data and then initializes free nodes onto the free stack by
-    /// calculating the available space as a factor of SECTOR_SIZE.
+    /// Resizes the market account data and then initializes free sectors onto the free stack by
+    /// calculating the available space as a factor of [`Sector::LEN`].
     ///
     /// # Safety
     ///
@@ -126,11 +136,14 @@ impl<'a> MarketAccountView<'a> {
     ///   1. `[WRITE]` Market account
     #[inline(always)]
     pub unsafe fn resize(&mut self, payer: &AccountView, num_sectors: u16) -> ProgramResult {
-        if num_sectors == 0 {
+        if unlikely(num_sectors == 0) {
             return Err(DropsetError::InvalidNonZeroInteger.into());
         }
 
-        let curr_n_sectors = (self.account.data_len() - MarketHeader::LEN) / SECTOR_SIZE;
+        // Safety: No underflow possible here if the market header has been initialized, which is
+        // part of the safety contract for creating `Self`.
+        let curr_n_sectors =
+            unsafe { (self.account.data_len().unchecked_sub(MarketHeader::LEN)) / SECTOR_SIZE };
         let new_n_sectors = curr_n_sectors + (num_sectors as usize);
         let additional_space = (num_sectors as usize) * SECTOR_SIZE;
 
@@ -144,7 +157,7 @@ impl<'a> MarketAccountView<'a> {
         // Safety: Account data just zero-initialized new account space, and both indices are in
         // bounds and non-NIL.
         unsafe {
-            stack.convert_zeroed_bytes_to_free_nodes(curr_n_sectors as u32, new_n_sectors as u32)
+            stack.convert_zeroed_bytes_to_free_sectors(curr_n_sectors as u32, new_n_sectors as u32)
         }?;
 
         Ok(())

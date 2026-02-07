@@ -13,10 +13,10 @@ use crate::{
         },
         market::Market,
         market_header::MarketHeader,
-        node::{
+        sector::{
             AllBitPatternsValid,
-            NodePayload,
-            NODE_PAYLOAD_SIZE,
+            Payload,
+            PAYLOAD_SIZE,
         },
         sector::{
             LeSectorIndex,
@@ -29,7 +29,7 @@ use crate::{
 
 /// Marker trait to indicate that a struct represents a collection of orders.
 pub trait OrdersCollection {
-    /// Find the insertion point for a new order by returning what the new order node's `next_index`
+    /// Find the insertion point for a new order by returning what the new order sector's `next_index`
     /// should be after insertion.
     ///
     /// That is, given some `new` order, the list would be updated from this:
@@ -38,7 +38,7 @@ pub trait OrdersCollection {
     /// To this:
     /// `prev => new => next`
     ///
-    /// where this function returns the `next` node's sector index.
+    /// where this function returns the `next` sector's sector index.
     fn find_new_order_next_index<T: OrdersCollection + LinkedListHeaderOperations>(
         list: &LinkedList<'_, T>,
         new_order: &Order,
@@ -52,8 +52,8 @@ pub trait OrdersCollection {
         S: AsRef<[u8]>;
 }
 
-const ORDER_PADDING: usize = NODE_PAYLOAD_SIZE
-    - (size_of::<LeEncodedPrice>() + size_of::<LeSectorIndex>() + U64_SIZE + U64_SIZE);
+const ORDER_PADDING: usize =
+    PAYLOAD_SIZE - (size_of::<LeEncodedPrice>() + size_of::<LeSectorIndex>() + U64_SIZE + U64_SIZE);
 
 /// Represents a maker order in the orderbook.
 #[repr(C)]
@@ -67,7 +67,7 @@ pub struct Order {
     base_remaining: [u8; U64_SIZE],
     /// The u64 number of quote atoms left remaining to fill as LE bytes.
     quote_remaining: [u8; U64_SIZE],
-    /// Padding to fill the rest of the node payload size.
+    /// Padding to fill the rest of the sector payload size.
     _padding: [u8; ORDER_PADDING],
 }
 
@@ -136,7 +136,7 @@ impl Order {
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
 unsafe impl Transmutable for Order {
-    const LEN: usize = NODE_PAYLOAD_SIZE;
+    const LEN: usize = size_of::<Order>();
 
     #[inline(always)]
     fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
@@ -145,11 +145,11 @@ unsafe impl Transmutable for Order {
     }
 }
 
-const_assert_eq!(size_of::<Order>(), NODE_PAYLOAD_SIZE);
+const_assert_eq!(size_of::<Order>(), PAYLOAD_SIZE);
 const_assert_eq!(align_of::<Order>(), 1);
 
-// Safety: Const asserts ensure size_of::<Order>() == NODE_PAYLOAD_SIZE.
-unsafe impl NodePayload for Order {}
+// Safety: Const asserts ensure size_of::<Order>() == PAYLOAD_SIZE.
+unsafe impl Payload for Order {}
 
 // Safety: All bit patterns are valid.
 unsafe impl AllBitPatternsValid for Order {}

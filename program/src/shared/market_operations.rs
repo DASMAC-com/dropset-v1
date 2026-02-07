@@ -57,7 +57,7 @@ pub fn initialize_market_account_data<'a>(
     // Safety
     // Both indices are in-bounds, `start` < `end`, and the caller guarantees that the
     // account was just created, meaning it's entirely zeroed out bytes.
-    unsafe { stack.convert_zeroed_bytes_to_free_nodes(0, num_sectors as u32) }?;
+    unsafe { stack.convert_zeroed_bytes_to_free_sectors(0, num_sectors as u32) }?;
 
     Ok(market)
 }
@@ -129,7 +129,7 @@ pub mod tests {
 
         let resulting_seat_list: Vec<(SectorIndex, &MarketSeat)> = seat_list
             .iter()
-            .map(|(i, node)| (i, node.load_payload::<MarketSeat>()))
+            .map(|(i, sector)| (i, sector.load_payload::<MarketSeat>()))
             .collect();
 
         let expected_order = vec![zero, one, two, three, ten, forty];

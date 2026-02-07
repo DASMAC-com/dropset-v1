@@ -7,7 +7,7 @@ use dropset_interface::state::{
     market::MarketRef,
     market_header::MarketHeader,
     market_seat::MarketSeat,
-    node::Node,
+    sector::Sector,
     order::Order,
     sector::SectorIndex,
     transmutable::Transmutable,
@@ -37,7 +37,7 @@ pub struct MarketHeaderView {
     pub _padding: [u8; 3],
 }
 
-/// A view on a market account's data with the collection of type T nodes.
+/// A view on a market account's data with the collection of type T sectors.
 #[derive(Clone, Debug)]
 pub struct MarketView<T> {
     pub header: MarketHeaderView,
@@ -52,7 +52,7 @@ pub struct MarketUserData {
     pub asks: Vec<OrderView>,
 }
 
-/// A view on a market account's data showing all collections of all node types.
+/// A view on a market account's data showing all collections of all sector types.
 #[derive(Clone, Debug)]
 pub struct MarketViewAll {
     pub header: MarketHeaderView,
@@ -114,14 +114,14 @@ pub struct OrderView {
     pub quote_remaining: u64,
 }
 
-impl From<(SectorIndex, &Node)> for MarketSeatView {
-    fn from(index_and_seat: (SectorIndex, &Node)) -> Self {
-        let (sector_index, node) = index_and_seat;
-        let seat = node.load_payload::<MarketSeat>();
+impl From<(SectorIndex, &Sector)> for MarketSeatView {
+    fn from(index_and_seat: (SectorIndex, &Sector)) -> Self {
+        let (sector_index, sector) = index_and_seat;
+        let seat = sector.load_payload::<MarketSeat>();
         Self {
-            prev_index: node.prev(),
+            prev_index: sector.prev(),
             index: sector_index,
-            next_index: node.next(),
+            next_index: sector.next(),
             user: seat.user,
             base_available: seat.base_available(),
             quote_available: seat.quote_available(),
@@ -130,14 +130,14 @@ impl From<(SectorIndex, &Node)> for MarketSeatView {
     }
 }
 
-impl From<(SectorIndex, &Node)> for OrderView {
-    fn from(index_and_order: (SectorIndex, &Node)) -> Self {
-        let (sector_index, node) = index_and_order;
-        let order = node.load_payload::<Order>();
+impl From<(SectorIndex, &Sector)> for OrderView {
+    fn from(index_and_order: (SectorIndex, &Sector)) -> Self {
+        let (sector_index, sector) = index_and_order;
+        let order = sector.load_payload::<Order>();
         Self {
-            prev_index: node.prev(),
+            prev_index: sector.prev(),
             index: sector_index,
-            next_index: node.next(),
+            next_index: sector.next(),
             encoded_price: order.encoded_price(),
             user_seat: order.user_seat(),
             base_remaining: order.base_remaining(),

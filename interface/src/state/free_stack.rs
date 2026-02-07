@@ -9,11 +9,11 @@ use crate::{
     },
     state::{
         market_header::MarketHeader,
-        node::{
+        sector::{
             AllBitPatternsValid,
-            Node,
-            NodePayload,
-            NODE_PAYLOAD_SIZE,
+            Payload,
+            Sector,
+            PAYLOAD_SIZE,
         },
         sector::{
             SectorIndex,
@@ -29,24 +29,24 @@ pub struct Stack<'a> {
     /// See [`MarketHeader`].
     header: &'a mut MarketHeader,
     /// The slab of bytes where all sector data exists, where each sector is an untagged union
-    /// of (any possible sector type | FreeNodePayload).
+    /// of (any possible sector type | FreePayload).
     sectors: &'a mut [u8],
 }
 
 #[repr(transparent)]
-/// A free node payload is the unused payload portion of the "free" variant of the untagged union of
-/// each sector type (seat node, order node, etc).
-/// Since a free node only ever reads from the `next` field, it's not necessary to zero out the
+/// A free payload is the unused payload portion of the "free" variant of the untagged union of
+/// each sector type (market seat, market order, etc).
+/// Since a free sector only ever reads from the `next` field, it's not necessary to zero out the
 /// payload bytes and thus they should be considered garbage data.
-pub struct FreeNodePayload(pub [u8; NODE_PAYLOAD_SIZE]);
+pub struct FreePayload(pub [u8; PAYLOAD_SIZE]);
 
 // Safety:
 //
 // - Stable layout with `#[repr(C)]`.
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
-unsafe impl Transmutable for FreeNodePayload {
-    const LEN: usize = NODE_PAYLOAD_SIZE;
+unsafe impl Transmutable for FreePayload {
+    const LEN: usize = PAYLOAD_SIZE;
 
     fn validate_bit_patterns(_bytes: &[u8]) -> DropsetResult {
         // All bit patterns are valid: no enums, bools, or other types with invalid states.
@@ -54,39 +54,39 @@ unsafe impl Transmutable for FreeNodePayload {
     }
 }
 
-const_assert_eq!(FreeNodePayload::LEN, size_of::<FreeNodePayload>());
-const_assert_eq!(1, align_of::<FreeNodePayload>());
+const_assert_eq!(FreePayload::LEN, size_of::<FreePayload>());
+const_assert_eq!(1, align_of::<FreePayload>());
 
-// Safety: FreeNodePayload's size is checked below.
-unsafe impl NodePayload for FreeNodePayload {}
+// Safety: FreePayload's size is checked below.
+unsafe impl Payload for FreePayload {}
 
 // Safety: All bit patterns are valid.
-unsafe impl AllBitPatternsValid for FreeNodePayload {}
+unsafe impl AllBitPatternsValid for FreePayload {}
 
-const_assert_eq!(size_of::<FreeNodePayload>(), NODE_PAYLOAD_SIZE);
+const_assert_eq!(size_of::<FreePayload>(), PAYLOAD_SIZE);
 
 impl<'a> Stack<'a> {
     pub fn new_from_parts(header: &'a mut MarketHeader, sectors: &'a mut [u8]) -> Self {
         Stack { header, sectors }
     }
 
-    /// Push a node at the sector index onto the stack as a free node by zeroing out its data,
+    /// Push a sector at the sector index onto the stack as a free sector by zeroing out its data,
     /// setting its `next` to the current `top`, and updating the stack `top`.
     ///
     /// # Safety
     ///
     /// Caller guarantees `index` is in-bounds of the sector bytes.
-    pub unsafe fn push_free_node(&mut self, index: SectorIndex) {
+    pub unsafe fn push_free_sector(&mut self, index: SectorIndex) {
         let curr_top = self.top();
 
-        let node = unsafe { Node::from_sector_index_mut(self.sectors, index) };
-        node.zero_out_payload();
+        let sector = unsafe { Sector::from_sector_index_mut(self.sectors, index) };
+        sector.zero_out_payload();
 
-        node.set_next(curr_top);
+        sector.set_next(curr_top);
         self.set_top(index);
     }
 
-    /// Initialize zeroed out bytes as free stack nodes.
+    /// Initialize zeroed out bytes as free stack sectors.
     ///
     /// This should only be called directly after increasing the size of the account data, since the
     /// account data's bytes in that case are always zero-initialized.
@@ -98,18 +98,18 @@ impl<'a> Stack<'a> {
     /// - `start < end`
     /// - `end` is in-bounds of the account's data.
     /// - `start` and `end` are both non-NIL.
-    pub unsafe fn convert_zeroed_bytes_to_free_nodes(
+    pub unsafe fn convert_zeroed_bytes_to_free_sectors(
         &mut self,
         start: u32,
         end: u32,
     ) -> DropsetResult {
-        // Debug check that the node has been zeroed out.
+        // Debug check that the sector has been zeroed out.
         debug_assert!(
             start < end
                 && (start..end).all(|i| {
                     // Safety: The safety contract guarantees the index is always in-bounds.
-                    let node = unsafe { Node::from_sector_index_mut(self.sectors, i) };
-                    node.load_payload::<FreeNodePayload>().0 == [0; NODE_PAYLOAD_SIZE]
+                    let sector = unsafe { Sector::from_sector_index_mut(self.sectors, i) };
+                    sector.load_payload::<FreePayload>().0 == [0; PAYLOAD_SIZE]
                 })
         );
 
@@ -117,9 +117,9 @@ impl<'a> Stack<'a> {
             let curr_top = self.top();
 
             // Safety: The safety contract guarantees the index is always in-bounds.
-            let node = unsafe { Node::from_sector_index_mut(self.sectors, index) };
+            let sector = unsafe { Sector::from_sector_index_mut(self.sectors, index) };
 
-            node.set_next(curr_top);
+            sector.set_next(curr_top);
             self.set_top(index);
             self.header.increment_num_free_sectors();
         }
@@ -127,7 +127,7 @@ impl<'a> Stack<'a> {
         Ok(())
     }
 
-    /// Tries to remove a free node and if successful, returns its sector index.
+    /// Tries to remove a free [`Sector`] and if successful, returns its [`SectorIndex`].
     ///
     /// An Ok([`SectorIndex`]) is always in-bounds and non-NIL.
     ///
@@ -135,28 +135,28 @@ impl<'a> Stack<'a> {
     /// (or pushed back onto the free stack), that sector becomes unreachable and is effectively
     /// leaked from future use.
     ///
-    /// The node's sector data is not zeroed prior to being removed, so when repurposing the free
-    /// node for another data structure, the returned free node's data should be considered
+    /// The sector's data is not zeroed prior to being removed, so when repurposing the freed
+    /// sector for another data structure, the returned free sector's data should be considered
     /// invalid/garbage data until it's updated appropriately.
-    pub fn remove_free_node(&mut self) -> Result<SectorIndex, DropsetError> {
-        // The free node is the node at the top of the stack.
+    pub fn pop_free_sector(&mut self) -> Result<SectorIndex, DropsetError> {
+        // The free sector is the sector at the top of the stack.
         let free_index = self.top();
 
         if free_index == NIL {
-            return Err(DropsetError::NoFreeNodesLeft);
+            return Err(DropsetError::NoFreeSectorsRemaining);
         }
 
-        Node::check_in_bounds(self.sectors, free_index)?;
+        Sector::check_in_bounds(self.sectors, free_index)?;
         // Safety: The free index was just checked as in-bounds.
-        let node_being_freed = unsafe { Node::from_sector_index_mut(self.sectors, free_index) };
+        let sector_being_freed = unsafe { Sector::from_sector_index_mut(self.sectors, free_index) };
 
         // Copy the current top's `next` as that will become the new `top`.
-        let new_top = node_being_freed.next();
+        let new_top = sector_being_freed.next();
 
         self.set_top(new_top);
         self.header.decrement_num_free_sectors();
 
-        // Now return the index of the freed node.
+        // Now return the index of the freed sector.
         Ok(free_index)
     }
 

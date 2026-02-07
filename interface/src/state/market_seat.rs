@@ -9,10 +9,10 @@ use crate::{
         DropsetResult,
     },
     state::{
-        node::{
+        sector::{
             AllBitPatternsValid,
-            NodePayload,
-            NODE_PAYLOAD_SIZE,
+            Payload,
+            PAYLOAD_SIZE,
         },
         transmutable::Transmutable,
         user_order_sectors::UserOrderSectors,
@@ -128,7 +128,8 @@ impl MarketSeat {
 // - `size_of` and `align_of` are checked below.
 // - All bit patterns are valid.
 unsafe impl Transmutable for MarketSeat {
-    const LEN: usize = NODE_PAYLOAD_SIZE;
+    const LEN: usize =
+        size_of::<Address>() + size_of::<u64>() + size_of::<u64>() + UserOrderSectors::LEN;
 
     #[inline(always)]
     fn validate_bit_patterns(_bytes: &[u8]) -> crate::error::DropsetResult {
@@ -137,11 +138,13 @@ unsafe impl Transmutable for MarketSeat {
     }
 }
 
-const_assert_eq!(size_of::<MarketSeat>(), NODE_PAYLOAD_SIZE);
+const_assert_eq!(size_of::<MarketSeat>(), MarketSeat::LEN);
 const_assert_eq!(align_of::<MarketSeat>(), 1);
 
-// Safety: Const asserts ensure size_of::<MarketSeat>() == NODE_PAYLOAD_SIZE.
-unsafe impl NodePayload for MarketSeat {}
+// Safety: Const asserts ensure MarketSeat::LEN <= PAYLOAD_SIZE.
+unsafe impl Payload for MarketSeat {}
+
+const_assert_eq!(MarketSeat::LEN, PAYLOAD_SIZE);
 
 // Safety: All bit patterns are valid.
 unsafe impl AllBitPatternsValid for MarketSeat {}

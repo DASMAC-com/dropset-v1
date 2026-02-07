@@ -4,7 +4,7 @@ use dropset_interface::{
     error::DropsetError,
     events::WithdrawEventInstructionData,
     instructions::WithdrawInstructionData,
-    state::node::Node,
+    state::sector::Sector,
 };
 use pinocchio::{
     account::AccountView,
@@ -53,12 +53,13 @@ pub unsafe fn process_withdraw<'a>(
     }?;
 
     // Safety: Scoped mutable borrow of market account data to update the user's seat.
-    let market = unsafe { ctx.market_account.load_unchecked_mut() };
+    let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
 
     // Find the seat with the index hint or fail and return early.
-    Node::check_in_bounds(market.sectors, sector_index_hint)?;
+    Sector::check_in_bounds(market.sectors, sector_index_hint)?;
     // Safety: The hint was just verified as in-bounds.
-    let seat = unsafe { find_mut_seat_with_hint(market, sector_index_hint, ctx.user.address()) }?;
+    let seat =
+        unsafe { find_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
 
     // Update the market seat available/deposited, checking for underflow, as that means the user
     // tried to withdraw more than they have available.

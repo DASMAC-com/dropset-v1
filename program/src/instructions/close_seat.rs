@@ -3,7 +3,7 @@
 use dropset_interface::{
     events::CloseSeatEventInstructionData,
     instructions::CloseSeatInstructionData,
-    state::node::Node,
+    state::sector::Sector,
     utils::is_owned_by_spl_token,
 };
 use pinocchio::{
@@ -37,29 +37,29 @@ pub fn process_close_seat<'a>(
         CloseSeatInstructionData::unpack_untagged(instruction_data)?.sector_index_hint;
     let mut ctx = unsafe { CloseSeatContext::load(accounts) }?;
 
-    // Get the market bump and the base and quote amounts available for the user.
+    // Remove the seat after copying the market bump and the seat's base and quote available.
     let (market_bump, base_available, quote_available) = unsafe {
-        // Safety: Scoped immutable borrow of market account data.
-        let market = ctx.market_account.load_unchecked();
+        // Safety: Scoped mutable borrow of market account data.
+        let mut market = ctx.market_account.load_unchecked_mut();
+
+        // --- read market data ---
+        // Copy the market bump and the seat's base and quote amounts available to the user.
         let market_bump = market.header.market_bump;
-
-        Node::check_in_bounds(market.sectors, sector_index_hint)?;
+        Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
-        let seat = find_seat_with_hint(market, sector_index_hint, ctx.user.address())?;
-
+        let seat = find_seat_with_hint(&market, sector_index_hint, ctx.user.address())?;
         // NOTE: The base/quote available and deposited do not need to be zeroed here because
-        // they're zeroed out in the `push_free_node` call in the `remove_at` method below.
-        (market_bump, seat.base_available(), seat.quote_available())
-    };
+        // they're zeroed out in the `push_free_sector` call in the `remove_at` method below.
+        let copied_values = (market_bump, seat.base_available(), seat.quote_available());
 
-    // Remove the seat, push it to the free stack, and zero it out.
-    unsafe {
-        ctx.market_account
-            // Safety: Scoped mutable borrow of market account data to remove the seat.
-            .load_unchecked_mut()
+        // --- write market data ---
+        // Remove the seat, push it to the free stack, and zero it out.
+        market
             .seats()
             // Safety: The index hint was verified as in-bounds.
-            .remove_at(sector_index_hint)
+            .remove_at(sector_index_hint);
+
+        copied_values
     };
 
     // If the user had any `base_available`, transfer that amount from market account => user.

@@ -8,12 +8,11 @@ use dropset_interface::{
     state::{
         asks_dll::AskOrders,
         bids_dll::BidOrders,
-        market::MarketRefMut,
-        node::Node,
         order::{
             Order,
             OrdersCollection,
         },
+        sector::Sector,
     },
 };
 use pinocchio::{
@@ -61,10 +60,11 @@ pub unsafe fn process_post_order<'a>(
     // hint passed in, assuming it's valid. It's verified later when mutating the market seat.
     let order = Order::new(order_info, user_sector_index_hint);
     let le_encoded_price = *order.le_encoded_price();
-    let order_sector_index = {
-        // Safety: Scoped mutable borrow of the market account to insert the order.
-        let mut market: MarketRefMut = unsafe { ctx.market_account.load_unchecked_mut() };
 
+    // Safety: The market account is currently not borrowed in any capacity.
+    let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
+
+    let order_sector_index = {
         if is_bid {
             BidOrders::post_only_crossing_check(&order, &market)?;
             insert_order(&mut market.bids(), order)
@@ -74,38 +74,34 @@ pub unsafe fn process_post_order<'a>(
         }
     }?;
 
-    {
-        // Safety: Scoped mutable borrow of the market account to mutate the user's seat.
-        let market = unsafe { ctx.market_account.load_unchecked_mut() };
-        Node::check_in_bounds(market.sectors, user_sector_index_hint)?;
-        // Find and verify the user's seat with the given index hint.
-        // Safety: The index hint was just verified as in-bounds.
-        let user_seat =
-            find_mut_seat_with_hint(market, user_sector_index_hint, ctx.user.address())?;
+    Sector::check_in_bounds(market.sectors, user_sector_index_hint)?;
+    // Find and verify the user's seat with the given index hint.
+    // Safety: The index hint was just verified as in-bounds.
+    let user_seat =
+        find_mut_seat_with_hint(&mut market, user_sector_index_hint, ctx.user.address())?;
 
-        let order_sector_index_bytes = order_sector_index.to_le_bytes();
+    let order_sector_index_bytes = order_sector_index.to_le_bytes();
 
-        // 1. Check that the user has enough collateral to place the order and update their seat
-        //    with the resulting decremented amount.
-        // 2. Update the user seat's mapped order sectors. This also checks for duplicate prices so
-        //    that all of a user's orders have a unique price.
-        if is_bid {
-            // 1. If the user is posting a bid, they intend to provide quote and receive base.
-            user_seat.try_decrement_quote_available(quote_atoms)?;
-            // 2. Add the order to the user's bids.
-            user_seat
-                .user_order_sectors
-                .bids
-                .add(&le_encoded_price, &order_sector_index_bytes)?;
-        } else {
-            // 1. If the user is posting an ask, they intend to provide base and receive quote.
-            user_seat.try_decrement_base_available(base_atoms)?;
-            // 2. Add the order to the user's asks.
-            user_seat
-                .user_order_sectors
-                .asks
-                .add(&le_encoded_price, &order_sector_index_bytes)?;
-        }
+    // 1. Check that the user has enough collateral to place the order and update their seat with
+    //    the resulting decremented amount.
+    // 2. Update the user seat's mapped order sectors. This also checks for duplicate prices so that
+    //    all of a user's orders have a unique price.
+    if is_bid {
+        // 1. If the user is posting a bid, they intend to provide quote and receive base.
+        user_seat.try_decrement_quote_available(quote_atoms)?;
+        // 2. Add the order to the user's bids.
+        user_seat
+            .user_order_sectors
+            .bids
+            .add(&le_encoded_price, &order_sector_index_bytes)?;
+    } else {
+        // 1. If the user is posting an ask, they intend to provide base and receive quote.
+        user_seat.try_decrement_base_available(base_atoms)?;
+        // 2. Add the order to the user's asks.
+        user_seat
+            .user_order_sectors
+            .asks
+            .add(&le_encoded_price, &order_sector_index_bytes)?;
     }
 
     #[cfg(feature = "debug")]
