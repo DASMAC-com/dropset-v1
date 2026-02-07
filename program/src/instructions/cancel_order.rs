@@ -6,8 +6,10 @@ use dropset_interface::{
     instructions::CancelOrderInstructionData,
     state::{
         market_seat::MarketSeat,
-        sector::Sector,
-        sector::SectorIndex,
+        sector::{
+            Sector,
+            SectorIndex,
+        },
     },
 };
 use pinocchio::{
@@ -78,8 +80,9 @@ pub unsafe fn process_cancel_order<'a>(
         // Safety: Scoped mutable borrow of the market account.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };
         // Safety: The seat index hint was validated above and the user's seat hasn't changed.
-        let node = unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
-        let user_seat = node.load_payload_mut::<MarketSeat>();
+        let sector =
+            unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
+        let user_seat = sector.load_payload_mut::<MarketSeat>();
         user_seat.try_increment_quote_available(order_size_remaining)?;
     } else {
         // If the user placed an ask, they provided base as collateral.
@@ -87,8 +90,9 @@ pub unsafe fn process_cancel_order<'a>(
         // Safety: Scoped mutable borrow of the market account.
         let market = unsafe { ctx.market_account.load_unchecked_mut() };
         // Safety: The seat index hint was validated above and the user's seat hasn't changed.
-        let node = unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
-        let user_seat = node.load_payload_mut::<MarketSeat>();
+        let sector =
+            unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
+        let user_seat = sector.load_payload_mut::<MarketSeat>();
         user_seat.try_increment_base_available(order_size_remaining)?;
     }
 

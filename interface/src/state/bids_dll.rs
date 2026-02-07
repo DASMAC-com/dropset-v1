@@ -1,4 +1,4 @@
-//! Doubly linked list of bid order nodes with [`crate::state::order::Order`] payloads.
+//! Doubly linked list of bid order sectors with [`crate::state::order::Order`] payloads.
 
 use crate::{
     error::{
@@ -40,15 +40,15 @@ impl OrdersCollection for BidOrders {
         new_order: &Order,
     ) -> SectorIndex {
         // Find the first price that is less than the new bid.
-        for (index, node) in list.iter() {
-            let order = node.load_payload::<Order>();
+        for (index, sector) in list.iter() {
+            let order = sector.load_payload::<Order>();
             if order.encoded_price() < new_order.encoded_price() {
                 return index;
             }
         }
 
-        // If the node is to be inserted at the end of the list, the new `next` index is `NIL`,
-        // since the new node is the new tail.
+        // If the sector is to be inserted at the end of the list, the new `next` index is `NIL`,
+        // since the new sector is the new tail.
         NIL
     }
 
@@ -64,12 +64,12 @@ impl OrdersCollection for BidOrders {
         S: AsRef<[u8]>,
     {
         let bid_price = order.encoded_price();
-        let first_ask_node = market.iter_asks().next();
-        match first_ask_node {
+        let first_ask_sector = market.iter_asks().next();
+        match first_ask_sector {
             // Check that the bid wouldn't immediately take (and is thus post only) by ensuring its
             // price is less than the first/lowest ask.
-            Some((_idx, ask_node)) => {
-                let lowest_ask = ask_node.load_payload::<Order>();
+            Some((_idx, ask_sector)) => {
+                let lowest_ask = ask_sector.load_payload::<Order>();
                 if bid_price < lowest_ask.encoded_price() {
                     Ok(())
                 } else {
@@ -84,7 +84,7 @@ impl OrdersCollection for BidOrders {
 
 pub type BidOrdersLinkedList<'a> = LinkedList<'a, BidOrders>;
 
-/// Operations for the sorted, doubly linked list of nodes containing bid
+/// Operations for the sorted, doubly linked list of sectors containing bid
 /// [`crate::state::order::Order`] payloads.
 impl LinkedListHeaderOperations for BidOrders {
     fn head(header: &MarketHeader) -> SectorIndex {

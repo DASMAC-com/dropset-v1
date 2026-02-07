@@ -29,7 +29,7 @@ use crate::{
 
 /// Marker trait to indicate that a struct represents a collection of orders.
 pub trait OrdersCollection {
-    /// Find the insertion point for a new order by returning what the new order node's `next_index`
+    /// Find the insertion point for a new order by returning what the new order sector's `next_index`
     /// should be after insertion.
     ///
     /// That is, given some `new` order, the list would be updated from this:
@@ -38,7 +38,7 @@ pub trait OrdersCollection {
     /// To this:
     /// `prev => new => next`
     ///
-    /// where this function returns the `next` node's sector index.
+    /// where this function returns the `next` sector's sector index.
     fn find_new_order_next_index<T: OrdersCollection + LinkedListHeaderOperations>(
         list: &LinkedList<'_, T>,
         new_order: &Order,
@@ -67,7 +67,7 @@ pub struct Order {
     base_remaining: [u8; U64_SIZE],
     /// The u64 number of quote atoms left remaining to fill as LE bytes.
     quote_remaining: [u8; U64_SIZE],
-    /// Padding to fill the rest of the node payload size.
+    /// Padding to fill the rest of the sector payload size.
     _padding: [u8; ORDER_PADDING],
 }
 

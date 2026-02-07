@@ -86,7 +86,7 @@ impl<'a> Stack<'a> {
         self.set_top(index);
     }
 
-    /// Initialize zeroed out bytes as free stack nodes.
+    /// Initialize zeroed out bytes as free stack sectors.
     ///
     /// This should only be called directly after increasing the size of the account data, since the
     /// account data's bytes in that case are always zero-initialized.
@@ -103,13 +103,13 @@ impl<'a> Stack<'a> {
         start: u32,
         end: u32,
     ) -> DropsetResult {
-        // Debug check that the node has been zeroed out.
+        // Debug check that the sector has been zeroed out.
         debug_assert!(
             start < end
                 && (start..end).all(|i| {
                     // Safety: The safety contract guarantees the index is always in-bounds.
-                    let node = unsafe { Sector::from_sector_index_mut(self.sectors, i) };
-                    node.load_payload::<FreePayload>().0 == [0; PAYLOAD_SIZE]
+                    let sector = unsafe { Sector::from_sector_index_mut(self.sectors, i) };
+                    sector.load_payload::<FreePayload>().0 == [0; PAYLOAD_SIZE]
                 })
         );
 
@@ -117,9 +117,9 @@ impl<'a> Stack<'a> {
             let curr_top = self.top();
 
             // Safety: The safety contract guarantees the index is always in-bounds.
-            let node = unsafe { Sector::from_sector_index_mut(self.sectors, index) };
+            let sector = unsafe { Sector::from_sector_index_mut(self.sectors, index) };
 
-            node.set_next(curr_top);
+            sector.set_next(curr_top);
             self.set_top(index);
             self.header.increment_num_free_sectors();
         }

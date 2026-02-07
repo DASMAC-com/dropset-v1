@@ -1,4 +1,4 @@
-//! Doubly linked list of ask order nodes with [`crate::state::order::Order`] payloads.
+//! Doubly linked list of ask order sectors with [`crate::state::order::Order`] payloads.
 
 use crate::{
     error::{
@@ -40,15 +40,15 @@ impl OrdersCollection for AskOrders {
         new_order: &Order,
     ) -> SectorIndex {
         // Find the first price that is greater than the new ask.
-        for (index, node) in list.iter() {
-            let order = node.load_payload::<Order>();
+        for (index, sector) in list.iter() {
+            let order = sector.load_payload::<Order>();
             if order.encoded_price() > new_order.encoded_price() {
                 return index;
             }
         }
 
-        // If the node is to be inserted at the end of the list, the new `next` index is `NIL`,
-        // since the new node is the new tail.
+        // If the sector is to be inserted at the end of the list, the new `next` index is `NIL`,
+        // since the new sector is the new tail.
         NIL
     }
 
@@ -64,12 +64,12 @@ impl OrdersCollection for AskOrders {
         S: AsRef<[u8]>,
     {
         let ask_price = order.encoded_price();
-        let first_bid_node = market.iter_bids().next();
-        match first_bid_node {
+        let first_bid_sector = market.iter_bids().next();
+        match first_bid_sector {
             // Check that the ask wouldn't immediately take (and is thus post only) by ensuring its
             // price is greater than the first/highest bid.
-            Some((_idx, bid_node)) => {
-                let highest_bid = bid_node.load_payload::<Order>();
+            Some((_idx, bid_sector)) => {
+                let highest_bid = bid_sector.load_payload::<Order>();
                 if ask_price > highest_bid.encoded_price() {
                     Ok(())
                 } else {
@@ -84,7 +84,7 @@ impl OrdersCollection for AskOrders {
 
 pub type AskOrdersLinkedList<'a> = LinkedList<'a, AskOrders>;
 
-/// Operations for the sorted, doubly linked list of nodes containing ask
+/// Operations for the sorted, doubly linked list of sectors containing ask
 /// [`crate::state::order::Order`] payloads.
 impl LinkedListHeaderOperations for AskOrders {
     fn head(header: &MarketHeader) -> SectorIndex {

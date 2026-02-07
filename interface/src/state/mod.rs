@@ -1,4 +1,4 @@
-//! Core on-chain state definitions, covering markets, seats, nodes, and low-level data structures
+//! Core on-chain state definitions, covering markets, seats, sectors, and low-level data structures
 //! for indexing and iteration.
 
 pub mod asks_dll;

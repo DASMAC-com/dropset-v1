@@ -129,7 +129,7 @@ pub mod tests {
 
         let resulting_seat_list: Vec<(SectorIndex, &MarketSeat)> = seat_list
             .iter()
-            .map(|(i, node)| (i, node.load_payload::<MarketSeat>()))
+            .map(|(i, sector)| (i, sector.load_payload::<MarketSeat>()))
             .collect();
 
         let expected_order = vec![zero, one, two, three, ten, forty];

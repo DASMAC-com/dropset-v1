@@ -48,7 +48,7 @@ pub fn process_close_seat<'a>(
         let seat = find_seat_with_hint(market, sector_index_hint, ctx.user.address())?;
 
         // NOTE: The base/quote available and deposited do not need to be zeroed here because
-        // they're zeroed out in the `push_free_node` call in the `remove_at` method below.
+        // they're zeroed out in the `push_free_sector` call in the `remove_at` method below.
         (market_bump, seat.base_available(), seat.quote_available())
     };
 

@@ -1,4 +1,4 @@
-//! Doubly linked list utilities for traversing, inserting, and removing nodes containing
+//! Doubly linked list utilities for traversing, inserting, and removing sectors containing
 //! [`crate::state::market_seat::MarketSeat`] payloads.
 
 use crate::state::{
@@ -14,7 +14,7 @@ pub struct Seats;
 
 pub type SeatsLinkedList<'a> = LinkedList<'a, Seats>;
 
-/// Operations for the sorted, doubly linked list of nodes containing
+/// Operations for the sorted, doubly linked list of sectors containing
 /// [`crate::state::market_seat::MarketSeat`] payloads.
 impl LinkedListHeaderOperations for Seats {
     #[inline(always)]

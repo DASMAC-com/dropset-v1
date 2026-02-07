@@ -65,9 +65,9 @@ where
     S: AsRef<[u8]>,
 {
     // Safety: Caller guarantees 'validated_sector_index' is in-bounds.
-    let node =
+    let sector =
         unsafe { Sector::from_sector_index(market.sectors.as_ref(), validated_sector_index) };
-    node.load_payload::<Order>()
+    sector.load_payload::<Order>()
 }
 
 /// Converts a sector index to a mutable order given a sector index.
@@ -82,8 +82,8 @@ pub unsafe fn load_mut_order_from_sector_index<'a>(
     validated_sector_index: SectorIndex,
 ) -> &'a mut Order {
     // Safety: Caller guarantees 'validated_sector_index' is in-bounds.
-    let node = unsafe { Sector::from_sector_index_mut(market.sectors, validated_sector_index) };
-    node.load_payload_mut::<Order>()
+    let sector = unsafe { Sector::from_sector_index_mut(market.sectors, validated_sector_index) };
+    sector.load_payload_mut::<Order>()
 }
 
 #[cfg(test)]
@@ -182,8 +182,8 @@ mod tests {
         list: &LinkedList<'_, T>,
     ) -> Vec<(u32, u32)> {
         list.iter()
-            .map(|(_, node)| {
-                let order = node.load_payload::<Order>();
+            .map(|(_, sector)| {
+                let order = sector.load_payload::<Order>();
                 (order.encoded_price(), order.user_seat())
             })
             .collect()
@@ -194,7 +194,7 @@ mod tests {
         list: &LinkedList<'_, T>,
     ) -> Vec<u32> {
         list.iter()
-            .map(|(_, node)| node.load_payload::<Order>().encoded_price())
+            .map(|(_, sector)| sector.load_payload::<Order>().encoded_price())
             .collect()
     }
 

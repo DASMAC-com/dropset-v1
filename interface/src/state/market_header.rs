@@ -32,9 +32,9 @@ pub const MARKET_ACCOUNT_DISCRIMINANT: u64 = 0xd00d00b00b00f00du64;
 ///
 /// The metadata stored in the market header is central to interpreting the structures contained
 /// within the market’s `sectors` bytes. This region acts as an untagged union of data structures
-/// that share a common iterable layout, where each item is a node with some payload type `T`.
+/// that share a common iterable layout, where each item is a sector with some payload type `T`.
 ///
-/// For example, [`MarketHeader::free_stack_top`] exposes the index of the top node in the free
+/// For example, [`MarketHeader::free_stack_top`] exposes the index of the top sector in the free
 /// stack, allowing traversal of all available sectors. The payload type `T` in this case is
 /// [`crate::state::free_stack::FreePayload`].
 #[repr(C)]
