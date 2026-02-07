@@ -1,30 +1,18 @@
 //! The top-level market structure tying together header, seats, and
 //! storage sectors into a unified on-chain representation.
 
-use pinocchio::hint::unlikely;
-
-use crate::{
-    error::{
-        DropsetError,
-        DropsetResult,
+use crate::state::{
+    asks_dll::AskOrdersLinkedList,
+    bids_dll::BidOrdersLinkedList,
+    free_stack::Stack,
+    linked_list::LinkedListIter,
+    market_header::{
+        MarketHeader,
+        MARKET_ACCOUNT_DISCRIMINANT,
     },
-    state::{
-        asks_dll::AskOrdersLinkedList,
-        bids_dll::BidOrdersLinkedList,
-        free_stack::Stack,
-        linked_list::LinkedListIter,
-        market_header::{
-            MarketHeader,
-            MARKET_ACCOUNT_DISCRIMINANT,
-        },
-        seats_dll::SeatsLinkedList,
-        sector::{
-            Sector,
-            SectorIndex,
-            SECTOR_SIZE,
-        },
-        transmutable::Transmutable,
-    },
+    seats_dll::SeatsLinkedList,
+    sector::SECTOR_SIZE,
+    transmutable::Transmutable,
 };
 
 pub struct Market<Header, SectorBytes> {
