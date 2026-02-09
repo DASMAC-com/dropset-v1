@@ -51,7 +51,7 @@ impl<'a, T: LinkedListHeaderOperations> LinkedList<'a, T> {
     ///
     /// An Ok([`SectorIndex`]) is always in-bounds and non-NIL.
     ///
-    /// NOTE: See [`Stack::remove_free_sector`] for how to safely avoid bricking the freed sector. The
+    /// NOTE: See [`Stack::pop_free_sector`] for how to safely avoid bricking the freed sector. The
     /// sector's data is also not zeroed prior to return.
     #[inline(always)]
     fn acquire_free_sector(&mut self) -> Result<SectorIndex, DropsetError> {
@@ -68,8 +68,8 @@ impl<'a, T: LinkedListHeaderOperations> LinkedList<'a, T> {
 
         // Safety: `acquire_free_sector` guarantees `new_index` is in-bounds and non-NIL.
         let new_sector = unsafe { Sector::from_sector_index_mut(self.sectors, new_index) };
-        // Create the new sector with the incoming payload. It has no `prev` and its `next` sector is
-        // the current head.
+        // Create the new sector with the incoming payload. It has no `prev` and its `next` sector
+        // is the current head.
         new_sector.set_payload(payload);
         new_sector.set_prev(NIL);
         new_sector.set_next(head_index);
@@ -97,8 +97,8 @@ impl<'a, T: LinkedListHeaderOperations> LinkedList<'a, T> {
 
         // Safety: `acquire_free_sector` guarantees `new_index` is in-bounds and non-NIL.
         let new_sector = unsafe { Sector::from_sector_index_mut(self.sectors, new_index) };
-        // Create the new sector with the incoming payload. It has no `next` and its `prev` sector is
-        // the current tail.
+        // Create the new sector with the incoming payload. It has no `next` and its `prev` sector
+        // is the current tail.
         new_sector.set_payload(payload);
         new_sector.set_prev(tail_index);
         new_sector.set_next(NIL);
