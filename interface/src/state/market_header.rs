@@ -122,7 +122,7 @@ const_assert_eq!(align_of::<MarketHeader>(), 1);
 /// Generates:
 /// - `fn $field(&self) -> u32`
 /// - `fn increment_$field(&mut self)`
-/// - `fn decrement_$field(&mut self) -> Result<(), DropsetError>`
+/// - `fn decrement_$field(&mut self)`
 macro_rules! impl_u32_counter_field {
     ($field:ident) => {
         #[inline(always)]
@@ -174,13 +174,13 @@ macro_rules! impl_get_set_sector_index_field {
 }
 
 impl MarketHeader {
+    impl_u32_counter_field!(num_free_sectors);
+
     impl_u32_counter_field!(num_seats);
 
     impl_u32_counter_field!(num_bids);
 
     impl_u32_counter_field!(num_asks);
-
-    impl_u32_counter_field!(num_free_sectors);
 
     impl_get_set_sector_index_field!(free_stack_top);
 
