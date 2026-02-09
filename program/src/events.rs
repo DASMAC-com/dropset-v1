@@ -7,7 +7,6 @@ use dropset_interface::{
     instructions::DropsetInstruction,
     program,
     seeds::event_authority,
-    syscalls,
 };
 use instruction_macros_traits::Tagged;
 use pinocchio::{
@@ -94,10 +93,10 @@ impl EventBuffer {
         // already been written to.
         // Safety: `data` is valid for EVENT_BUFFER_LEN - HEADER_DATA_OFFSET bytes and is align 1.
         unsafe {
-            syscalls::sol_memset_(
+            core::ptr::write_bytes(
                 buf.data.as_mut_ptr().add(HEADER_DATA_OFFSET) as *mut u8,
                 0,
-                HeaderEventInstructionData::LEN_WITH_TAG as u64,
+                HeaderEventInstructionData::LEN_WITH_TAG,
             )
         };
 

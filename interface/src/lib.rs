@@ -11,7 +11,6 @@ pub mod events;
 pub mod instructions;
 pub mod seeds;
 pub mod state;
-pub mod syscalls;
 pub mod utils;
 
 pub mod program {

@@ -16,7 +16,6 @@ use crate::{
         transmutable::Transmutable,
         U32_SIZE,
     },
-    syscalls,
 };
 
 pub const SECTOR_SIZE: usize = 136;
@@ -129,10 +128,10 @@ impl Sector {
         // Safety: both payloads are exactly `PAYLOAD_SIZE` long, and the incoming payload
         // should never overlap with the existing payload due to aliasing rules.
         unsafe {
-            syscalls::sol_memcpy_(
-                self.payload.as_mut_ptr(),
+            core::ptr::copy_nonoverlapping(
                 payload.as_ptr(),
-                PAYLOAD_SIZE as u64,
+                self.payload.as_mut_ptr(),
+                PAYLOAD_SIZE,
             );
         }
     }
@@ -141,7 +140,7 @@ impl Sector {
     pub fn zero_out_payload(&mut self) {
         // Safety: `payload` is exactly `PAYLOAD_SIZE` bytes long and align 1.
         unsafe {
-            syscalls::sol_memset_(self.payload.as_mut_ptr(), 0, PAYLOAD_SIZE as u64);
+            core::ptr::write_bytes(self.payload.as_mut_ptr(), 0, PAYLOAD_SIZE);
         }
     }
 
