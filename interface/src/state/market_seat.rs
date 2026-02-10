@@ -9,6 +9,7 @@ use crate::{
         DropsetResult,
     },
     state::{
+        order::OrdersCollection,
         sector::{
             AllBitPatternsValid,
             Payload,
@@ -51,7 +52,7 @@ impl MarketSeat {
     }
 
     #[inline(always)]
-    pub fn set_base_available(&mut self, amount: u64) {
+    fn set_base_available(&mut self, amount: u64) {
         self.base_available = amount.to_le_bytes();
     }
 
@@ -61,7 +62,7 @@ impl MarketSeat {
     }
 
     #[inline(always)]
-    pub fn set_quote_available(&mut self, amount: u64) {
+    fn set_quote_available(&mut self, amount: u64) {
         self.quote_available = amount.to_le_bytes();
     }
 
@@ -109,6 +110,22 @@ impl MarketSeat {
         self.set_quote_available(new_amount);
 
         Ok(())
+    }
+
+    #[inline(always)]
+    pub fn try_increment_collateral_available<T: OrdersCollection>(
+        &mut self,
+        amount: u64,
+    ) -> DropsetResult {
+        T::try_increment_seat_collateral_available(self, amount)
+    }
+
+    #[inline(always)]
+    pub fn try_decrement_collateral_available<T: OrdersCollection>(
+        &mut self,
+        amount: u64,
+    ) -> DropsetResult {
+        T::try_decrement_seat_collateral_available(self, amount)
     }
 
     /// This method is sound because:

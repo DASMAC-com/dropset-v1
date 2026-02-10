@@ -22,7 +22,7 @@ const U32_SIZE: usize = core::mem::size_of::<u32>();
 ///                    32
 /// ```
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EncodedPrice(u32);
 
 pub const ENCODED_PRICE_INFINITY: u32 = u32::MAX;
@@ -70,6 +70,16 @@ impl EncodedPrice {
     pub fn is_zero(&self) -> bool {
         self.0 == ENCODED_PRICE_ZERO
     }
+
+    #[inline(always)]
+    pub fn has_higher_ask_priority(&self, b: &Self) -> bool {
+        self < b
+    }
+
+    #[inline(always)]
+    pub fn has_higher_bid_priority(&self, b: &Self) -> bool {
+        self > b
+    }
 }
 
 #[cfg(any(feature = "client", debug_assertions))]
@@ -111,8 +121,8 @@ impl LeEncodedPrice {
     }
 
     #[inline(always)]
-    pub fn zero() -> Self {
-        Self::from(EncodedPrice::zero())
+    pub const fn zero() -> Self {
+        Self(EncodedPrice::zero().0.to_le_bytes())
     }
 }
 
@@ -173,5 +183,28 @@ mod tests {
         check_round_trip(zero);
         check_round_trip(infinity);
         check_round_trip(one);
+    }
+
+    #[test]
+    fn price_priority() {
+        let price_1 = encoded_price!(10_000_000, 0);
+        let price_2 = encoded_price!(20_000_000, 0);
+        let price_3 = encoded_price!(30_000_000, 0);
+        let price_4 = encoded_price!(40_000_000, 0);
+        assert!(!price_1.has_higher_bid_priority(&price_2));
+        assert!(!price_2.has_higher_bid_priority(&price_3));
+        assert!(!price_3.has_higher_bid_priority(&price_4));
+
+        assert!(price_4.has_higher_bid_priority(&price_3));
+        assert!(price_3.has_higher_bid_priority(&price_2));
+        assert!(price_2.has_higher_bid_priority(&price_1));
+
+        assert!(price_1.has_higher_ask_priority(&price_2));
+        assert!(price_2.has_higher_ask_priority(&price_3));
+        assert!(price_3.has_higher_ask_priority(&price_4));
+
+        assert!(!price_4.has_higher_ask_priority(&price_3));
+        assert!(!price_3.has_higher_ask_priority(&price_2));
+        assert!(!price_2.has_higher_ask_priority(&price_1));
     }
 }

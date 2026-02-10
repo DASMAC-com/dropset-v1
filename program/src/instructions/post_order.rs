@@ -8,11 +8,15 @@ use dropset_interface::{
     state::{
         asks_dll::AskOrders,
         bids_dll::BidOrders,
+        market::MarketRefMut,
         order::{
             Order,
             OrdersCollection,
         },
-        sector::Sector,
+        sector::{
+            Sector,
+            SectorIndex,
+        },
     },
 };
 use pinocchio::{
@@ -29,7 +33,7 @@ use crate::{
     events::EventBuffer,
     shared::{
         order_operations::insert_order,
-        seat_operations::find_mut_seat_with_hint,
+        seat_operations::load_mut_seat_with_hint,
     },
 };
 
@@ -68,11 +72,9 @@ pub unsafe fn process_post_order<'a>(
 
     let order_sector_index = {
         if is_bid {
-            BidOrders::post_only_crossing_check(&order, &market)?;
-            insert_order(&mut market.bids(), order)
+            post_only_check_and_insert_order::<BidOrders>(&mut market, order)
         } else {
-            AskOrders::post_only_crossing_check(&order, &market)?;
-            insert_order(&mut market.asks(), order)
+            post_only_check_and_insert_order::<AskOrders>(&mut market, order)
         }
     }?;
 
@@ -80,7 +82,7 @@ pub unsafe fn process_post_order<'a>(
     // Find and verify the user's seat with the given index hint.
     // Safety: The index hint was just verified as in-bounds.
     let user_seat =
-        find_mut_seat_with_hint(&mut market, user_sector_index_hint, ctx.user.address())?;
+        load_mut_seat_with_hint(&mut market, user_sector_index_hint, ctx.user.address())?;
 
     let order_sector_index_bytes = order_sector_index.to_le_bytes();
 
@@ -123,4 +125,13 @@ pub unsafe fn process_post_order<'a>(
         event_authority: ctx.event_authority,
         market_account: ctx.market_account,
     })
+}
+
+fn post_only_check_and_insert_order<T: OrdersCollection>(
+    market: &mut MarketRefMut,
+    order: Order,
+) -> Result<SectorIndex, DropsetError> {
+    T::post_only_crossing_check(&order, market)?;
+    let (next_index, _hint) = T::find_new_order_next_index(market.orders::<T>().iter(), &order);
+    insert_order(next_index, &mut market.orders::<T>(), order)
 }

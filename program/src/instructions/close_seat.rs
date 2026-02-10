@@ -18,7 +18,7 @@ use crate::{
     },
     events::EventBuffer,
     market_signer,
-    shared::seat_operations::find_seat_with_hint,
+    shared::seat_operations::load_seat_with_hint,
 };
 
 /// Instruction handler logic for closing an existing market seat and reclaiming associated funds.
@@ -49,7 +49,7 @@ pub unsafe fn process_close_seat<'a>(
         let market_bump = market.header.market_bump;
         Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
-        let seat = find_seat_with_hint(&market, sector_index_hint, ctx.user.address())?;
+        let seat = load_seat_with_hint(&market, sector_index_hint, ctx.user.address())?;
         // NOTE: The base/quote available and deposited do not need to be zeroed here because
         // they're zeroed out in the `push_free_sector` call in the `remove_at` method below.
         let copied_values = (market_bump, seat.base_available(), seat.quote_available());

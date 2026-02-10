@@ -21,14 +21,19 @@ use crate::pack::Pack;
 /// Callers of [`read_bytes`](Unpack::read_bytes) must:
 /// - Ensure `src` points to at least [`Pack::LEN`] bytes of readable memory.
 pub unsafe trait Unpack: Pack + Sized {
-    /// Reads [`Pack::LEN`] bytes from `src`.
+    /// Reads [`Pack::LEN`] bytes from `src` and constructs `Self` with them.
     ///
     /// Returns an error if the bytes at `src` represent an invalid byte pattern; e.g., a `bool`
     /// with a value of 2.
     ///
     /// # Safety
     ///
-    /// `src` must point to at least [`Pack::LEN`] bytes of readable memory.
+    /// Implementor guarantees:
+    /// - At most [`Pack::LEN`] bytes are read from `src`.
+    /// - `src` is read from as an unaligned pointer.
+    ///
+    /// Caller guarantees:
+    /// - `src` points to at least [`Pack::LEN`] bytes of readable memory.
     unsafe fn read_bytes(src: *const u8) -> Result<Self, ProgramError>;
 
     /// Checks that the length of the passed slice is sufficient before reading its bytes, then

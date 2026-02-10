@@ -4,12 +4,9 @@
 use dropset_interface::events::CancelOrderEventInstructionData;
 use dropset_interface::{
     instructions::CancelOrderInstructionData,
-    state::{
-        market_seat::MarketSeat,
-        sector::{
-            Sector,
-            SectorIndex,
-        },
+    state::sector::{
+        Sector,
+        SectorIndex,
     },
 };
 use pinocchio::{
@@ -25,7 +22,10 @@ use crate::{
     events::EventBuffer,
     shared::{
         order_operations::load_order_from_sector_index,
-        seat_operations::find_mut_seat_with_hint,
+        seat_operations::{
+            load_mut_seat_with_hint,
+            load_mut_seat_with_hint_unchecked,
+        },
     },
 };
 
@@ -58,12 +58,22 @@ pub unsafe fn process_cancel_order<'a>(
         Sector::check_in_bounds(market.sectors, user_sector_index_hint)?;
         // Safety: The user sector index hint was just verified in-bounds.
         let user_seat = unsafe {
-            find_mut_seat_with_hint(&mut market, user_sector_index_hint, ctx.user.address())
+            load_mut_seat_with_hint(&mut market, user_sector_index_hint, ctx.user.address())
         }?;
         if is_bid {
-            SectorIndex::from_le_bytes(user_seat.user_order_sectors.bids.remove(encoded_price)?)
+            SectorIndex::from_le_bytes(
+                user_seat
+                    .user_order_sectors
+                    .bids
+                    .find_remove(encoded_price)?,
+            )
         } else {
-            SectorIndex::from_le_bytes(user_seat.user_order_sectors.asks.remove(encoded_price)?)
+            SectorIndex::from_le_bytes(
+                user_seat
+                    .user_order_sectors
+                    .asks
+                    .find_remove(encoded_price)?,
+            )
         }
     };
 
@@ -84,18 +94,14 @@ pub unsafe fn process_cancel_order<'a>(
         let order_size_remaining = order.quote_remaining();
         // Safety: The seat hint was already validated as in-bounds. It could only possibly be out
         // of bounds now if the account data size was just reduced, which it was not.
-        let sector =
-            unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
-        let user_seat = sector.load_payload_mut::<MarketSeat>();
+        let user_seat = load_mut_seat_with_hint_unchecked(&mut market, user_sector_index_hint);
         user_seat.try_increment_quote_available(order_size_remaining)?;
     } else {
         // If the user placed an ask, they provided base as collateral.
         let order_size_remaining = order.base_remaining();
         // Safety: The seat hint was already validated as in-bounds. It could only possibly be out
         // of bounds now if the account data size was just reduced, which it was not.
-        let sector =
-            unsafe { Sector::from_sector_index_mut(market.sectors, user_sector_index_hint) };
-        let user_seat = sector.load_payload_mut::<MarketSeat>();
+        let user_seat = load_mut_seat_with_hint_unchecked(&mut market, user_sector_index_hint);
         user_seat.try_increment_base_available(order_size_remaining)?;
     }
 
