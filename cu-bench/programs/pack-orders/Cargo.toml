@@ -18,6 +18,6 @@ solana-address.workspace = true
 workspace = true
 
 [features]
-default = ["pack"]
-pack = []
-borsh = ["dep:borsh"]
+default = ["bench-program-A"]
+bench-program-A = []
+bench-program-B = ["dep:borsh"]
