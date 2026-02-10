@@ -133,3 +133,13 @@ impl E2e {
         self.market.quote.get_balance_for(&self.rpc, user).await
     }
 }
+
+/// Create [`OrderInfoArgs`] with an unbiased base and quote exponent of zero.
+pub fn no_bias_order_info_args(price_mantissa: u32, base_scalar: u64) -> OrderInfoArgs {
+    OrderInfoArgs::new(
+        price_mantissa,
+        base_scalar,
+        to_biased_exponent!(0),
+        to_biased_exponent!(0),
+    )
+}
