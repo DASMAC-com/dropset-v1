@@ -51,12 +51,8 @@ async fn main() -> anyhow::Result<()> {
         .await?
         .expect("User should have been registered on deposit");
 
-    let order_info_args = OrderInfoArgs::new(
-        10_000_000,
-        500,
-        biased_exponent!(0),
-        biased_exponent!(0),
-    );
+    let order_info_args =
+        OrderInfoArgs::new(10_000_000, 500, biased_exponent!(0), biased_exponent!(0));
 
     let order_info = to_order_info(order_info_args.clone()).expect("Should be a valid order");
 

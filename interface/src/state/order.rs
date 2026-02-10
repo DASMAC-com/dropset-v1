@@ -15,12 +15,10 @@ use crate::{
         market_header::MarketHeader,
         sector::{
             AllBitPatternsValid,
-            Payload,
-            PAYLOAD_SIZE,
-        },
-        sector::{
             LeSectorIndex,
+            Payload,
             SectorIndex,
+            PAYLOAD_SIZE,
         },
         transmutable::Transmutable,
         U64_SIZE,
@@ -29,8 +27,8 @@ use crate::{
 
 /// Marker trait to indicate that a struct represents a collection of orders.
 pub trait OrdersCollection {
-    /// Find the insertion point for a new order by returning what the new order sector's `next_index`
-    /// should be after insertion.
+    /// Find the insertion point for a new order by returning what the new order sector's
+    /// `next_index` should be after insertion.
     ///
     /// That is, given some `new` order, the list would be updated from this:
     ///
