@@ -1,0 +1,19 @@
+[package]
+name = "cu-bench-tests"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+client = { path = "../../client" }
+cu-bench-pack-orders = { path = "../programs/pack-orders" }
+dropset-interface = { path = "../../interface", features = ["client", "std"], default-features = false }
+instruction-macros-traits = { path = "../../instruction-macros/crates/instruction-macros-traits" }
+mollusk-svm.workspace = true
+price = { path = "../../price" }
+solana-account.workspace = true
+solana-address.workspace = true
+solana-instruction.workspace = true
+static_assertions.workspace = true
+
+[lints]
+workspace = true
