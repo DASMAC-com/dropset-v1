@@ -1,4 +1,4 @@
-//! See [`process_batch`].
+//! See [`process_batch_replace`].
 
 use pinocchio::{
     account::AccountView,
@@ -13,6 +13,6 @@ use pinocchio::{
 /// safety contract is simply ensuring that **no Solana account data is currently borrowed** prior
 /// to calling this instruction.
 #[inline(never)]
-pub fn process_batch(_accounts: &[AccountView], _instruction_data: &[u8]) -> ProgramResult {
+pub fn process_batch_replace(_accounts: &[AccountView], _instruction_data: &[u8]) -> ProgramResult {
     Ok(())
 }

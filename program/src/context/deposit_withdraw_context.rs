@@ -29,26 +29,13 @@ pub struct DepositWithdrawContext<'a> {
 impl<'a> DepositWithdrawContext<'a> {
     /// # Safety
     ///
-    /// Caller guarantees:
-    /// - WRITE accounts are not currently borrowed in *any* capacity.
-    /// - READ accounts are not currently mutably borrowed.
-    ///
-    /// ### Accounts
-    ///   0. `[READ]` Market account
-    ///   1. `[READ]` User token account
-    ///   2. `[READ]` Market token account
+    /// Caller guarantees no accounts passed have their data borrowed in any capacity. This is a
+    /// more restrictive safety contract than is necessary for soundness but is much simpler.
     pub unsafe fn load(
         accounts: &'a [AccountView],
     ) -> Result<DepositWithdrawContext<'a>, ProgramError> {
-        // Ensure no drift between deposit/withdraw struct fields since this method is used to load
-        // accounts for both `Deposit` and `Withdraw` instructions.
-        // Ideally, this would be a unit test, but it's not possible to construct the `pinocchio`
-        // `AccountView` without spinning up an entire e2e test with a local validator.
-        #[cfg(debug_assertions)]
-        debug_assert_deposit_withdraw(accounts);
-
-        // Note `Withdraw`'s fields are checked below with unit tests, since this method is used for
-        // both `Deposit` and `Withdraw`.
+        // `Withdraw`'s account info fields are in the same exact order as `Deposit`'s, so just use
+        // `Deposit::load_accounts` for both. This invariant is checked below in unit tests.
         let Deposit {
             event_authority,
             user,
@@ -90,44 +77,95 @@ impl<'a> DepositWithdrawContext<'a> {
     }
 }
 
-#[cfg(debug_assertions)]
-fn debug_assert_deposit_withdraw(accounts: &[AccountView]) {
-    use dropset_interface::instructions::generated_program::{
-        Deposit,
-        Withdraw,
+#[cfg(test)]
+pub(crate) mod tests {
+    use dropset_interface::{
+        instructions::generated_program::{
+            Deposit,
+            Withdraw,
+        },
+        state::SYSTEM_PROGRAM_ID,
     };
+    use pinocchio::{
+        AccountView,
+        Address,
+    };
+    use solana_account_view::RuntimeAccount;
 
-    let d = Deposit::load_accounts(accounts);
-    let w = Withdraw::load_accounts(accounts);
-
-    debug_assert_eq!(d.is_ok(), w.is_ok(), "Deposit/Withdraw mapping drift");
-
-    // Let the `load` function handle the error.
-    if d.is_err() {
-        return;
+    /// Creates a mock runtime account with only the address field not set to zeros.
+    pub(crate) fn create_zeroed_mock_runtime_account(address: Address) -> RuntimeAccount {
+        RuntimeAccount {
+            borrow_state: 0,
+            is_signer: 0,
+            is_writable: 0,
+            executable: 0,
+            resize_delta: 0,
+            // Address is the only field that matters, because these tests are solely checking for
+            // matching named account info field ordering in multiple instruction contexts.
+            address,
+            owner: SYSTEM_PROGRAM_ID,
+            lamports: 0,
+            data_len: 0,
+        }
     }
 
-    // The compiler will raise an error if these fields are incorrect.
-    let Withdraw {
-        event_authority,
-        user,
-        market_account,
-        user_ata,
-        market_ata,
-        mint,
-        token_program,
-        dropset_program,
-    } = w.unwrap();
+    pub(crate) fn assert_address_eq(view_1: &AccountView, view_2: &AccountView) {
+        assert_eq!(view_1.address(), view_2.address());
+    }
 
-    let d = d.unwrap();
+    #[test]
+    fn deposit_withdraw_account_order_invariant() {
+        let mut runtime_accounts = [
+            create_zeroed_mock_runtime_account(Address::new_from_array([0u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([1u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([2u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([3u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([4u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([5u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([6u8; 32])),
+            create_zeroed_mock_runtime_account(Address::new_from_array([7u8; 32])),
+        ];
 
-    // And to ensure the same ordering, check the addresses field by field.
-    debug_assert_eq!(d.event_authority.address(), event_authority.address());
-    debug_assert_eq!(d.user.address(), user.address());
-    debug_assert_eq!(d.market_account.address(), market_account.address());
-    debug_assert_eq!(d.user_ata.address(), user_ata.address());
-    debug_assert_eq!(d.market_ata.address(), market_ata.address());
-    debug_assert_eq!(d.mint.address(), mint.address());
-    debug_assert_eq!(d.token_program.address(), token_program.address());
-    debug_assert_eq!(d.dropset_program.address(), dropset_program.address());
+        let accounts_ptr: *mut RuntimeAccount = runtime_accounts.as_mut_ptr();
+
+        let account_views = unsafe {
+            [
+                AccountView::new_unchecked(accounts_ptr.add(0)),
+                AccountView::new_unchecked(accounts_ptr.add(1)),
+                AccountView::new_unchecked(accounts_ptr.add(2)),
+                AccountView::new_unchecked(accounts_ptr.add(3)),
+                AccountView::new_unchecked(accounts_ptr.add(4)),
+                AccountView::new_unchecked(accounts_ptr.add(5)),
+                AccountView::new_unchecked(accounts_ptr.add(6)),
+                AccountView::new_unchecked(accounts_ptr.add(7)),
+            ]
+        };
+
+        let dep = Deposit::load_accounts(&account_views).unwrap();
+        let wd = Withdraw::load_accounts(&account_views).unwrap();
+
+        // Destructure to ensure that all account info fields are accounted for.
+        // This isn't necessary for `Deposit` because `load_accounts` would fail if it has fewer
+        // accounts than necessary, and the comparisons below ensure it has at least as many fields.
+        let Withdraw {
+            event_authority,
+            user,
+            market_account,
+            user_ata,
+            market_ata,
+            mint,
+            token_program,
+            dropset_program,
+        } = wd;
+
+        // Ensure the accounts are loaded in the same exact order by comparing each unique address.
+        assert_address_eq(dep.event_authority, event_authority);
+        assert_address_eq(dep.user, user);
+        assert_address_eq(dep.market_account, market_account);
+        assert_address_eq(dep.user_ata, user_ata);
+        assert_address_eq(dep.market_ata, market_ata);
+        assert_address_eq(dep.mint, mint);
+        assert_address_eq(dep.token_program, token_program);
+        assert_address_eq(dep.dropset_program, dropset_program);
+    }
 }

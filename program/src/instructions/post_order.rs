@@ -23,7 +23,7 @@ use price::to_order_info;
 
 use crate::{
     context::{
-        post_order_context::PostOrderContext,
+        mutate_orders_context::MutateOrdersContext,
         EventBufferContext,
     },
     events::EventBuffer,
@@ -37,7 +37,7 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in
+/// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::PostOrder`].
 #[inline(never)]
 pub unsafe fn process_post_order<'a>(
@@ -50,7 +50,9 @@ pub unsafe fn process_post_order<'a>(
         is_bid,
         user_sector_index_hint,
     } = PostOrderInstructionData::unpack_untagged(instruction_data)?;
-    let mut ctx = PostOrderContext::load(accounts)?;
+
+    // Safety: No account data in `accounts` is currently borrowed.
+    let mut ctx = unsafe { MutateOrdersContext::load(accounts) }?;
 
     let order_info = to_order_info(order_info_args).map_err(DropsetError::from)?;
 

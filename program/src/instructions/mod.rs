@@ -3,7 +3,7 @@
 //! Routes decoded instructions to their corresponding handlers and encapsulates all
 //! on-chain logic for each supported operation.
 
-pub mod batch;
+pub mod batch_replace;
 pub mod cancel_order;
 pub mod close_seat;
 pub mod deposit;
@@ -13,7 +13,7 @@ pub mod post_order;
 pub mod register_market;
 pub mod withdraw;
 
-pub use batch::process_batch;
+pub use batch_replace::process_batch_replace;
 pub use cancel_order::process_cancel_order;
 pub use close_seat::process_close_seat;
 pub use deposit::process_deposit;

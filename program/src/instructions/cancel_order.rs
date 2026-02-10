@@ -19,7 +19,7 @@ use pinocchio::{
 
 use crate::{
     context::{
-        cancel_order_context::CancelOrderContext,
+        mutate_orders_context::MutateOrdersContext,
         EventBufferContext,
     },
     events::EventBuffer,
@@ -33,7 +33,7 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in
+/// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::CancelOrder`].
 #[inline(never)]
 pub unsafe fn process_cancel_order<'a>(
@@ -46,7 +46,9 @@ pub unsafe fn process_cancel_order<'a>(
         is_bid,
         user_sector_index_hint,
     } = CancelOrderInstructionData::unpack_untagged(instruction_data)?;
-    let mut ctx = CancelOrderContext::load(accounts)?;
+
+    // Safety: No account data in `accounts` is currently borrowed.
+    let mut ctx = unsafe { MutateOrdersContext::load(accounts) }?;
 
     // Safety: The market account is currently not borrowed in any capacity.
     let mut market = unsafe { ctx.market_account.load_unchecked_mut() };

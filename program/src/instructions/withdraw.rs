@@ -27,7 +27,7 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in
+/// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::Withdraw`].
 #[inline(never)]
 pub unsafe fn process_withdraw<'a>(
@@ -40,7 +40,7 @@ pub unsafe fn process_withdraw<'a>(
         sector_index_hint,
     } = WithdrawInstructionData::unpack_untagged(instruction_data)?;
 
-    // Safety: Scoped immutable borrow of market, user token, and market token accounts to validate.
+    // Safety: No account data in `accounts` is currently borrowed.
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;
     unsafe {
         withdraw_non_zero_from_market(

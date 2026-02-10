@@ -46,7 +46,7 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in
+/// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::Deposit`].
 #[inline(never)]
 pub unsafe fn process_deposit<'a>(
@@ -59,7 +59,9 @@ pub unsafe fn process_deposit<'a>(
         sector_index_hint,
     } = DepositInstructionData::unpack_untagged(instruction_data)?;
 
+    // Safety: No account data in `accounts` is currently borrowed.
     let mut ctx = unsafe { DepositWithdrawContext::load(accounts) }?;
+
     // Safety: No account data is currently borrowed.
     let amount_deposited = unsafe {
         deposit_non_zero_to_market(&ctx.user_ata, &ctx.market_ata, ctx.user, &ctx.mint, amount)

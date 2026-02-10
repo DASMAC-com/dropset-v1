@@ -31,16 +31,8 @@ pub struct CloseSeatContext<'a> {
 impl<'a> CloseSeatContext<'a> {
     /// # Safety
     ///
-    /// Caller guarantees:
-    /// - WRITE accounts are not currently borrowed in *any* capacity.
-    /// - READ accounts are not currently mutably borrowed.
-    ///
-    /// ### Accounts
-    ///   0. `[READ]` Market account
-    ///   1. `[READ]` Base user token account
-    ///   2. `[READ]` Quote user token account
-    ///   3. `[READ]` Base market token account
-    ///   4. `[READ]` Quote market token account
+    /// Caller guarantees no accounts passed have their data borrowed in any capacity. This is a
+    /// more restrictive safety contract than is necessary for soundness but is much simpler.
     pub unsafe fn load(accounts: &'a [AccountView]) -> Result<CloseSeatContext<'a>, ProgramError> {
         let CloseSeat {
             event_authority,

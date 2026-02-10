@@ -35,7 +35,7 @@ use crate::{
 ///
 /// # Safety
 ///
-/// Caller guarantees the safety contract detailed in
+/// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::MarketOrder`].
 #[inline(never)]
 pub unsafe fn process_market_order<'a>(
@@ -48,6 +48,8 @@ pub unsafe fn process_market_order<'a>(
         is_buy,
         is_base,
     } = MarketOrderInstructionData::unpack_untagged(instruction_data)?;
+
+    // Safety: No account data in `accounts` is currently borrowed.
     let mut ctx = MarketOrderContext::load(accounts)?;
 
     let AmountsFilled {
