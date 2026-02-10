@@ -1,4 +1,5 @@
-//! CU benchmark: Pack/Unpack vs Borsh deserialization of `BatchReplaceInstructionData`.
+//! CU benchmark: Pack/Unpack vs Borsh deserialization of
+//! [`dropset_interface::instructions::BatchReplaceInstructionData`].
 
 #![no_std]
 
@@ -25,7 +26,8 @@ fn process_instruction(
     _accounts: &[AccountView],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    #[cfg(feature = "pack")]
+    // The pack version.
+    #[cfg(feature = "bench-program-A")]
     {
         use dropset_interface::instructions::BatchReplaceInstructionData;
 
@@ -49,7 +51,8 @@ fn process_instruction(
         }
     }
 
-    #[cfg(feature = "borsh")]
+    // The borsh version.
+    #[cfg(feature = "bench-program-B")]
     {
         use borsh::BorshDeserialize;
 
