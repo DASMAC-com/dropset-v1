@@ -12,7 +12,6 @@ dropset-interface = { path = "../interface", features = ["program"], default-fea
 instruction-macros-traits = { path = "../instruction-macros/crates/instruction-macros-traits" }
 pinocchio.workspace = true
 pinocchio-associated-token-account.workspace = true
-pinocchio-log = { workspace = true, optional = true }
 pinocchio-system.workspace = true
 pinocchio-token.workspace = true
 pinocchio-token-interface.workspace = true
@@ -21,6 +20,7 @@ price = { path = "../price" }
 solana-account-view.workspace = true
 solana-address = { workspace = true, features = ["copy"] }
 solana-instruction-view = { workspace = true, features = ["cpi"] }
+solana-program-log = { workspace = true, optional = true }
 static_assertions.workspace = true
 
 [dev-dependencies]
@@ -34,4 +34,4 @@ workspace = true
 default = []
 std = []
 no-entrypoint = []
-debug = ["dep:pinocchio-log"]
+debug = ["dep:solana-program-log"]

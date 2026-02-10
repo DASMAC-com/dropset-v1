@@ -1,10 +1,10 @@
 //! Internal debugging helpers for local development and testing.
 
-/// Debug macro that wraps pinocchio_log::log!
+/// Debug macro that wraps the solana program log crate with a debug feature flag.
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
         #[cfg(feature = "debug")]
-        pinocchio_log::log!($($arg)*)
+        solana_program_log::log!($($arg)*)
     };
 }

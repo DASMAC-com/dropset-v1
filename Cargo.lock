@@ -1482,7 +1482,6 @@ dependencies = [
  "instruction-macros-traits",
  "pinocchio 0.10.1",
  "pinocchio-associated-token-account",
- "pinocchio-log",
  "pinocchio-system",
  "pinocchio-token",
  "pinocchio-token-2022",
@@ -1491,6 +1490,7 @@ dependencies = [
  "solana-account-view",
  "solana-address 2.0.0",
  "solana-instruction-view",
+ "solana-program-log",
  "solana-pubkey 4.0.0",
  "solana-sdk",
  "static_assertions",
@@ -3376,26 +3376,6 @@ dependencies = [
  "solana-address 2.0.0",
  "solana-instruction-view",
  "solana-program-error",
-]
-
-[[package]]
-name = "pinocchio-log"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd11022408f312e6179ece321c1f7dc0d1b2aa7765fddd39b2a7378d65a899e8"
-dependencies = [
- "pinocchio-log-macro",
-]
-
-[[package]]
-name = "pinocchio-log-macro"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69fb52edb3c5736b044cc462b0957b9767d0f574d138f4e2761438c498a4b467"
-dependencies = [
- "quote",
- "regex",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -5613,6 +5593,27 @@ dependencies = [
  "borsh",
  "serde",
  "serde_derive",
+]
+
+[[package]]
+name = "solana-program-log"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b26115ff9ec592bb4407379c82e7f00b9d0ae4e3fac80c3fd28c932aec852dc6"
+dependencies = [
+ "solana-define-syscall 4.0.1",
+ "solana-program-log-macro",
+]
+
+[[package]]
+name = "solana-program-log-macro"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de2b224806ef141865d2f4b4614179089e3b80ba7311fc3bb28742c1d8323946"
+dependencies = [
+ "quote",
+ "regex",
+ "syn 2.0.114",
 ]
 
 [[package]]
