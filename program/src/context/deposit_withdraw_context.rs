@@ -141,31 +141,39 @@ pub(crate) mod tests {
             ]
         };
 
-        let dep = Deposit::load_accounts(&account_views).unwrap();
-        let wd = Withdraw::load_accounts(&account_views).unwrap();
+        let deposit = Deposit::load_accounts(&account_views).unwrap();
+        let withdraw = Withdraw::load_accounts(&account_views).unwrap();
 
-        // Destructure to ensure that all account info fields are accounted for.
-        // This isn't necessary for `Deposit` because `load_accounts` would fail if it has fewer
-        // accounts than necessary, and the comparisons below ensure it has at least as many fields.
+        let Deposit {
+            event_authority: dep_event_authority,
+            user: dep_user,
+            market_account: dep_market_account,
+            user_ata: dep_user_ata,
+            market_ata: dep_market_ata,
+            mint: dep_mint,
+            token_program: dep_token_program,
+            dropset_program: dep_dropset_program,
+        } = deposit;
+
         let Withdraw {
-            event_authority,
-            user,
-            market_account,
-            user_ata,
-            market_ata,
-            mint,
-            token_program,
-            dropset_program,
-        } = wd;
+            event_authority: wd_event_authority,
+            user: wd_user,
+            market_account: wd_market_account,
+            user_ata: wd_user_ata,
+            market_ata: wd_market_ata,
+            mint: wd_mint,
+            token_program: wd_token_program,
+            dropset_program: wd_dropset_program,
+        } = withdraw;
 
         // Ensure the accounts are loaded in the same exact order by comparing each unique address.
-        assert_address_eq(dep.event_authority, event_authority);
-        assert_address_eq(dep.user, user);
-        assert_address_eq(dep.market_account, market_account);
-        assert_address_eq(dep.user_ata, user_ata);
-        assert_address_eq(dep.market_ata, market_ata);
-        assert_address_eq(dep.mint, mint);
-        assert_address_eq(dep.token_program, token_program);
-        assert_address_eq(dep.dropset_program, dropset_program);
+        assert_address_eq(dep_event_authority, wd_event_authority);
+        assert_address_eq(dep_user, wd_user);
+        assert_address_eq(dep_market_account, wd_market_account);
+        assert_address_eq(dep_user_ata, wd_user_ata);
+        assert_address_eq(dep_market_ata, wd_market_ata);
+        assert_address_eq(dep_mint, wd_mint);
+        assert_address_eq(dep_token_program, wd_token_program);
+        assert_address_eq(dep_dropset_program, wd_dropset_program);
     }
 }

@@ -82,30 +82,40 @@ pub(crate) mod tests {
             ]
         };
 
-        let po = PostOrder::load_accounts(&account_views).unwrap();
-        let ca = CancelOrder::load_accounts(&account_views).unwrap();
-        let br = BatchReplace::load_accounts(&account_views).unwrap();
+        let post_order = PostOrder::load_accounts(&account_views).unwrap();
+        let cancel_order = CancelOrder::load_accounts(&account_views).unwrap();
+        let batch_replace = BatchReplace::load_accounts(&account_views).unwrap();
 
-        // Destructure to ensure that all account info fields are accounted for.
-        // This isn't necessary for the other two structs because `load_accounts` would fail if they
-        // receive fewer accounts than necessary, and the comparisons below ensure they have
-        // at least as many fields.
         let PostOrder {
-            event_authority,
-            user,
-            market_account,
-            dropset_program,
-        } = po;
+            event_authority: po_event_authority,
+            user: po_user,
+            market_account: po_market_account,
+            dropset_program: po_dropset_program,
+        } = post_order;
+
+        let CancelOrder {
+            event_authority: co_event_authority,
+            user: co_user,
+            market_account: co_market_account,
+            dropset_program: co_dropset_program,
+        } = cancel_order;
+
+        let BatchReplace {
+            event_authority: br_event_authority,
+            user: br_user,
+            market_account: br_market_account,
+            dropset_program: br_dropset_program,
+        } = batch_replace;
 
         // Ensure the accounts are loaded in the same exact order by comparing each unique address.
-        assert_address_eq(ca.event_authority, event_authority);
-        assert_address_eq(ca.user, user);
-        assert_address_eq(ca.market_account, market_account);
-        assert_address_eq(ca.dropset_program, dropset_program);
+        assert_address_eq(co_event_authority, po_event_authority);
+        assert_address_eq(co_user, po_user);
+        assert_address_eq(co_market_account, po_market_account);
+        assert_address_eq(co_dropset_program, po_dropset_program);
 
-        assert_address_eq(br.event_authority, event_authority);
-        assert_address_eq(br.user, user);
-        assert_address_eq(br.market_account, market_account);
-        assert_address_eq(br.dropset_program, dropset_program);
+        assert_address_eq(br_event_authority, po_event_authority);
+        assert_address_eq(br_user, po_user);
+        assert_address_eq(br_market_account, po_market_account);
+        assert_address_eq(br_dropset_program, po_dropset_program);
     }
 }
