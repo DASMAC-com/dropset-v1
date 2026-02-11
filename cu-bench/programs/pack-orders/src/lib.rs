@@ -17,9 +17,6 @@ program_entrypoint!(process_instruction);
 no_allocator!();
 nostd_panic_handler!();
 
-pub const ID: Address =
-    solana_address::Address::from_str_const("BmUVvEuQcpeB6Au1DHGUqrfBiR5bUJKNpiPtawP8wfo5");
-
 #[inline(never)]
 fn process_instruction(
     _program_id: &Address,
