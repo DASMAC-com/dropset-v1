@@ -5,11 +5,13 @@ use dropset_interface::instructions::{
 };
 use instruction_macros_traits::Pack;
 use price::OrderInfoArgs;
+use solana_address::Address;
 use solana_instruction::Instruction;
 
 #[test]
 fn pack_orders_cu() {
-    let mollusk = new_cu_bench_mollusk(&cu_bench_pack_orders::ID, "cu_bench_pack_orders.so");
+    let program_id = Address::new_unique();
+    let mollusk = new_cu_bench_mollusk(&program_id, "cu_bench_pack_orders.so");
 
     let data = BatchReplaceInstructionData::new(
         0,
@@ -25,8 +27,7 @@ fn pack_orders_cu() {
 
     let packed = data.pack();
 
-    let instruction =
-        Instruction::new_with_bytes(cu_bench_pack_orders::ID, packed.as_ref(), vec![]);
+    let instruction = Instruction::new_with_bytes(program_id, packed.as_ref(), vec![]);
 
     let result = mollusk.process_instruction(&instruction, &[]);
     assert!(

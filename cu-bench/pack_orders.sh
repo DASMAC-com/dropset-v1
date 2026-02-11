@@ -1,16 +1,6 @@
 #!/bin/bash
-set -e
+source "$(dirname "$0")/common.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-echo "=== Pack/Unpack ==="
-cd "$ROOT_DIR/cu-bench/programs/pack-orders" && cargo build-sbf --features bench-program-A --no-default-features 2>/dev/null
-cd "$ROOT_DIR"
-cargo test -p cu-bench-tests --test pack_orders -- --nocapture 2>&1 | grep "Compute units consumed"
-
+run_bench "Pack/Unpack" "pack-orders" "bench-program-A" "pack_orders"
 echo ""
-echo "=== Borsh ==="
-cd "$ROOT_DIR/cu-bench/programs/pack-orders" && cargo build-sbf --features bench-program-B --no-default-features 2>/dev/null
-cd "$ROOT_DIR"
-cargo test -p cu-bench-tests --test pack_orders -- --nocapture 2>&1 | grep "Compute units consumed"
+run_bench "Borsh"       "pack-orders" "bench-program-B" "pack_orders"
