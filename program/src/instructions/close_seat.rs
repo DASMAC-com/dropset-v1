@@ -28,7 +28,7 @@ use crate::{
 /// Caller upholds the safety contract detailed in
 /// [`dropset_interface::instructions::generated_program::CloseSeat`].
 #[inline(never)]
-pub fn process_close_seat<'a>(
+pub unsafe fn process_close_seat<'a>(
     accounts: &'a [AccountView],
     instruction_data: &[u8],
     event_buffer: &mut EventBuffer,
