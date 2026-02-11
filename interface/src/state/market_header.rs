@@ -111,13 +111,12 @@ unsafe impl Transmutable for MarketHeader {
 const_assert_eq!(MarketHeader::LEN, size_of::<MarketHeader>());
 const_assert_eq!(align_of::<MarketHeader>(), 1);
 
-/// Helper macro to implement a getter + unchecked increment/decrement methods for a `[u8; 4]` field
-/// that represents a u32 counter field tracking the number of elements in a collection.
+/// Helper macro to implement a getter + wrapping add/sub increment/decrement methods for a
+/// `[u8; 4]` field. The field itself represents a u32 counter field for the number of elements
+/// in a collection.
 ///
-/// Adds debug assertions for catching underflow + overflow bugs in development early.
-///
-/// This macro should only be used with fields that will never underflow or overflow due to a single
-/// decrement or increment (respectively) if the program logic is correct.
+/// Once the program has sufficient test coverage, the wrapping add/sub operations could be
+/// updated to cheaper, unchecked operations.
 ///
 /// Generates:
 /// - `fn $field(&self) -> u32`
@@ -137,7 +136,7 @@ macro_rules! impl_u32_counter_field {
                 // Debug assertion to catch bugs in development.
                 // This is only a possible issue if the program logic itself is incorrect.
                 debug_assert!($field < u32::MAX);
-                self.$field = unsafe { $field.unchecked_add(1).to_le_bytes() };
+                self.$field = $field.wrapping_add(1).to_le_bytes();
             }
 
             #[inline(always)]
@@ -146,7 +145,7 @@ macro_rules! impl_u32_counter_field {
                 // Debug assertion to catch bugs in development.
                 // This is only a possible issue if the program logic itself is incorrect.
                 debug_assert!($field > 0);
-                self.$field = unsafe { $field.unchecked_sub(1).to_le_bytes() };
+                self.$field = $field.wrapping_sub(1).to_le_bytes();
             }
         }
     };
