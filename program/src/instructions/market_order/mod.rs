@@ -50,7 +50,7 @@ pub unsafe fn process_market_order<'a>(
     } = MarketOrderInstructionData::unpack_untagged(instruction_data)?;
 
     // Safety: No account data in `accounts` is currently borrowed.
-    let mut ctx = MarketOrderContext::load(accounts)?;
+    let mut ctx = unsafe { MarketOrderContext::load(accounts) }?;
 
     let AmountsFilled {
         base: base_filled,
