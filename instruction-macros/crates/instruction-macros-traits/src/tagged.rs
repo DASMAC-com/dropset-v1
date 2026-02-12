@@ -42,6 +42,7 @@ pub trait Tagged: Pack {
     /// # Safety
     ///
     /// `dst` must point to at least [`Tagged::LEN_WITH_TAG`] contiguous, writable bytes.
+    #[inline(always)]
     unsafe fn write_bytes_tagged(&self, dst: *mut u8) {
         dst.write(Self::TAG_BYTE);
         <Self as Pack>::write_bytes(self, dst.add(1));
