@@ -124,6 +124,17 @@ impl OrderInfoArgs {
             quote_exponent_biased,
         }
     }
+
+    /// Creates [`Self`] with no exponent scaling; i.e., unbiased base and quote exponents are zero.
+    #[inline(always)]
+    pub fn new_unscaled(price_mantissa: u32, base_scalar: u64) -> Self {
+        Self {
+            price_mantissa,
+            base_scalar,
+            base_exponent_biased: biased_exponent!(0),
+            quote_exponent_biased: biased_exponent!(0),
+        }
+    }
 }
 
 impl From<(u32, u64, u8, u8)> for OrderInfoArgs {
@@ -297,7 +308,7 @@ mod tests {
 
     #[test]
     fn price_with_max_sig_digits() {
-        let order = to_order_info((12345678, 1, biased_exponent!(0), biased_exponent!(0)).into())
+        let order = to_order_info(OrderInfoArgs::new_unscaled(12345678, 1))
             .expect("Should calculate price");
         assert_eq!(order.base_atoms, 1);
         assert_eq!(order.quote_atoms, 12345678);
@@ -312,8 +323,13 @@ mod tests {
     #[test]
     fn decimal_price() {
         let mantissa = 12345678;
-        let order = to_order_info((mantissa, 1, biased_exponent!(8), biased_exponent!(0)).into())
-            .expect("Should calculate price");
+        let order = to_order_info(OrderInfoArgs::new(
+            mantissa,
+            1,
+            biased_exponent!(8),
+            biased_exponent!(0),
+        ))
+        .expect("Should calculate price");
         assert_eq!(order.quote_atoms, 12345678);
         assert_eq!(order.base_atoms, 100000000);
 
@@ -365,23 +381,34 @@ mod tests {
     }
 
     #[test]
+    fn check_unscaled_args_output() {
+        let price_mantissa = 12_345_678;
+        let base_scalar = 87_654_321;
+        assert_eq!(
+            OrderInfoArgs::new_unscaled(price_mantissa, base_scalar),
+            OrderInfoArgs::new(
+                price_mantissa,
+                base_scalar,
+                biased_exponent!(0),
+                biased_exponent!(0)
+            )
+        );
+    }
+
+    #[test]
     fn ensure_price_mantissa_times_base_scalar_arithmetic_overflow() {
         const PRICE_MANTISSA: u32 = 10_000_000;
 
-        assert!(to_order_info(OrderInfoArgs::new(
+        assert!(to_order_info(OrderInfoArgs::new_unscaled(
             PRICE_MANTISSA,
             u64::MAX / PRICE_MANTISSA as u64,
-            biased_exponent!(0),
-            biased_exponent!(0),
         ))
         .is_ok());
 
         assert!(matches!(
-            to_order_info(OrderInfoArgs::new(
+            to_order_info(OrderInfoArgs::new_unscaled(
                 PRICE_MANTISSA + 1,
                 u64::MAX / PRICE_MANTISSA as u64,
-                biased_exponent!(0),
-                biased_exponent!(0)
             )),
             Err(OrderInfoError::ArithmeticOverflow)
         ));
