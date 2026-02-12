@@ -1,0 +1,23 @@
+[package]
+name = "cu-bench-pack-orders"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+borsh = { workspace = true, optional = true }
+dropset-interface = { path = "../../../interface", features = ["program"], default-features = false }
+instruction-macros-traits = { path = "../../../instruction-macros/crates/instruction-macros-traits" }
+pinocchio.workspace = true
+price = { path = "../../../price" }
+solana-address.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["bench-program-A"]
+bench-program-A = []
+bench-program-B = ["dep:borsh"]
