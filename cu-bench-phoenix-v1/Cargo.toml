@@ -35,3 +35,12 @@ codegen-units = 1
 incremental = false
 opt-level = 3
 strip = "debuginfo"
+
+# Test with release settings so CU usage is accurately measured.
+[profile.test]
+lto = "fat"
+opt-level = 3
+debug = false
+codegen-units = 1
+overflow-checks = true
+strip = "debuginfo"
