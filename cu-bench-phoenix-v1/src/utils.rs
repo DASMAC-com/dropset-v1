@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use phoenix::{
     program::{
         deposit::DepositParams,
@@ -30,6 +32,7 @@ use solana_program_test::{
     ProgramTestContext,
 };
 use solana_sdk::{
+    commitment_config::CommitmentLevel,
     program_pack::Pack as _,
     signature::{
         Keypair,
@@ -72,6 +75,19 @@ pub struct TestFixture {
     pub maker: Keypair,
     pub maker_base_ata: Pubkey,
     pub maker_quote_ata: Pubkey,
+    pub logs: String,
+}
+
+// Print logs on TestFixture drop.
+impl Drop for TestFixture {
+    fn drop(&mut self) {
+        if self.logs.is_empty() {
+            return;
+        }
+
+        // Must run with `-- --nocapture` to see these.
+        eprintln!("\n{}", self.logs);
+    }
 }
 
 impl TestFixture {
@@ -201,6 +217,7 @@ impl TestFixture {
             maker,
             maker_base_ata,
             maker_quote_ata,
+            logs: Default::default(),
         }
     }
 
@@ -214,6 +231,7 @@ impl TestFixture {
 }
 
 // ── Warmup ──────────────────────────────────────────────────────────────────
+pub const NUM_INITIAL_ORDERS_PER_SIDE: u64 = 5;
 
 /// Deposit tokens and place seed orders (5 bids + 5 asks) so the book is
 /// non-empty for subsequent benchmarks.
@@ -234,14 +252,14 @@ pub async fn warm_up_market(f: &mut TestFixture) -> anyhow::Result<()> {
     );
     send_tx(&mut f.context, &[deposit_ix], &[&payer, &maker]).await;
 
-    // Place 5 asks at ticks 1100-1500 and 5 bids at ticks 100-500.
-    let asks: Vec<CondensedOrder> = (0..5)
+    // Place initial asks and bids.
+    let asks: Vec<CondensedOrder> = (0..NUM_INITIAL_ORDERS_PER_SIDE)
         .map(|i| CondensedOrder {
             price_in_ticks: 1100 + i * 100,
             size_in_base_lots: 10,
         })
         .collect();
-    let bids: Vec<CondensedOrder> = (0..5)
+    let bids: Vec<CondensedOrder> = (0..NUM_INITIAL_ORDERS_PER_SIDE)
         .map(|i| CondensedOrder {
             price_in_ticks: 100 + i * 100,
             size_in_base_lots: 10,
@@ -297,10 +315,11 @@ pub async fn send_tx_measure_cu(
     extra_signers: &[&Keypair],
 ) -> u64 {
     let payer = clone_keypair(&ctx.payer);
-    let blockhash = ctx
+    let (blockhash, _) = ctx
         .banks_client
-        .get_new_latest_blockhash(&ctx.last_blockhash)
+        .get_latest_blockhash_with_commitment(CommitmentLevel::Confirmed)
         .await
+        .unwrap()
         .unwrap();
 
     let mut signers: Vec<&Keypair> = vec![&payer];
@@ -314,8 +333,12 @@ pub async fn send_tx_measure_cu(
         .simulate_transaction(tx.clone())
         .await
         .unwrap();
-    if let Some(ref err) = sim.result {
-        panic!("Simulation failed: {:?}", err);
+    match sim.result {
+        Some(res) => match res {
+            Ok(_) => {}
+            Err(err) => panic!("Simulation failed: {:?}", err),
+        },
+        _ => {}
     }
     let cu = sim
         .simulation_details
@@ -327,11 +350,22 @@ pub async fn send_tx_measure_cu(
     cu
 }
 
-/// Measure CU for a single instruction (maker-signed).
-pub async fn measure_ix(fixture: &mut TestFixture, label: &str, ix: Instruction) -> u64 {
-    let maker = fixture.maker_keypair();
-    let cu = send_tx_measure_cu(&mut fixture.context, &[ix], &[&maker]).await;
-    println!("{:<40} {:>6} CU", label, cu);
+/// Measure CU for a single instruction.
+pub async fn measure_ixn(
+    fixture: &mut TestFixture,
+    ix: Instruction,
+    n_items: u64,
+    signer: Keypair,
+) -> u64 {
+    let cu = send_tx_measure_cu(&mut fixture.context, &[ix], &[&signer]).await;
+    writeln!(&mut fixture.logs, "Total{} {:>6} CU", " ".repeat(15), cu).unwrap();
+    writeln!(
+        &mut fixture.logs,
+        "Average{:<13} {:>6} CU",
+        " ",
+        cu / n_items
+    )
+    .unwrap();
     cu
 }
 

@@ -313,7 +313,7 @@ async fn measure_many_maker_batch_replace() -> anyhow::Result<()> {
     let payer_keypair = test_fixture.payer_keypair();
 
     writeln!(cu_logs, "\n========== Maker spam: cancel {N_ORDERS_PER_BATCH} + place {N_ORDERS_PER_BATCH}, {N_BATCHES} times ==========")?;
-    writeln!(cu_logs, "(Market pre-expanded, book has 5 asks + 5 bids)\n")?;
+    writeln!(cu_logs, "(Market pre-warmed, book has 5 asks + 5 bids)\n")?;
 
     // Place N_ORDERS_PER_BATCH initial asks to kick things off.
     test_fixture

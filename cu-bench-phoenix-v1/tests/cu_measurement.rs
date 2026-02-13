@@ -4,12 +4,13 @@ use cu_bench_phoenix_v1::{
     clone_keypair,
     create_ata_pub,
     ioc_buy,
-    measure_ix,
+    measure_ixn,
     mint_to_pub,
     new_warmed_fixture,
     send_tx_measure_cu,
     simple_post_only_ask,
     NUM_BASE_LOTS_PER_BASE_UNIT,
+    NUM_INITIAL_ORDERS_PER_SIDE,
     QUOTE_UNIT,
 };
 use phoenix::program::{
@@ -39,8 +40,8 @@ async fn cu_deposit() -> anyhow::Result<()> {
         },
     );
 
-    println!("\n========== CU: Deposit ==========");
-    measure_ix(&mut f, "Deposit", ix).await;
+    writeln!(f.logs, "\n========== Instruction: Deposit ==========").unwrap();
+    measure_ixn(&mut f, ix, 1, maker).await;
     Ok(())
 }
 
@@ -58,8 +59,12 @@ async fn cu_place_limit_order_1() -> anyhow::Result<()> {
         &order,
     );
 
-    println!("\n========== CU: PlaceLimitOrder (place 1) ==========");
-    measure_ix(&mut f, "PlaceLimitOrder (place 1)", ix).await;
+    writeln!(
+        f.logs,
+        "\n========== Instruction: PlaceLimitOrder (1) =========="
+    )
+    .unwrap();
+    measure_ixn(&mut f, ix, 1, maker).await;
     Ok(())
 }
 
@@ -98,8 +103,12 @@ async fn cu_place_multiple_4() -> anyhow::Result<()> {
         },
     );
 
-    println!("\n========== CU: PlaceMultiplePostOnly (place 4) ==========");
-    measure_ix(&mut f, "PlaceMultiplePostOnly (place 4)", ix).await;
+    writeln!(
+        f.logs,
+        "\n========== Instruction: PlaceMultiplePostOnly (4) =========="
+    )
+    .unwrap();
+    measure_ixn(&mut f, ix, 4, maker).await;
     Ok(())
 }
 
@@ -110,8 +119,13 @@ async fn cu_cancel_all() -> anyhow::Result<()> {
 
     let ix = create_cancel_all_order_with_free_funds_instruction(&f.market, &maker.pubkey());
 
-    println!("\n========== CU: CancelAllOrders (with free funds) ==========");
-    measure_ix(&mut f, "CancelAllOrders (free funds)", ix).await;
+    writeln!(
+        f.logs,
+        "\n========== Instruction: CancelAllOrders ({}) ==========",
+        NUM_INITIAL_ORDERS_PER_SIDE * 2
+    )
+    .unwrap();
+    measure_ixn(&mut f, ix, NUM_INITIAL_ORDERS_PER_SIDE * 2, maker).await;
     Ok(())
 }
 
@@ -147,9 +161,12 @@ async fn cu_swap_fill_1() -> anyhow::Result<()> {
         &order,
     );
 
-    println!("\n========== CU: Swap (fill 1 order) ==========");
-    let cu = send_tx_measure_cu(&mut f.context, &[ix], &[]).await;
-    println!("{:<40} {:>6} CU", "Swap (fill 1 order)", cu);
+    writeln!(
+        f.logs,
+        "\n========== Instruction: Swap (fill 1 order) =========="
+    )
+    .unwrap();
+    measure_ixn(&mut f, ix, 1, payer).await;
     Ok(())
 }
 
@@ -184,9 +201,12 @@ async fn cu_swap_fill_3() -> anyhow::Result<()> {
         &order,
     );
 
-    println!("\n========== CU: Swap (fill 3 orders) ==========");
-    let cu = send_tx_measure_cu(&mut f.context, &[ix], &[]).await;
-    println!("{:<40} {:>6} CU", "Swap (fill 3 orders)", cu);
+    writeln!(
+        f.logs,
+        "\n========== Instruction: Swap (fill 3 orders) =========="
+    )
+    .unwrap();
+    measure_ixn(&mut f, ix, 3, payer).await;
     Ok(())
 }
 
@@ -198,30 +218,42 @@ async fn cu_withdraw() -> anyhow::Result<()> {
     let ix =
         create_withdraw_funds_instruction(&f.market, &maker.pubkey(), &f.base_mint, &f.quote_mint);
 
-    println!("\n========== CU: Withdraw ==========");
-    measure_ix(&mut f, "WithdrawFunds", ix).await;
+    writeln!(f.logs, "\n========== Instruction: Withdraw ==========").unwrap();
+    measure_ixn(&mut f, ix, 1, maker).await;
     Ok(())
 }
 
 // ── Maker spam test ─────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn measure_many_maker_cancel_replace() -> anyhow::Result<()> {
-    const N_ORDERS: usize = 4;
-    const N_ROUNDS: usize = 5;
+async fn measure_several_maker_cancel_replace() -> anyhow::Result<()> {
+    maker_cancel_replace(100, 5).await
+}
 
-    let cu_logs = &mut String::new();
+#[tokio::test]
+async fn measure_many_maker_cancel_replace() -> anyhow::Result<()> {
+    maker_cancel_replace(10, 5).await
+}
+
+async fn maker_cancel_replace(n_orders: usize, n_rounds: usize) -> anyhow::Result<()> {
     let mut f = new_warmed_fixture().await?;
 
     writeln!(
-        cu_logs,
-        "\n========== Maker spam: cancel all + place {N_ORDERS}, {N_ROUNDS} times =========="
+        &mut f.logs,
+        "\n========== Maker spam: cancel all + place {n_orders}, {n_rounds} times =========="
     )?;
-    writeln!(cu_logs, "(Market warmed, book has 5 asks + 5 bids)\n")?;
+    writeln!(
+        &mut f.logs,
+        "(Market pre-warmed, book has 5 asks + 5 bids)\n"
+    )?;
 
-    let mut total_cu: u64 = 0;
+    let mut num_existing_orders = NUM_INITIAL_ORDERS_PER_SIDE * 2;
+    let mut total_cancel_cu = 0;
+    let mut total_num_cancels = NUM_INITIAL_ORDERS_PER_SIDE;
+    let mut total_place_cu = 0;
+    let mut total_num_places = NUM_INITIAL_ORDERS_PER_SIDE;
 
-    for round in 0..N_ROUNDS {
+    for round in 0..n_rounds {
         let maker = f.maker_keypair();
         let base_tick = 2000 + (round as u64) * 100;
 
@@ -230,53 +262,69 @@ async fn measure_many_maker_cancel_replace() -> anyhow::Result<()> {
             create_cancel_all_order_with_free_funds_instruction(&f.market, &maker.pubkey());
         let cancel_cu = send_tx_measure_cu(&mut f.context, &[cancel_ix], &[&maker]).await;
 
-        // Place N_ORDERS new asks.
-        let asks: Vec<CondensedOrder> = (0..N_ORDERS)
+        let bids = vec![];
+        // Place n_orders new asks.
+        let asks: Vec<CondensedOrder> = (0..n_orders)
             .map(|i| CondensedOrder {
                 price_in_ticks: base_tick + i as u64 * 10,
                 size_in_base_lots: 10,
             })
             .collect();
+
+        let num_orders_placed = (bids.len() + asks.len()) as u64;
+
         let place_ix = create_new_multiple_order_instruction(
             &f.market,
             &maker.pubkey(),
             &f.base_mint,
             &f.quote_mint,
             &MultipleOrderPacket {
-                bids: vec![],
+                bids,
                 asks,
                 client_order_id: None,
                 reject_post_only: true,
             },
         );
+
         let place_cu = send_tx_measure_cu(&mut f.context, &[place_ix], &[&maker]).await;
 
         let round_cu = cancel_cu + place_cu;
-        total_cu += round_cu;
+
+        let cancel_round_cu = cancel_cu;
+        let cancel_per = cancel_round_cu / num_existing_orders;
+        total_cancel_cu += cancel_round_cu;
+        total_num_cancels += num_existing_orders;
+
+        let place_round_cu = place_cu;
+        let place_per = place_round_cu / num_orders_placed;
+        total_place_cu += place_round_cu;
+        total_num_places += num_orders_placed;
 
         writeln!(
-            cu_logs,
-            "  Round {} (cancel all + place {N_ORDERS})   {:>6} CU  (cancel {:>5} + place {:>5})",
+            &mut f.logs,
+            "  Round {} (cancel {:>3} + place {n_orders:>3})   {:>6} CU  (avg cancel: {:>4}, avg place: {:>4})",
             round + 1,
+            num_existing_orders,
             round_cu,
-            cancel_cu,
-            place_cu,
+            cancel_per,
+            place_per,
         )?;
+
+        num_existing_orders = num_orders_placed;
     }
 
     writeln!(
-        cu_logs,
-        "  TOTAL  ({N_ROUNDS} rounds)                {:>6} CU",
-        total_cu
+        &mut f.logs,
+        "  Average cancel  ({n_rounds} rounds)       {:>6} CU",
+        total_cancel_cu / total_num_cancels,
     )?;
     writeln!(
-        cu_logs,
-        "  Average per round                {:>6} CU",
-        total_cu / N_ROUNDS as u64
+        &mut f.logs,
+        "  Average place                    {:>6} CU",
+        total_place_cu / total_num_places,
     )?;
 
-    writeln!(cu_logs, "\n{}", "=".repeat(60))?;
-    print!("{cu_logs}");
+    writeln!(&mut f.logs, "\n{}", "=".repeat(60))?;
 
     Ok(())
 }
