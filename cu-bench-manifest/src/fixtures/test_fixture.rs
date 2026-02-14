@@ -16,6 +16,7 @@ use manifest::{
     },
 };
 use solana_program::pubkey::Pubkey;
+use solana_program_runtime::execution_budget::MAX_COMPUTE_UNIT_LIMIT;
 use solana_program_test::{
     processor,
     BanksClientError,
@@ -23,6 +24,7 @@ use solana_program_test::{
     ProgramTestContext,
 };
 use solana_sdk::{
+    compute_budget::ComputeBudgetInstruction,
     instruction::Instruction,
     signature::Keypair,
     signer::Signer,
@@ -231,7 +233,11 @@ impl TestFixture {
         );
         send_tx_with_retry(
             Rc::clone(&self.context),
-            &[batch_update_ix],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_limit(MAX_COMPUTE_UNIT_LIMIT),
+                ComputeBudgetInstruction::set_compute_unit_price(1),
+                batch_update_ix,
+            ],
             Some(&keypair.pubkey()),
             &[keypair],
         )

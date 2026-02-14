@@ -26,12 +26,16 @@ use solana_sdk::{
     instruction::{
         AccountMeta,
         Instruction,
+        InstructionError,
     },
     program_pack::Pack,
     pubkey::Pubkey,
     signature::Keypair,
     signer::Signer,
-    transaction::Transaction,
+    transaction::{
+        Transaction,
+        TransactionError,
+    },
 };
 pub use test_fixture::*;
 pub use token_account_fixture::*;
@@ -91,6 +95,20 @@ pub async fn send_tx_with_retry(
             }
             BanksClientError::Io(_io_err) => {
                 continue;
+            }
+            BanksClientError::TransactionError(TransactionError::InstructionError(
+                idx,
+                InstructionError::ProgramFailedToComplete,
+            )) => {
+                // The `ProgramFailedToComplete` error seems to show up only if there is no
+                // `ComputeBudgetInstruction` passed to the program. If it is passed (and exceeded),
+                // there is an explicit `ComputationalBudgetExceeded` error.
+                // Since this behavior is fairly confusing and opaque, this warning is here.
+                eprintln!(
+                    "send_tx_with_retry: instruction {idx} failed with \
+                     ProgramFailedToComplete (possibly exceeded compute budget)"
+                );
+                return Err(error);
             }
             _ => {
                 println!("Unexpected error: {:?}", error);
