@@ -1,0 +1,45 @@
+[package]
+name = "cu-bench-phoenix-v1"
+version = "0.1.0"
+edition = "2021"
+description = "CU measurement benchmarks for Phoenix v1"
+publish = false
+
+[workspace]
+
+[dependencies]
+ahash = "0.7.8"
+anyhow = "1"
+base64ct = "=1.5.3"
+blake3 = "=1.3.3"
+borsh = "=0.9.3"
+phoenix-v1 = { version = "0.1.1", features = ["no-entrypoint"] }
+proc-macro2 = "=1.0.80"
+solana-logger = "=1.14.9"
+solana-program = "=1.14.9"
+solana-program-runtime = "=1.14.9"
+solana-program-test = "=1.14.9"
+solana-sdk = "=1.14.9"
+spl-associated-token-account = { version = "=1.1.1", features = ["no-entrypoint"] }
+spl-token = { version = "=3.5.0", features = ["no-entrypoint"] }
+tokio = "1"
+
+# By default, tests will build with release settings so CU usage is accurate.
+[profile.test]
+lto = "fat"
+opt-level = 3
+debug = false
+codegen-units = 1
+overflow-checks = true
+strip = "debuginfo"
+
+# Fast compile time profile for development.
+[profile.fast]
+inherits = "dev"
+opt-level = 0
+debug = true
+lto = "off"
+codegen-units = 256
+incremental = true
+overflow-checks = true
+strip = "none"
