@@ -12,7 +12,6 @@ use cu_bench_manifest::{
     batch_update_ix,
     collect_order_indices,
     expand_market,
-    measure_ix,
     new_fixture,
     send_tx_measure_cu,
     simple_ask,
@@ -21,20 +20,47 @@ use cu_bench_manifest::{
     USDC_UNIT_SIZE,
 };
 use manifest::program::{
-    batch_update::{
-        CancelOrderParams,
-        PlaceOrderParams,
-    },
+    batch_update::CancelOrderParams,
     deposit_instruction,
     swap_instruction,
     withdraw_instruction,
 };
 use solana_program_test::tokio;
 
+const BATCH_AMOUNTS: &[u64] = &[1, 10, 65];
+const SWAP_FILL_AMOUNTS: &[u64] = &[1, 10, 65];
+const W: usize = 40;
+
+/// Write a line centered within [`W`] characters.
+fn wc(logs: &mut String, line: &str) {
+    writeln!(logs, "{:^W$}", line).unwrap();
+}
+
+/// Write a `====== title ======` header line.
+fn fmt_header(logs: &mut String, title: &str) {
+    writeln!(logs, "\n{:=^W$}", format!(" {title} ")).unwrap();
+}
+
+/// Write a centered sub-table: column header, dashes, and data rows.
+fn fmt_subtable(logs: &mut String, col_left: &str, rows: &[(u64, u64)]) {
+    logs.push('\n');
+    wc(logs, &format!("{:<14}{:>9}", col_left, "Average CU"));
+    wc(logs, &"-".repeat(24));
+    for &(n, avg) in rows {
+        let label = format!("{n:>7} ");
+        wc(logs, &format!("{label:<14}  {avg:>6}  "));
+    }
+}
+
 const START_INDEX: u64 = 0;
+
+// ── Single-instruction benchmarks ───────────────────────────────────────────
 
 #[tokio::test]
 async fn cu_deposit() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "Deposit");
+
     let (mut test_fixture, _trader_index) = new_fixture().await?;
 
     test_fixture
@@ -43,7 +69,8 @@ async fn cu_deposit() -> anyhow::Result<()> {
         .await;
 
     let payer = test_fixture.payer();
-    let deposit_ix = deposit_instruction(
+    let payer_keypair = test_fixture.payer_keypair();
+    let ix = deposit_instruction(
         &test_fixture.market_fixture.key,
         &payer,
         &test_fixture.sol_mint_fixture.key,
@@ -53,236 +80,27 @@ async fn cu_deposit() -> anyhow::Result<()> {
         None,
     );
 
-    println!("\n========== CU: Deposit ==========");
-    measure_ix(&test_fixture, "Deposit", deposit_ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_batch_update_place_1() -> anyhow::Result<()> {
-    let (test_fixture, trader_index) = new_fixture().await?;
-
-    let payer = test_fixture.payer();
-    let ix = batch_update_ix(
-        &test_fixture,
-        &payer,
-        Some(trader_index),
-        vec![],
-        vec![simple_ask(ONE_SOL, 15, 0)],
-    );
-
-    println!("\n========== CU: BatchUpdate (place 1) ==========");
-    measure_ix(&test_fixture, "BatchUpdate (place 1)", ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_batch_update_cancel_1() -> anyhow::Result<()> {
-    let (mut test_fixture, trader_index) = new_fixture().await?;
-
-    let payer_keypair = test_fixture.payer_keypair();
-
-    // Place one order so we have something to cancel.
-    test_fixture
-        .batch_update_for_keypair(
-            Some(trader_index),
-            vec![],
-            vec![simple_ask(ONE_SOL, 15, 0)],
-            &payer_keypair,
-        )
-        .await?;
-
-    let order_indices = collect_order_indices(&mut test_fixture).await;
-    let payer = test_fixture.payer();
-    let ix = batch_update_ix(
-        &test_fixture,
-        &payer,
-        Some(trader_index),
-        vec![CancelOrderParams::new_with_hint(
-            START_INDEX,
-            Some(order_indices[&START_INDEX]),
-        )],
-        vec![],
-    );
-
-    println!("\n========== CU: BatchUpdate (cancel 1) ==========");
-    measure_ix(&test_fixture, "BatchUpdate (cancel 1)", ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_batch_update_cancel_1_place_1() -> anyhow::Result<()> {
-    let (mut test_fixture, trader_index) = new_fixture().await?;
-
-    let payer_keypair = test_fixture.payer_keypair();
-
-    // Place one order to cancel.
-    test_fixture
-        .batch_update_for_keypair(
-            Some(trader_index),
-            vec![],
-            vec![simple_ask(ONE_SOL, 15, 0)],
-            &payer_keypair,
-        )
-        .await?;
-
-    let order_indices = collect_order_indices(&mut test_fixture).await;
-    let payer = test_fixture.payer();
-    let ix = batch_update_ix(
-        &test_fixture,
-        &payer,
-        Some(trader_index),
-        vec![CancelOrderParams::new_with_hint(
-            START_INDEX,
-            Some(order_indices[&START_INDEX]),
-        )],
-        vec![simple_ask(ONE_SOL, 16, 0)],
-    );
-
-    println!("\n========== CU: BatchUpdate (cancel 1 + place 1) ==========");
-    measure_ix(&test_fixture, "BatchUpdate (cancel 1 + place 1)", ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_batch_update_cancel_4_place_4() -> anyhow::Result<()> {
-    let (mut test_fixture, trader_index) = new_fixture().await?;
-
-    let payer_keypair = test_fixture.payer_keypair();
-
-    // Place 4 orders so we have known seq nums to cancel.
-    test_fixture
-        .batch_update_for_keypair(
-            Some(trader_index),
-            vec![],
-            vec![
-                simple_ask(ONE_SOL, 20, 0),
-                simple_ask(ONE_SOL, 21, 0),
-                simple_ask(ONE_SOL, 22, 0),
-                simple_ask(ONE_SOL, 23, 0),
-            ],
-            &payer_keypair,
-        )
-        .await?;
-
-    let order_indices = collect_order_indices(&mut test_fixture).await;
-    let payer = test_fixture.payer();
-    let ix = batch_update_ix(
-        &test_fixture,
-        &payer,
-        Some(trader_index),
-        // The canceled orders' sequence numbers and indices are the same (for each order).
-        (START_INDEX..=START_INDEX + 3)
-            .map(|i| CancelOrderParams::new_with_hint(i, Some(order_indices[&i])))
-            .collect(),
-        vec![
-            simple_ask(ONE_SOL, 30, 0),
-            simple_ask(ONE_SOL, 31, 0),
-            simple_ask(ONE_SOL, 32, 0),
-            simple_ask(ONE_SOL, 33, 0),
-        ],
-    );
-
-    println!("\n========== CU: BatchUpdate (cancel 4 + place 4) ==========");
-    measure_ix(&test_fixture, "BatchUpdate (cancel 4 + place 4)", ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_swap_fill_1() -> anyhow::Result<()> {
-    let (mut test_fixture, _trader_index) = new_fixture().await?;
-
-    println!("\n========== CU: Swap (fill 1 order) ==========");
-
-    // Ensure payer has plenty of USDC.
-    test_fixture
-        .usdc_mint_fixture
-        .mint_to(
-            &test_fixture.payer_usdc_fixture.key,
-            100_000 * USDC_UNIT_SIZE,
-        )
-        .await;
-
-    let payer = test_fixture.payer();
-    let ix = swap_instruction(
-        &test_fixture.market_fixture.key,
-        &payer,
-        &test_fixture.sol_mint_fixture.key,
-        &test_fixture.usdc_mint_fixture.key,
-        &test_fixture.payer_sol_fixture.key,
-        &test_fixture.payer_usdc_fixture.key,
-        ONE_SOL,
-        0,
-        false, // quote (USDC) is input
-        true,  // is_exact_in
-        spl_token::id(),
-        spl_token::id(),
-        false,
-    );
-
-    measure_ix(&test_fixture, "Swap (fill 1 order)", ix).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_swap_fill_3() -> anyhow::Result<()> {
-    let (mut test_fixture, trader_index) = new_fixture().await?;
-
-    println!("\n========== CU: Swap (fill 3 orders) ==========");
-
-    let payer_keypair = test_fixture.payer_keypair();
-
-    // Add 3 more asks at the same price so the swap walks through several.
-    test_fixture
-        .batch_update_for_keypair(
-            Some(trader_index),
-            vec![],
-            vec![
-                simple_ask(ONE_SOL, 10, 0),
-                simple_ask(ONE_SOL, 10, 0),
-                simple_ask(ONE_SOL, 10, 0),
-            ],
-            &payer_keypair,
-        )
-        .await?;
-
-    // Ensure payer has plenty of USDC.
-    test_fixture
-        .usdc_mint_fixture
-        .mint_to(
-            &test_fixture.payer_usdc_fixture.key,
-            100_000 * USDC_UNIT_SIZE,
-        )
-        .await;
-
-    let payer = test_fixture.payer();
-    let ix = swap_instruction(
-        &test_fixture.market_fixture.key,
-        &payer,
-        &test_fixture.sol_mint_fixture.key,
-        &test_fixture.usdc_mint_fixture.key,
-        &test_fixture.payer_sol_fixture.key,
-        &test_fixture.payer_usdc_fixture.key,
-        3 * SOL_UNIT_SIZE,
-        0,
-        false,
-        true,
-        spl_token::id(),
-        spl_token::id(),
-        false,
-    );
-
-    measure_ix(&test_fixture, "Swap (fill 3 orders)", ix).await;
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    fmt_subtable(&mut logs, "Deposits", &[(1, cu)]);
+    eprintln!("{logs}");
     Ok(())
 }
 
 #[tokio::test]
 async fn cu_withdraw() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "Withdraw");
+
     let (test_fixture, _trader_index) = new_fixture().await?;
 
-    println!("\n========== CU: Withdraw ==========");
-
     let payer = test_fixture.payer();
+    let payer_keypair = test_fixture.payer_keypair();
     let ix = withdraw_instruction(
         &test_fixture.market_fixture.key,
         &payer,
@@ -293,132 +111,263 @@ async fn cu_withdraw() -> anyhow::Result<()> {
         None,
     );
 
-    measure_ix(&test_fixture, "Withdraw", ix).await;
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    fmt_subtable(&mut logs, "Withdrawals", &[(1, cu)]);
+    eprintln!("{logs}");
     Ok(())
 }
 
-// ── Multiple maker orders ──────────────────────────────────────────────────
+// ── Batched benchmarks ──────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn measure_several_maker_cancel_replace() -> anyhow::Result<()> {
-    maker_cancel_replace(20, 5).await
+async fn cu_batch_update_place() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "BatchUpdate (Place)");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, batch_place(n).await?));
+    }
+    fmt_subtable(&mut logs, "Orders", &rows);
+    eprintln!("{logs}");
+    Ok(())
 }
 
-#[tokio::test]
-async fn measure_many_maker_cancel_replace_1() -> anyhow::Result<()> {
-    maker_cancel_replace(50, 5).await
-}
+async fn batch_place(n: u64) -> anyhow::Result<u64> {
+    let (test_fixture, trader_index) = new_fixture().await?;
 
-#[tokio::test]
-async fn measure_many_maker_cancel_replace() -> anyhow::Result<()> {
-    maker_cancel_replace(100, 5).await
-}
-
-async fn maker_cancel_replace(n_orders: u64, n_rounds: u64) -> anyhow::Result<()> {
-    let (mut test_fixture, trader_index) = new_fixture().await?;
+    expand_market(
+        Rc::clone(&test_fixture.context),
+        &test_fixture.market_fixture.key,
+        n as u32 * 2,
+    )
+    .await?;
 
     let payer = test_fixture.payer();
     let payer_keypair = test_fixture.payer_keypair();
 
-    writeln!(
-        &mut test_fixture.logs,
-        "\n========== Multiple maker orders: cancel {n_orders} + place {n_orders}, {n_rounds} times =========="
-    )?;
+    let places: Vec<_> = (0..n)
+        .map(|i| simple_ask(ONE_SOL, 15 + i as u32, 0))
+        .collect();
 
-    // Ensure the market has enough free blocks for large batches.
+    let ix = batch_update_ix(&test_fixture, &payer, Some(trader_index), vec![], places);
+
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    Ok(cu / n)
+}
+
+#[tokio::test]
+async fn cu_batch_update_cancel() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "BatchUpdate (Cancel)");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, batch_cancel(n).await?));
+    }
+    fmt_subtable(&mut logs, "Cancels", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn batch_cancel(n: u64) -> anyhow::Result<u64> {
+    let (mut test_fixture, trader_index) = new_fixture().await?;
+
     expand_market(
         Rc::clone(&test_fixture.context),
         &test_fixture.market_fixture.key,
-        n_orders as u32 * 2,
+        n as u32 * 2,
     )
     .await?;
 
-    // Place n_orders initial asks to kick things off.
-    let initial_places: Vec<PlaceOrderParams> = (0..n_orders)
-        .map(|i| simple_ask(ONE_SOL, 20 + i as u32, 0))
+    let payer = test_fixture.payer();
+    let payer_keypair = test_fixture.payer_keypair();
+
+    // Place n orders first.
+    let places: Vec<_> = (0..n)
+        .map(|i| simple_ask(ONE_SOL, 15 + i as u32, 0))
         .collect();
-    test_fixture
-        .batch_update_for_keypair(Some(trader_index), vec![], initial_places, &payer_keypair)
-        .await?;
 
-    let mut prev_seq_nums: Vec<u64> = (START_INDEX..START_INDEX + n_orders).collect();
-    let mut total_cancel_cu: u64 = 0;
-    let mut total_place_cu: u64 = 0;
-    let mut total_num_cancels: u64 = 0;
-    let mut total_num_places: u64 = 0;
+    let place_ix = batch_update_ix(&test_fixture, &payer, Some(trader_index), vec![], places);
+    send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[place_ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
 
-    for round in 0..n_rounds {
-        let n_cancels = prev_seq_nums.len() as u64;
+    // Cancel all n orders.
+    let order_indices = collect_order_indices(&mut test_fixture).await;
+    let cancels: Vec<_> = (START_INDEX..START_INDEX + n)
+        .map(|i| CancelOrderParams::new_with_hint(i, Some(order_indices[&i])))
+        .collect();
 
-        // Look up data indices for the orders we're about to cancel.
-        let order_indices = collect_order_indices(&mut test_fixture).await;
+    let ix = batch_update_ix(&test_fixture, &payer, Some(trader_index), cancels, vec![]);
 
-        let cancels: Vec<CancelOrderParams> = prev_seq_nums
-            .iter()
-            .map(|&seq| CancelOrderParams::new_with_hint(seq, Some(order_indices[&seq])))
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    Ok(cu / n)
+}
+
+#[tokio::test]
+async fn cu_batch_update_cancel_and_place() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "BatchUpdate (Cancel+Place)");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, batch_cancel_and_place(n).await?));
+    }
+    fmt_subtable(&mut logs, "Orders", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn batch_cancel_and_place(n: u64) -> anyhow::Result<u64> {
+    let (mut test_fixture, trader_index) = new_fixture().await?;
+
+    expand_market(
+        Rc::clone(&test_fixture.context),
+        &test_fixture.market_fixture.key,
+        n as u32 * 2,
+    )
+    .await?;
+
+    let payer = test_fixture.payer();
+    let payer_keypair = test_fixture.payer_keypair();
+
+    // Place n orders first (setup).
+    let initial_places: Vec<_> = (0..n)
+        .map(|i| simple_ask(ONE_SOL, 15 + i as u32, 0))
+        .collect();
+
+    let place_ix = batch_update_ix(
+        &test_fixture,
+        &payer,
+        Some(trader_index),
+        vec![],
+        initial_places,
+    );
+    send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[place_ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+
+    // Cancel n + place n in one instruction.
+    let order_indices = collect_order_indices(&mut test_fixture).await;
+    let cancels: Vec<_> = (START_INDEX..START_INDEX + n)
+        .map(|i| CancelOrderParams::new_with_hint(i, Some(order_indices[&i])))
+        .collect();
+    let new_places: Vec<_> = (0..n)
+        .map(|i| simple_ask(ONE_SOL, 100 + i as u32, 0))
+        .collect();
+
+    let ix = batch_update_ix(
+        &test_fixture,
+        &payer,
+        Some(trader_index),
+        cancels,
+        new_places,
+    );
+
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    // Divide by n (not 2n) since each "unit of work" is a cancel+place pair.
+    Ok(cu / n)
+}
+
+// ── Swap benchmarks ─────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn cu_swap() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "Swap");
+    let mut rows = Vec::new();
+    for &n in SWAP_FILL_AMOUNTS {
+        rows.push((n, swap_fill(n).await?));
+    }
+    fmt_subtable(&mut logs, "Fills", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn swap_fill(n: u64) -> anyhow::Result<u64> {
+    let (mut test_fixture, trader_index) = new_fixture().await?;
+
+    expand_market(
+        Rc::clone(&test_fixture.context),
+        &test_fixture.market_fixture.key,
+        n as u32 * 2,
+    )
+    .await?;
+
+    let payer_keypair = test_fixture.payer_keypair();
+
+    // Place n resting asks.
+    if n > 1 {
+        let extra_asks: Vec<_> = (0..n)
+            .map(|i| simple_ask(ONE_SOL, 10 + i as u32, 0))
             .collect();
-
-        let cancel_ix = batch_update_ix(&test_fixture, &payer, Some(trader_index), cancels, vec![]);
-        let cancel_cu = send_tx_measure_cu(
-            Rc::clone(&test_fixture.context),
-            &[cancel_ix],
-            Some(&payer),
-            &[&payer_keypair],
-        )
-        .await;
-
-        // Place n_orders new asks.
-        let base_price = 100 + round * (n_orders + 10);
-        let places: Vec<PlaceOrderParams> = (0..n_orders)
-            .map(|i| simple_ask(ONE_SOL, (base_price + i) as u32, 0))
-            .collect();
-
-        let place_ix = batch_update_ix(&test_fixture, &payer, Some(trader_index), vec![], places);
-        let place_cu = send_tx_measure_cu(
-            Rc::clone(&test_fixture.context),
-            &[place_ix],
-            Some(&payer),
-            &[&payer_keypair],
-        )
-        .await;
-
-        let round_cu = cancel_cu + place_cu;
-        let cancel_per = cancel_cu / n_cancels;
-        let place_per = place_cu / n_orders;
-
-        total_cancel_cu += cancel_cu;
-        total_place_cu += place_cu;
-        total_num_cancels += n_cancels;
-        total_num_places += n_orders;
-
-        // Each round places n_orders new orders whose seq nums follow sequentially.
-        let first_seq = START_INDEX + (round + 1) * n_orders;
-        prev_seq_nums = (first_seq..first_seq + n_orders).collect();
-
-        writeln!(
-            &mut test_fixture.logs,
-            "  Round {} (cancel {:>3} + place {:>3})   {:>6} CU  (avg cancel: {:>4}, avg place: {:>4})",
-            round + 1,
-            n_cancels,
-            n_orders,
-            round_cu,
-            cancel_per,
-            place_per,
-        )?;
+        test_fixture
+            .batch_update_for_keypair(Some(trader_index), vec![], extra_asks, &payer_keypair)
+            .await?;
     }
 
-    writeln!(
-        &mut test_fixture.logs,
-        "  Average cancel  ({n_rounds} rounds)       {:>6} CU",
-        total_cancel_cu / total_num_cancels,
-    )?;
-    writeln!(
-        &mut test_fixture.logs,
-        "  Average place                    {:>6} CU",
-        total_place_cu / total_num_places,
-    )?;
+    // Fund the taker with USDC.
+    test_fixture
+        .usdc_mint_fixture
+        .mint_to(
+            &test_fixture.payer_usdc_fixture.key,
+            1_000_000 * USDC_UNIT_SIZE,
+        )
+        .await;
 
-    writeln!(&mut test_fixture.logs, "\n{}", "=".repeat(60))?;
+    let payer = test_fixture.payer();
+    let ix = swap_instruction(
+        &test_fixture.market_fixture.key,
+        &payer,
+        &test_fixture.sol_mint_fixture.key,
+        &test_fixture.usdc_mint_fixture.key,
+        &test_fixture.payer_sol_fixture.key,
+        &test_fixture.payer_usdc_fixture.key,
+        n * SOL_UNIT_SIZE,
+        0,
+        false, // quote (USDC) is input
+        true,  // is_exact_in
+        spl_token::id(),
+        spl_token::id(),
+        false,
+    );
 
-    Ok(())
+    let cu = send_tx_measure_cu(
+        Rc::clone(&test_fixture.context),
+        &[ix],
+        Some(&payer),
+        &[&payer_keypair],
+    )
+    .await;
+    Ok(cu / n)
 }
