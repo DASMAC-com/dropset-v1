@@ -4,7 +4,6 @@ use cu_bench_phoenix_v1::{
     clone_keypair,
     create_ata_pub,
     ioc_buy,
-    measure_ixn,
     mint_to_pub,
     new_initialized_fixture,
     send_txn,
@@ -24,8 +23,38 @@ use phoenix::program::{
 use solana_program_test::tokio;
 use solana_sdk::signature::Signer;
 
+const BATCH_AMOUNTS: &[u64] = &[1, 10, 100];
+const SWAP_FILL_AMOUNTS: &[u64] = &[1, 10, 100];
+const W: usize = 40;
+
+/// Write a line centered within [`W`] characters.
+fn wc(logs: &mut String, line: &str) {
+    writeln!(logs, "{:^W$}", line).unwrap();
+}
+
+/// Write a `====== title ======` header line.
+fn fmt_header(logs: &mut String, title: &str) {
+    writeln!(logs, "\n{:=^W$}", format!(" {title} ")).unwrap();
+}
+
+/// Write a centered sub-table: column header, dashes, and data rows.
+fn fmt_subtable(logs: &mut String, col_left: &str, rows: &[(u64, u64)]) {
+    logs.push('\n');
+    wc(logs, &format!("{:<14}{:>9}", col_left, "Average CU"));
+    wc(logs, &"-".repeat(24));
+    for &(n, avg) in rows {
+        let label = format!("{n:>7} ");
+        wc(logs, &format!("{label:<14}  {avg:>6}  "));
+    }
+}
+
+// ── Single-instruction benchmarks ───────────────────────────────────────────
+
 #[tokio::test]
 async fn cu_deposit() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "Deposit");
+
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
 
@@ -40,38 +69,88 @@ async fn cu_deposit() -> anyhow::Result<()> {
         },
     );
 
-    writeln!(f.logs, "\n========== Instruction: Deposit ==========").unwrap();
-    measure_ixn(&mut f, ix, 1, maker).await;
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+    fmt_subtable(&mut logs, "Deposits", &[(1, cu)]);
+    eprintln!("{logs}");
     Ok(())
 }
 
 #[tokio::test]
-async fn cu_place_limit_order_1() -> anyhow::Result<()> {
+async fn cu_withdraw() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "Withdraw");
+
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
 
-    let order = simple_post_only_ask(1600, 10);
-    let ix = create_new_order_instruction(
-        &f.market,
-        &maker.pubkey(),
-        &f.base_mint,
-        &f.quote_mint,
-        &order,
-    );
+    let ix =
+        create_withdraw_funds_instruction(&f.market, &maker.pubkey(), &f.base_mint, &f.quote_mint);
 
-    writeln!(
-        f.logs,
-        "\n========== Instruction: PlaceLimitOrder (1) =========="
-    )
-    .unwrap();
-    measure_ixn(&mut f, ix, 1, maker).await;
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+    fmt_subtable(&mut logs, "Withdrawals", &[(1, cu)]);
+    eprintln!("{logs}");
     Ok(())
 }
 
+// ── Batched benchmarks ──────────────────────────────────────────────────────
+
 #[tokio::test]
-async fn cu_place_multiple_4() -> anyhow::Result<()> {
+async fn cu_place_limit_order() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "PlaceLimitOrder");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, place_limit_order(n).await?));
+    }
+    fmt_subtable(&mut logs, "Orders", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn place_limit_order(n: u64) -> anyhow::Result<u64> {
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
+
+    let mut total_cu = 0u64;
+    for i in 0..n {
+        let order = simple_post_only_ask(1600 + i * 10, 10);
+        let ix = create_new_order_instruction(
+            &f.market,
+            &maker.pubkey(),
+            &f.base_mint,
+            &f.quote_mint,
+            &order,
+        );
+        let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+        total_cu += cu;
+    }
+
+    Ok(total_cu / n)
+}
+
+#[tokio::test]
+async fn cu_place_multiple_post_only() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "PlaceMultiplePostOnly");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, place_multiple_post_only(n).await?));
+    }
+    fmt_subtable(&mut logs, "Orders", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn place_multiple_post_only(n: u64) -> anyhow::Result<u64> {
+    let mut f = new_initialized_fixture().await?;
+    let maker = f.maker_keypair();
+
+    let asks: Vec<CondensedOrder> = (0..n)
+        .map(|i| CondensedOrder {
+            price_in_ticks: 2000 + i * 100,
+            size_in_base_lots: 10,
+        })
+        .collect();
 
     let ix = create_new_multiple_order_instruction(
         &f.market,
@@ -80,94 +159,80 @@ async fn cu_place_multiple_4() -> anyhow::Result<()> {
         &f.quote_mint,
         &MultipleOrderPacket {
             bids: vec![],
-            asks: vec![
-                CondensedOrder {
-                    price_in_ticks: 2000,
-                    size_in_base_lots: 10,
-                },
-                CondensedOrder {
-                    price_in_ticks: 2100,
-                    size_in_base_lots: 10,
-                },
-                CondensedOrder {
-                    price_in_ticks: 2200,
-                    size_in_base_lots: 10,
-                },
-                CondensedOrder {
-                    price_in_ticks: 2300,
-                    size_in_base_lots: 10,
-                },
-            ],
+            asks,
             client_order_id: None,
             reject_post_only: true,
         },
     );
 
-    writeln!(
-        f.logs,
-        "\n========== Instruction: PlaceMultiplePostOnly (4) =========="
-    )
-    .unwrap();
-    measure_ixn(&mut f, ix, 4, maker).await;
-    Ok(())
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+    Ok(cu / n)
 }
 
 #[tokio::test]
 async fn cu_cancel_all() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "CancelAllOrders");
+    let mut rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        rows.push((n, cancel_all(n).await?));
+    }
+    fmt_subtable(&mut logs, "Cancels", &rows);
+    eprintln!("{logs}");
+    Ok(())
+}
+
+async fn cancel_all(n: u64) -> anyhow::Result<u64> {
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
 
-    const NUM_ORDERS: u64 = 5;
-
-    // Place asks and bids.
-    let asks: Vec<CondensedOrder> = (0..NUM_ORDERS)
+    let asks: Vec<CondensedOrder> = (0..n)
         .map(|i| CondensedOrder {
             price_in_ticks: 1100 + i * 100,
             size_in_base_lots: 10,
         })
         .collect();
-    let bids: Vec<CondensedOrder> = (0..NUM_ORDERS)
-        .map(|i| CondensedOrder {
-            price_in_ticks: 100 + i * 100,
-            size_in_base_lots: 10,
-        })
-        .collect();
 
-    let num_orders = (asks.len() + bids.len()) as u64;
-
-    let place_orders_ixn = create_new_multiple_order_instruction(
+    let place_ix = create_new_multiple_order_instruction(
         &f.market,
         &maker.pubkey(),
         &f.base_mint,
         &f.quote_mint,
         &MultipleOrderPacket {
-            bids,
+            bids: vec![],
             asks,
             client_order_id: None,
             reject_post_only: false,
         },
     );
-    send_txn(&mut f.context, &[place_orders_ixn], &[&maker]).await;
+    send_txn(&mut f.context, &[place_ix], &[&maker]).await;
 
     let ix = create_cancel_all_order_with_free_funds_instruction(&f.market, &maker.pubkey());
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+    Ok(cu / n)
+}
 
-    writeln!(
-        f.logs,
-        "\n========== Instruction: CancelAllOrders ({num_orders}) ==========",
-    )
-    .unwrap();
-    measure_ixn(&mut f, ix, num_orders, maker).await;
+// ── Swap benchmarks ─────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn cu_swap() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "1 Swap, N fills");
+    let mut rows = Vec::new();
+    for &n in SWAP_FILL_AMOUNTS {
+        rows.push((n, swap_fill(n).await?));
+    }
+    fmt_subtable(&mut logs, "Fills", &rows);
+    eprintln!("{logs}");
     Ok(())
 }
 
-#[tokio::test]
-async fn cu_swap_fill_1() -> anyhow::Result<()> {
+async fn swap_fill(n: u64) -> anyhow::Result<u64> {
     let mut f = new_initialized_fixture().await?;
 
-    // Use the payer as the taker.
     let payer = f.payer_keypair();
+    let maker = f.maker_keypair();
 
-    // Create payer's base ATA and fund payer's quote ATA.
     create_ata_pub(&mut f.context, &payer.pubkey(), &f.base_mint).await;
     let payer_quote_ata =
         spl_associated_token_account::get_associated_token_address(&payer.pubkey(), &f.quote_mint);
@@ -177,13 +242,36 @@ async fn cu_swap_fill_1() -> anyhow::Result<()> {
         &mint_auth,
         &f.quote_mint,
         &payer_quote_ata,
-        100_000 * QUOTE_UNIT,
+        1_000_000 * QUOTE_UNIT,
     )
     .await;
 
-    // IOC buy: fill 1 resting ask. Warmup asks at ticks 1100-1500, 10 base lots each.
-    // Buy 10 base lots at up to tick 1200 → fills the ask at 1100.
-    let order = ioc_buy(1200, 10);
+    // Place n resting asks at ascending prices.
+    let asks: Vec<CondensedOrder> = (0..n)
+        .map(|i| CondensedOrder {
+            price_in_ticks: 1100 + i * 10,
+            size_in_base_lots: 10,
+        })
+        .collect();
+
+    let place_ix = create_new_multiple_order_instruction(
+        &f.market,
+        &maker.pubkey(),
+        &f.base_mint,
+        &f.quote_mint,
+        &MultipleOrderPacket {
+            bids: vec![],
+            asks,
+            client_order_id: None,
+            reject_post_only: false,
+        },
+    );
+    send_txn(&mut f.context, &[place_ix], &[&maker]).await;
+
+    // IOC buy that crosses all n resting asks.
+    let max_price = 1100 + n * 10 + 100;
+    let total_base_lots = n * 10;
+    let order = ioc_buy(max_price, total_base_lots);
     let ix = create_new_order_instruction(
         &f.market,
         &payer.pubkey(),
@@ -192,172 +280,60 @@ async fn cu_swap_fill_1() -> anyhow::Result<()> {
         &order,
     );
 
-    writeln!(
-        f.logs,
-        "\n========== Instruction: Swap (fill 1 order) =========="
-    )
-    .unwrap();
-    measure_ixn(&mut f, ix, 1, payer).await;
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&payer]).await;
+    Ok(cu / n)
+}
+
+// ── MultipleOrderPacket (Batch): place then cancel ──────────────────────────
+
+#[tokio::test]
+async fn cu_multiple_order_packet_batch() -> anyhow::Result<()> {
+    let mut logs = String::new();
+    fmt_header(&mut logs, "MultipleOrderPacket (Batch)");
+
+    let mut place_rows = Vec::new();
+    let mut cancel_rows = Vec::new();
+    for &n in BATCH_AMOUNTS {
+        let (place_avg, cancel_avg) = batch_place_then_cancel(n).await?;
+        place_rows.push((n, place_avg));
+        cancel_rows.push((n, cancel_avg));
+    }
+
+    fmt_subtable(&mut logs, "Places", &place_rows);
+    fmt_subtable(&mut logs, "Cancels", &cancel_rows);
+    eprintln!("{logs}");
     Ok(())
 }
 
-#[tokio::test]
-async fn cu_swap_fill_3() -> anyhow::Result<()> {
-    let mut f = new_initialized_fixture().await?;
-
-    let payer = f.payer_keypair();
-
-    // Create payer's base ATA and fund quote ATA.
-    create_ata_pub(&mut f.context, &payer.pubkey(), &f.base_mint).await;
-    let payer_quote_ata =
-        spl_associated_token_account::get_associated_token_address(&payer.pubkey(), &f.quote_mint);
-    let mint_auth = clone_keypair(&f.mint_authority);
-    mint_to_pub(
-        &mut f.context,
-        &mint_auth,
-        &f.quote_mint,
-        &payer_quote_ata,
-        100_000 * QUOTE_UNIT,
-    )
-    .await;
-
-    // IOC buy: fill 3 resting asks (at ticks 1100, 1200, 1300).
-    // Buy 30 base lots at up to tick 1400.
-    let order = ioc_buy(1400, 30);
-    let ix = create_new_order_instruction(
-        &f.market,
-        &payer.pubkey(),
-        &f.base_mint,
-        &f.quote_mint,
-        &order,
-    );
-
-    writeln!(
-        f.logs,
-        "\n========== Instruction: Swap (fill 3 orders) =========="
-    )
-    .unwrap();
-    measure_ixn(&mut f, ix, 3, payer).await;
-    Ok(())
-}
-
-#[tokio::test]
-async fn cu_withdraw() -> anyhow::Result<()> {
+async fn batch_place_then_cancel(n: u64) -> anyhow::Result<(u64, u64)> {
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
 
-    let ix =
-        create_withdraw_funds_instruction(&f.market, &maker.pubkey(), &f.base_mint, &f.quote_mint);
+    // Place n orders via MultipleOrderPacket.
+    let asks: Vec<CondensedOrder> = (0..n)
+        .map(|i| CondensedOrder {
+            price_in_ticks: 2000 + i * 10,
+            size_in_base_lots: 10,
+        })
+        .collect();
 
-    writeln!(f.logs, "\n========== Instruction: Withdraw ==========").unwrap();
-    measure_ixn(&mut f, ix, 1, maker).await;
-    Ok(())
-}
+    let place_ix = create_new_multiple_order_instruction(
+        &f.market,
+        &maker.pubkey(),
+        &f.base_mint,
+        &f.quote_mint,
+        &MultipleOrderPacket {
+            bids: vec![],
+            asks,
+            client_order_id: None,
+            reject_post_only: true,
+        },
+    );
+    let place_cu = send_txn_measure_cu(&mut f.context, &[place_ix], &[&maker]).await;
 
-// ── Multiple maker orders ───────────────────────────────────────────────────
+    // Cancel all.
+    let cancel_ix = create_cancel_all_order_with_free_funds_instruction(&f.market, &maker.pubkey());
+    let cancel_cu = send_txn_measure_cu(&mut f.context, &[cancel_ix], &[&maker]).await;
 
-#[tokio::test]
-async fn measure_several_maker_cancel_replace() -> anyhow::Result<()> {
-    maker_cancel_replace(20, 5).await
-}
-
-#[tokio::test]
-async fn measure_many_maker_cancel_replace() -> anyhow::Result<()> {
-    maker_cancel_replace(100, 5).await
-}
-
-async fn maker_cancel_replace(n_orders: usize, n_rounds: usize) -> anyhow::Result<()> {
-    let mut f = new_initialized_fixture().await?;
-
-    writeln!(
-        &mut f.logs,
-        "\n========== Multiple maker orders: cancel all + place {n_orders}, {n_rounds} times =========="
-    )?;
-
-    let mut num_existing_orders = 0;
-    let mut total_cancel_cu = 0;
-    let mut total_num_cancels = 0;
-    let mut total_place_cu = 0;
-    let mut total_num_places = 0;
-
-    for round in 0..n_rounds {
-        let maker = f.maker_keypair();
-        let base_tick = 2000 + (round as u64) * 100;
-
-        // Cancel all existing orders (free funds variant).
-        let cancel_ix =
-            create_cancel_all_order_with_free_funds_instruction(&f.market, &maker.pubkey());
-        let cancel_cu = send_txn_measure_cu(&mut f.context, &[cancel_ix], &[&maker]).await;
-
-        let bids = vec![];
-        // Place n_orders new asks.
-        let asks: Vec<CondensedOrder> = (0..n_orders)
-            .map(|i| CondensedOrder {
-                price_in_ticks: base_tick + i as u64 * 10,
-                size_in_base_lots: 10,
-            })
-            .collect();
-
-        let num_orders_placed = (bids.len() + asks.len()) as u64;
-
-        let place_ix = create_new_multiple_order_instruction(
-            &f.market,
-            &maker.pubkey(),
-            &f.base_mint,
-            &f.quote_mint,
-            &MultipleOrderPacket {
-                bids,
-                asks,
-                client_order_id: None,
-                reject_post_only: true,
-            },
-        );
-
-        let place_cu = send_txn_measure_cu(&mut f.context, &[place_ix], &[&maker]).await;
-
-        let round_cu = cancel_cu + place_cu;
-
-        let cancel_round_cu = cancel_cu;
-        let cancel_per = cancel_round_cu
-            / if num_existing_orders == 0 {
-                // Just measure the flat CU cost for no cancels.
-                1
-            } else {
-                num_existing_orders
-            };
-        total_cancel_cu += cancel_round_cu;
-        total_num_cancels += num_existing_orders;
-
-        let place_round_cu = place_cu;
-        let place_per = place_round_cu / num_orders_placed;
-        total_place_cu += place_round_cu;
-        total_num_places += num_orders_placed;
-
-        writeln!(
-            &mut f.logs,
-            "  Round {} (cancel {:>3} + place {n_orders:>3})   {:>6} CU  (avg cancel: {:>4}, avg place: {:>4})",
-            round + 1,
-            num_existing_orders,
-            round_cu,
-            cancel_per,
-            place_per,
-        )?;
-
-        num_existing_orders = num_orders_placed;
-    }
-
-    writeln!(
-        &mut f.logs,
-        "  Average cancel  ({n_rounds} rounds)       {:>6} CU",
-        total_cancel_cu / total_num_cancels,
-    )?;
-    writeln!(
-        &mut f.logs,
-        "  Average place                    {:>6} CU",
-        total_place_cu / total_num_places,
-    )?;
-
-    writeln!(&mut f.logs, "\n{}", "=".repeat(60))?;
-
-    Ok(())
+    Ok((place_cu / n, cancel_cu / n))
 }
