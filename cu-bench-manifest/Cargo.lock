@@ -1907,7 +1907,7 @@ dependencies = [
 [[package]]
 name = "hypertree"
 version = "1.1.0"
-source = "git+https://github.com/Bonasa-Tech/manifest?tag=program-v3.0.10#c8713af90316a66613ff9186a874b4fc50b6ca6d"
+source = "git+https://github.com/Bonasa-Tech/manifest.git?tag=program-v3.0.10#c8713af90316a66613ff9186a874b4fc50b6ca6d"
 dependencies = [
  "bytemuck",
  "solana-program",
@@ -2407,7 +2407,7 @@ dependencies = [
 [[package]]
 name = "manifest-dex"
 version = "3.0.9"
-source = "git+https://github.com/Bonasa-Tech/manifest?tag=program-v3.0.10#c8713af90316a66613ff9186a874b4fc50b6ca6d"
+source = "git+https://github.com/Bonasa-Tech/manifest.git?tag=program-v3.0.10#c8713af90316a66613ff9186a874b4fc50b6ca6d"
 dependencies = [
  "arrayref",
  "borsh 0.10.4",

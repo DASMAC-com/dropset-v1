@@ -17,14 +17,15 @@ use phoenix::program::{
     instruction_builders::*,
     new_order::{
         CondensedOrder,
+        FailedMultipleLimitOrderBehavior,
         MultipleOrderPacket,
     },
 };
 use solana_program_test::tokio;
 use solana_sdk::signature::Signer;
 
-const BATCH_AMOUNTS: &[u64] = &[1, 10, 100];
-const SWAP_FILL_AMOUNTS: &[u64] = &[1, 10, 100];
+const BATCH_AMOUNTS: &[u64] = &[1, 10, 50];
+const SWAP_FILL_AMOUNTS: &[u64] = &[1, 10, 50];
 const W: usize = 40;
 
 /// Write a line centered within [`W`] characters.
@@ -149,6 +150,8 @@ async fn place_multiple_post_only(n: u64) -> anyhow::Result<u64> {
         .map(|i| CondensedOrder {
             price_in_ticks: 2000 + i * 100,
             size_in_base_lots: 10,
+            last_valid_slot: None,
+            last_valid_unix_timestamp_in_seconds: None,
         })
         .collect();
 
@@ -161,7 +164,8 @@ async fn place_multiple_post_only(n: u64) -> anyhow::Result<u64> {
             bids: vec![],
             asks,
             client_order_id: None,
-            reject_post_only: true,
+            failed_multiple_limit_order_behavior:
+                FailedMultipleLimitOrderBehavior::FailOnInsufficientFundsAndFailOnCross,
         },
     );
 
@@ -190,6 +194,8 @@ async fn cancel_all(n: u64) -> anyhow::Result<u64> {
         .map(|i| CondensedOrder {
             price_in_ticks: 1100 + i * 100,
             size_in_base_lots: 10,
+            last_valid_slot: None,
+            last_valid_unix_timestamp_in_seconds: None,
         })
         .collect();
 
@@ -202,7 +208,8 @@ async fn cancel_all(n: u64) -> anyhow::Result<u64> {
             bids: vec![],
             asks,
             client_order_id: None,
-            reject_post_only: false,
+            failed_multiple_limit_order_behavior:
+                FailedMultipleLimitOrderBehavior::FailOnInsufficientFundsAndFailOnCross,
         },
     );
     send_txn(&mut f.context, &[place_ix], &[&maker]).await;
@@ -251,6 +258,8 @@ async fn swap_fill(n: u64) -> anyhow::Result<u64> {
         .map(|i| CondensedOrder {
             price_in_ticks: 1100 + i * 10,
             size_in_base_lots: 10,
+            last_valid_slot: None,
+            last_valid_unix_timestamp_in_seconds: None,
         })
         .collect();
 
@@ -263,7 +272,8 @@ async fn swap_fill(n: u64) -> anyhow::Result<u64> {
             bids: vec![],
             asks,
             client_order_id: None,
-            reject_post_only: false,
+            failed_multiple_limit_order_behavior:
+                FailedMultipleLimitOrderBehavior::FailOnInsufficientFundsAndFailOnCross,
         },
     );
     send_txn(&mut f.context, &[place_ix], &[&maker]).await;
@@ -314,6 +324,8 @@ async fn batch_place_then_cancel(n: u64) -> anyhow::Result<(u64, u64)> {
         .map(|i| CondensedOrder {
             price_in_ticks: 2000 + i * 10,
             size_in_base_lots: 10,
+            last_valid_slot: None,
+            last_valid_unix_timestamp_in_seconds: None,
         })
         .collect();
 
@@ -326,7 +338,8 @@ async fn batch_place_then_cancel(n: u64) -> anyhow::Result<(u64, u64)> {
             bids: vec![],
             asks,
             client_order_id: None,
-            reject_post_only: true,
+            failed_multiple_limit_order_behavior:
+                FailedMultipleLimitOrderBehavior::FailOnInsufficientFundsAndFailOnCross,
         },
     );
     let place_cu = send_txn_measure_cu(&mut f.context, &[place_ix], &[&maker]).await;

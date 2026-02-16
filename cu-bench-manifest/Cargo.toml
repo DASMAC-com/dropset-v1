@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.101"
-manifest-dex = { git = "https://github.com/Bonasa-Tech/manifest", tag = "program-v3.0.10" }
+manifest-dex = { git = "https://github.com/Bonasa-Tech/manifest.git", tag = "program-v3.0.10" }
 solana-logger = "2.2"
 solana-program = "=2.2"
 solana-program-runtime = "2.2"
