@@ -26,19 +26,33 @@ fn process_instruction(
     // The pack version.
     #[cfg(feature = "bench-program-A")]
     {
-        use dropset_interface::instructions::BatchReplaceInstructionData;
+        use dropset_interface::{
+            instructions::BatchReplaceInstructionData,
+            state::user_order_sectors::MAX_ORDERS_USIZE,
+        };
+        use price::OrderInfoArgs;
 
         let data = BatchReplaceInstructionData::unpack_untagged(instruction_data)?;
 
         if data.user_sector_index_hint == u32::MAX {
             return Err(ProgramError::InvalidInstructionData);
         }
-        if data.new_bids.into_order_args_iter().all(|o| {
+
+        // Cast UnvalidatedOrders to [OrderInfoArgs; MAX_ORDERS_USIZE] to get
+        // access to the underlying arrays without having to update the public API.
+        let bids_ptr = &data.new_bids as *const _ as *const [OrderInfoArgs; MAX_ORDERS_USIZE];
+        let new_bids = unsafe { &*bids_ptr };
+        let asks_ptr = &data.new_asks as *const _ as *const [OrderInfoArgs; MAX_ORDERS_USIZE];
+        let new_asks = unsafe { &*asks_ptr };
+
+        // Read each field so that the compiler doesn't throw away the result and cause the test to
+        // report way fewer CUs than will actually be used in a program that uses these fields.
+        if new_bids.iter().all(|o| {
             o.price_mantissa == u32::MAX
                 && o.base_scalar == u64::MAX
                 && o.base_exponent_biased == 255
                 && o.quote_exponent_biased == 255
-        }) && data.new_asks.into_order_args_iter().all(|o| {
+        }) && new_asks.iter().all(|o| {
             o.price_mantissa == u32::MAX
                 && o.base_scalar == u64::MAX
                 && o.base_exponent_biased == 255
@@ -80,6 +94,9 @@ fn process_instruction(
         if data.user_sector_index_hint == u32::MAX {
             return Err(ProgramError::InvalidInstructionData);
         }
+
+        // Read each field so that the compiler doesn't throw away the result and cause the test to
+        // report way fewer CUs than will actually be used in a program that uses these fields.
         if data.new_bids.order_args.iter().all(|o| {
             o.price_mantissa == u32::MAX
                 && o.base_scalar == u64::MAX

@@ -1,7 +1,7 @@
 use cu_bench_tests::new_cu_bench_mollusk;
 use dropset_interface::instructions::{
     BatchReplaceInstructionData,
-    Orders,
+    UnvalidatedOrders,
 };
 use instruction_macros_traits::Pack;
 use price::OrderInfoArgs;
@@ -15,8 +15,8 @@ fn pack_orders_cu() {
 
     let data = BatchReplaceInstructionData::new(
         0,
-        Orders::new([OrderInfoArgs::new_unscaled(11_000_000, 1)]),
-        Orders::new([
+        UnvalidatedOrders::new([OrderInfoArgs::new_unscaled(11_000_000, 1)]),
+        UnvalidatedOrders::new([
             OrderInfoArgs::new_unscaled(12_000_000, 1),
             OrderInfoArgs::new_unscaled(13_000_000, 2),
             OrderInfoArgs::new_unscaled(14_000_000, 3),
