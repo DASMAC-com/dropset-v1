@@ -274,14 +274,12 @@ async fn swap_fill(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
     let payer_keypair = test_fixture.payer_keypair();
 
     // Place n resting asks.
-    if n > 1 {
-        let extra_asks: Vec<_> = (0..n)
-            .map(|i| simple_ask(ONE_SOL, 10 + i as u32, 0))
-            .collect();
-        test_fixture
-            .batch_update_for_keypair(Some(trader_index), vec![], extra_asks, &payer_keypair)
-            .await?;
-    }
+    let extra_asks: Vec<_> = (0..n)
+        .map(|i| simple_ask(ONE_SOL, 10 + i as u32, 0))
+        .collect();
+    test_fixture
+        .batch_update_for_keypair(Some(trader_index), vec![], extra_asks, &payer_keypair)
+        .await?;
 
     // Fund the taker with USDC.
     test_fixture
