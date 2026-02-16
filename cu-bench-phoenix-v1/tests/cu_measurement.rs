@@ -99,34 +99,23 @@ async fn cu_withdraw() -> anyhow::Result<()> {
 async fn cu_place_limit_order() -> anyhow::Result<()> {
     let mut logs = String::new();
     fmt_header(&mut logs, "PlaceLimitOrder");
-    let mut rows = Vec::new();
-    for &n in BATCH_AMOUNTS {
-        rows.push((n, place_limit_order(n).await?));
-    }
-    fmt_subtable(&mut logs, "Orders", &rows);
-    eprintln!("{logs}");
-    Ok(())
-}
 
-async fn place_limit_order(n: u64) -> anyhow::Result<u64> {
     let mut f = new_initialized_fixture().await?;
     let maker = f.maker_keypair();
 
-    let mut total_cu = 0u64;
-    for i in 0..n {
-        let order = simple_post_only_ask(1600 + i * 10, 10);
-        let ix = create_new_order_instruction(
-            &f.market,
-            &maker.pubkey(),
-            &f.base_mint,
-            &f.quote_mint,
-            &order,
-        );
-        let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
-        total_cu += cu;
-    }
+    let order = simple_post_only_ask(1600, 10);
+    let ix = create_new_order_instruction(
+        &f.market,
+        &maker.pubkey(),
+        &f.base_mint,
+        &f.quote_mint,
+        &order,
+    );
 
-    Ok(total_cu / n)
+    let cu = send_txn_measure_cu(&mut f.context, &[ix], &[&maker]).await;
+    fmt_subtable(&mut logs, "Orders", &[(1, cu)]);
+    eprintln!("{logs}");
+    Ok(())
 }
 
 #[tokio::test]
