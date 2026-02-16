@@ -1,8 +1,8 @@
 {
   "scripts": {
     "build": "cd program && cargo build-sbf",
-    "bench:manifest": "bash cu-bench-manifest/run-bench.sh",
-    "bench:phoenix": "bash cu-bench-phoenix-v1/run-bench.sh",
+    "bench:manifest": "bash cu-bench/manifest/run-bench.sh",
+    "bench:phoenix": "bash cu-bench/phoenix/run-bench.sh",
     "build:debug": "cd program && cargo build-sbf --features debug",
     "deploy": "solana program deploy target/deploy/dropset.so --program-id test-keypair.json || echo 'Make sure the local validator is running'",
     "examples:register_market": "cargo run --example register_market",
