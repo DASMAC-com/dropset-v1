@@ -51,17 +51,24 @@ use crate::{
 pub const ONE_SOL: u64 = SOL_UNIT_SIZE;
 pub const SLOT: u32 = NO_EXPIRATION_LAST_VALID_SLOT;
 
+pub const MAX_BLOCKHASH_TRIES: usize = 10;
+
 /// Send a transaction and return the compute units consumed.
 pub async fn send_tx_measure_cu(
     context: Rc<RefCell<ProgramTestContext>>,
     instructions: &[Instruction],
     payer: Option<&Pubkey>,
     signers: &[&Keypair],
-) -> u64 {
+) -> anyhow::Result<u64> {
     let mut context = context.borrow_mut();
+    let mut tries = 0;
     loop {
         let blockhash: Result<Hash, Error> = context.get_new_latest_blockhash().await;
         if blockhash.is_err() {
+            tries += 1;
+            if tries >= MAX_BLOCKHASH_TRIES {
+                anyhow::bail!("Couldn't get latest blockhash after {tries} tries.");
+            }
             continue;
         }
         let tx = Transaction::new_signed_with_payer(
@@ -86,7 +93,7 @@ pub async fn send_tx_measure_cu(
             panic!("Transaction failed: {:?}", err);
         }
         let metadata = result.metadata.expect("metadata should be present");
-        return metadata.compute_units_consumed;
+        return Ok(metadata.compute_units_consumed);
     }
 }
 
@@ -137,7 +144,11 @@ pub async fn new_fixture() -> anyhow::Result<(TestFixture, DataIndex)> {
 }
 
 /// Measure CU for a single instruction, with standard printing/signing.
-pub async fn measure_ix(test_fixture: &TestFixture, label: &str, ix: Instruction) -> u64 {
+pub async fn measure_ix(
+    test_fixture: &TestFixture,
+    label: &str,
+    ix: Instruction,
+) -> anyhow::Result<u64> {
     let payer = test_fixture.payer();
     let payer_keypair = test_fixture.payer_keypair();
 
@@ -147,10 +158,11 @@ pub async fn measure_ix(test_fixture: &TestFixture, label: &str, ix: Instruction
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
 
     println!("{:<32} {:>6} CU", label, cu);
-    cu
+
+    Ok(cu)
 }
 
 /// Build a BatchUpdate instruction.

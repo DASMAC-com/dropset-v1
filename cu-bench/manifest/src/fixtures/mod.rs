@@ -40,6 +40,8 @@ use solana_sdk::{
 pub use test_fixture::*;
 pub use token_account_fixture::*;
 
+use crate::MAX_BLOCKHASH_TRIES;
+
 #[derive(PartialEq)]
 pub enum Token {
     USDC = 0,
@@ -76,9 +78,15 @@ pub async fn send_tx_with_retry(
 ) -> Result<(), BanksClientError> {
     let mut context: RefMut<ProgramTestContext> = context.borrow_mut();
 
+    let mut tries = 0;
     loop {
         let blockhash_or: Result<Hash, std::io::Error> = context.get_new_latest_blockhash().await;
         if blockhash_or.is_err() {
+            tries += 1;
+            if tries >= MAX_BLOCKHASH_TRIES {
+                let msg = "Couldn't get latest blockhash after max tries";
+                return Err(BanksClientError::ClientError(msg));
+            }
             continue;
         }
         let tx: Transaction =

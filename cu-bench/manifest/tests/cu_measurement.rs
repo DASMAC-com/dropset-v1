@@ -86,7 +86,7 @@ async fn cu_deposit() -> anyhow::Result<()> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
     fmt_subtable(&mut logs, "Deposits", &[(1, cu)]);
     eprintln!("{logs}");
     Ok(())
@@ -117,7 +117,7 @@ async fn cu_withdraw() -> anyhow::Result<()> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
     fmt_subtable(&mut logs, "Withdrawals", &[(1, cu)]);
     eprintln!("{logs}");
     Ok(())
@@ -170,7 +170,7 @@ async fn batch_place(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
     Ok(cu / n)
 }
 
@@ -219,7 +219,7 @@ async fn batch_cancel(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
 
     // Cancel all n orders.
     let order_indices = collect_order_indices(&mut test_fixture).await;
@@ -235,7 +235,7 @@ async fn batch_cancel(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
     Ok(cu / n)
 }
 
@@ -313,6 +313,6 @@ async fn swap_fill(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
         Some(&payer),
         &[&payer_keypair],
     )
-    .await;
+    .await?;
     Ok(cu / n)
 }
