@@ -1275,6 +1275,7 @@ dependencies = [
 name = "cu-bench-tests"
 version = "0.1.0"
 dependencies = [
+ "borsh",
  "client",
  "cu-bench-pack-orders",
  "dropset-interface",

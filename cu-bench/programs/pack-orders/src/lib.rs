@@ -3,6 +3,8 @@
 
 #![no_std]
 
+use core::hint::black_box;
+
 use pinocchio::{
     account::AccountView,
     error::ProgramError,
@@ -45,21 +47,9 @@ fn process_instruction(
         let asks_ptr = &data.new_asks as *const _ as *const [OrderInfoArgs; MAX_ORDERS_USIZE];
         let new_asks = unsafe { &*asks_ptr };
 
-        // Read each field so that the compiler doesn't throw away the result and cause the test to
-        // report way fewer CUs than will actually be used in a program that uses these fields.
-        if new_bids.iter().all(|o| {
-            o.price_mantissa == u32::MAX
-                && o.base_scalar == u64::MAX
-                && o.base_exponent_biased == 255
-                && o.quote_exponent_biased == 255
-        }) && new_asks.iter().all(|o| {
-            o.price_mantissa == u32::MAX
-                && o.base_scalar == u64::MAX
-                && o.base_exponent_biased == 255
-                && o.quote_exponent_biased == 255
-        }) {
-            return Err(ProgramError::InvalidInstructionData);
-        }
+        // Use black_box to prevent the compiler from optimizing away field accesses.
+        black_box(new_bids);
+        black_box(new_asks);
     }
 
     // The borsh version.
@@ -76,16 +66,15 @@ fn process_instruction(
         }
 
         #[derive(BorshDeserialize)]
-        struct BorshOrders {
-            num_orders: u8,
+        struct BorshUnvalidatedOrders {
             order_args: [BorshOrderInfoArgs; 5],
         }
 
         #[derive(BorshDeserialize)]
         struct BorshBatchReplaceData {
             user_sector_index_hint: u32,
-            new_bids: BorshOrders,
-            new_asks: BorshOrders,
+            new_bids: BorshUnvalidatedOrders,
+            new_asks: BorshUnvalidatedOrders,
         }
 
         let data = BorshBatchReplaceData::try_from_slice(instruction_data)
@@ -95,21 +84,9 @@ fn process_instruction(
             return Err(ProgramError::InvalidInstructionData);
         }
 
-        // Read each field so that the compiler doesn't throw away the result and cause the test to
-        // report way fewer CUs than will actually be used in a program that uses these fields.
-        if data.new_bids.order_args.iter().all(|o| {
-            o.price_mantissa == u32::MAX
-                && o.base_scalar == u64::MAX
-                && o.base_exponent_biased == 255
-                && o.quote_exponent_biased == 255
-        }) && data.new_asks.order_args.iter().all(|o| {
-            o.price_mantissa == u32::MAX
-                && o.base_scalar == u64::MAX
-                && o.base_exponent_biased == 255
-                && o.quote_exponent_biased == 255
-        }) {
-            return Err(ProgramError::InvalidInstructionData);
-        }
+        // Use black_box to prevent the compiler from optimizing away field accesses.
+        black_box(&data.new_bids.order_args);
+        black_box(&data.new_asks.order_args);
     }
 
     Ok(())
