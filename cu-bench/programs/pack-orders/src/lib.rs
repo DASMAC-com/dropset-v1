@@ -48,8 +48,19 @@ fn process_instruction(
         let new_asks = unsafe { &*asks_ptr };
 
         // Use black_box to prevent the compiler from optimizing away field accesses.
-        black_box(new_bids);
-        black_box(new_asks);
+        for o in new_bids.iter() {
+            black_box(o.price_mantissa);
+            black_box(o.base_scalar);
+            black_box(o.base_exponent_biased);
+            black_box(o.quote_exponent_biased);
+        }
+
+        for o in new_asks.iter() {
+            black_box(o.price_mantissa);
+            black_box(o.base_scalar);
+            black_box(o.base_exponent_biased);
+            black_box(o.quote_exponent_biased);
+        }
     }
 
     // The borsh version.
@@ -85,8 +96,19 @@ fn process_instruction(
         }
 
         // Use black_box to prevent the compiler from optimizing away field accesses.
-        black_box(&data.new_bids.order_args);
-        black_box(&data.new_asks.order_args);
+        for o in data.new_bids.order_args.iter() {
+            black_box(o.price_mantissa);
+            black_box(o.base_scalar);
+            black_box(o.base_exponent_biased);
+            black_box(o.quote_exponent_biased);
+        }
+
+        for o in data.new_asks.order_args.iter() {
+            black_box(o.price_mantissa);
+            black_box(o.base_scalar);
+            black_box(o.base_exponent_biased);
+            black_box(o.quote_exponent_biased);
+        }
     }
 
     Ok(())
