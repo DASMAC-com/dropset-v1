@@ -52,8 +52,6 @@ fn fmt_subtable(logs: &mut String, col_left: &str, rows: &[(u64, u64)]) {
     }
 }
 
-const START_INDEX: u64 = 0;
-
 // ── Single-instruction benchmarks ───────────────────────────────────────────
 
 #[tokio::test]
@@ -223,7 +221,7 @@ async fn batch_cancel(n: u64, pre_expand: bool) -> anyhow::Result<u64> {
 
     // Cancel all n orders.
     let order_indices = collect_order_indices(&mut test_fixture).await;
-    let cancels: Vec<_> = (START_INDEX..START_INDEX + n)
+    let cancels: Vec<_> = (0..n)
         .map(|i| CancelOrderParams::new_with_hint(i, Some(order_indices[&i])))
         .collect();
 
