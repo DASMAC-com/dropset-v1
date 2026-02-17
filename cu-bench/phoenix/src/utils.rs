@@ -59,7 +59,6 @@ pub const TICK_SIZE: u64 = 1_000;
 
 pub const BOOK_SIZE: u64 = 4096;
 pub const NUM_SEATS: u64 = 128;
-pub const N_WARMUP_ORDERS: usize = 10;
 
 // ── TestFixture ─────────────────────────────────────────────────────────────
 
