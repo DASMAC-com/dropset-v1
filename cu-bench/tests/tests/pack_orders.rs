@@ -15,7 +15,8 @@ use solana_instruction::Instruction;
 #[test]
 fn pack_orders_cu() {
     let program_id = Address::new_unique();
-    let mollusk = new_cu_bench_mollusk(&program_id, "cu_bench_pack_orders.so");
+    let mollusk: mollusk_svm::Mollusk =
+        new_cu_bench_mollusk(&program_id, "cu_bench_pack_orders.so");
 
     let data = BatchReplaceInstructionData::new(
         0,

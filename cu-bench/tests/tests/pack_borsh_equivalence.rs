@@ -67,10 +67,10 @@ fn pack_borsh_round_trip_equivalence() {
         new_bids: BorshUnvalidatedOrders {
             order_args: [
                 OrderInfoArgs::new_unscaled(11_000_000, 1).into(),
-                OrderInfoArgs::new_unscaled(0, 0).into(), // zero-initialized padding
-                OrderInfoArgs::new_unscaled(0, 0).into(),
-                OrderInfoArgs::new_unscaled(0, 0).into(),
-                OrderInfoArgs::new_unscaled(0, 0).into(),
+                OrderInfoArgs::new(0, 0, 0, 0).into(),
+                OrderInfoArgs::new(0, 0, 0, 0).into(),
+                OrderInfoArgs::new(0, 0, 0, 0).into(),
+                OrderInfoArgs::new(0, 0, 0, 0).into(),
             ],
         },
         new_asks: BorshUnvalidatedOrders {
