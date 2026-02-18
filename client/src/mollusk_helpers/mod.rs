@@ -3,14 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use dropset_interface::{
-    instructions::{
-        generated_client::RegisterMarket,
-        RegisterMarketInstructionData,
-    },
-    seeds::event_authority,
-    state::SYSTEM_PROGRAM_ID,
-};
+use dropset_interface::state::SYSTEM_PROGRAM_ID;
 use mollusk_svm::{
     Mollusk,
     MolluskContext,
@@ -18,19 +11,21 @@ use mollusk_svm::{
 use solana_account::Account;
 use solana_address::Address;
 
-mod market_fixture;
-mod token_fixture;
-pub use market_fixture::*;
 use solana_sdk::{
     program_pack::Pack,
     pubkey,
     rent::Rent,
 };
 use spl_token_interface::state::Mint;
-pub use token_fixture::*;
 use transaction_parser::program_ids::SPL_TOKEN_ID;
 
-use crate::token_instructions::create_and_initialize_token_instructions;
+use crate::{
+    context::{
+        market::MarketContext,
+        token::TokenContext,
+    },
+    token_instructions::create_and_initialize_token_instructions,
+};
 
 /// Converts an input deploy file to a program name used by the [`Mollusk::new`] function.
 ///
@@ -91,11 +86,21 @@ pub const DEFAULT_TOKEN_PROGRAM: Address = SPL_TOKEN_ID;
 pub const DEFAULT_NUM_SECTORS: u16 = 10;
 pub const DEFAULT_MARKET_BUMP: u8 = 254;
 
+/// Creates a default [`MarketContext`] using the default test constants.
+pub fn default_market_context() -> MarketContext {
+    let base = TokenContext::new(DEFAULT_BASE_MINT, DEFAULT_TOKEN_PROGRAM, DEFAULT_MINT_DECIMALS);
+    let quote = TokenContext::new(DEFAULT_QUOTE_MINT, DEFAULT_TOKEN_PROGRAM, DEFAULT_MINT_DECIMALS);
+    MarketContext::new(base, quote)
+}
+
 /// Creates and returns a [MolluskContext] with `dropset` and all token programs created and
 /// initialized. It also creates a default market with two default tokens for base and quote.
+///
+/// Returns both the context and a [`MarketContext`] that can be used to build instructions for
+/// the default market.
 pub fn new_dropset_mollusk_context_with_default_market(
     accounts: Vec<(Address, Account)>,
-) -> MolluskContext<HashMap<Address, Account>> {
+) -> (MolluskContext<HashMap<Address, Account>>, MarketContext) {
     let mint_authority_addr_and_account = (
         DEFAULT_MINT_AUTHORITY,
         Account {
@@ -126,23 +131,11 @@ pub fn new_dropset_mollusk_context_with_default_market(
         DEFAULT_MINT_DECIMALS,
         &DEFAULT_TOKEN_PROGRAM,
     )
-    .expect("Should create base mint instructions");
+    .expect("Should create quote mint instructions");
 
-    let register_market = RegisterMarket {
-        event_authority: event_authority::ID,
-        user: DEFAULT_MINT_AUTHORITY,
-        market_account: DEFAULT_MARKET_ADDRESS,
-        base_market_ata: DEFAULT_MARKET_BASE_ATA,
-        quote_market_ata: DEFAULT_MARKET_QUOTE_ATA,
-        base_mint: DEFAULT_BASE_MINT,
-        quote_mint: DEFAULT_QUOTE_MINT,
-        base_token_program: DEFAULT_TOKEN_PROGRAM,
-        quote_token_program: DEFAULT_TOKEN_PROGRAM,
-        ata_program: spl_associated_token_account_interface::program::ID,
-        system_program: SYSTEM_PROGRAM_ID,
-        dropset_program: dropset::ID,
-    }
-    .create_instruction(RegisterMarketInstructionData::new(DEFAULT_NUM_SECTORS));
+    let market = default_market_context();
+    let register_market: solana_instruction::Instruction =
+        market.register_market(DEFAULT_MINT_AUTHORITY, DEFAULT_NUM_SECTORS).into();
 
     res.process_instruction_chain(&[
         create_base,
@@ -152,7 +145,7 @@ pub fn new_dropset_mollusk_context_with_default_market(
         register_market,
     ]);
 
-    res
+    (res, market)
 }
 
 #[cfg(test)]
@@ -197,7 +190,7 @@ mod tests {
 
     #[test]
     fn mollusk_with_default_market() -> anyhow::Result<()> {
-        let ctx = new_dropset_mollusk_context_with_default_market(vec![]);
+        let (ctx, _market) = new_dropset_mollusk_context_with_default_market(vec![]);
 
         let account_store = ctx.account_store.borrow();
         let default_market = account_store

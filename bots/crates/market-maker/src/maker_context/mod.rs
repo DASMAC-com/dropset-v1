@@ -1,5 +1,8 @@
 use client::{
-    context::market::MarketContext,
+    context::{
+        market::MarketContext,
+        token::TokenContext,
+    },
     transactions::CustomRpcClient,
 };
 use itertools::Itertools;
@@ -10,7 +13,10 @@ use solana_sdk::{
     message::Instruction,
     signature::Keypair,
 };
-use transaction_parser::views::MarketViewAll;
+use transaction_parser::views::{
+    try_market_view_all_from_owner_and_data,
+    MarketViewAll,
+};
 
 use crate::{
     calculate_spreads::{
@@ -76,9 +82,19 @@ impl MakerContext {
         base_target_atoms: u64,
         initial_price_feed_response: OandaCandlestickResponse,
     ) -> anyhow::Result<Self> {
-        let market_ctx =
-            MarketContext::new_from_token_pair(rpc, base_mint, quote_mint, None, None).await?;
-        let market = market_ctx.view_market(rpc).await?;
+        let base_account = rpc.client.get_account(&base_mint).await?;
+        let base = TokenContext::from_account_data(base_mint, base_account.owner, &base_account.data)?;
+
+        let quote_account = rpc.client.get_account(&quote_mint).await?;
+        let quote = TokenContext::from_account_data(quote_mint, quote_account.owner, &quote_account.data)?;
+
+        let market_ctx = MarketContext::new(base, quote);
+
+        let market_account = rpc.client.get_account(&market_ctx.market).await?;
+        let market = try_market_view_all_from_owner_and_data(
+            market_account.owner,
+            &market_account.data,
+        )?;
         let latest_state = MakerState::new_from_market(maker.pubkey(), market)?;
         let mid_price = get_normalized_mid_price(initial_price_feed_response, &pair, &market_ctx)?;
         let maker_address = maker.pubkey();
