@@ -16,7 +16,7 @@ use dropset_interface::state::{
 use itertools::Itertools;
 use solana_address::Address;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MarketHeaderView {
     pub discriminant: u64,
     pub num_seats: u32,

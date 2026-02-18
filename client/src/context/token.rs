@@ -23,7 +23,10 @@ use spl_token_interface::state::{
     Mint,
 };
 
-use crate::transactions::CustomRpcClient;
+use crate::{
+    token_instructions::create_and_initialize_token_instructions,
+    transactions::CustomRpcClient,
+};
 
 pub struct TokenContext {
     /// If the mint authority is provided, [`TokenContext`] enables minting tokens directly
@@ -84,20 +87,12 @@ impl TokenContext {
             .client
             .get_minimum_balance_for_rent_exemption(Mint::LEN)
             .await?;
-        let create_mint_account = solana_system_interface::instruction::create_account(
+        let (create_mint_account, initialize_mint) = create_and_initialize_token_instructions(
             &mint_authority.pubkey(),
             &mint.pubkey(),
             mint_rent,
-            Mint::LEN as u64,
-            &token_program,
-        );
-
-        let initialize_mint = spl_token_2022_interface::instruction::initialize_mint2(
-            &token_program,
-            &mint.pubkey(),
-            &mint_authority.pubkey(),
-            None,
             decimals,
+            &token_program,
         )?;
 
         rpc.send_and_confirm_txn(
