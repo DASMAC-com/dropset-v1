@@ -8,6 +8,7 @@ use client::{
         E2e,
         Trader,
     },
+    single_signer_instruction::SingleSignerInstruction,
     transactions::ParsedTransactionWithEvents,
 };
 use dropset_interface::{

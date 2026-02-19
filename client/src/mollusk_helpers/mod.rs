@@ -120,8 +120,7 @@ pub fn new_dropset_mollusk_context_with_default_market(
         .expect("Should create token instructions");
 
     let register_market = MOLLUSK_DEFAULT_MARKET
-        .register_market(MOLLUSK_DEFAULT_MINT_AUTHORITY, MOLLUSK_DEFAULT_NUM_SECTORS)
-        .into();
+        .register_market(MOLLUSK_DEFAULT_MINT_AUTHORITY, MOLLUSK_DEFAULT_NUM_SECTORS);
 
     res.process_instruction_chain(&[create_tokens, vec![register_market]].concat());
 

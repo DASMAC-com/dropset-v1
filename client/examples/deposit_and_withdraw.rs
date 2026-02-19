@@ -1,6 +1,9 @@
-use client::e2e_helpers::{
-    E2e,
-    Trader,
+use client::{
+    e2e_helpers::{
+        E2e,
+        Trader,
+    },
+    single_signer_instruction::SingleSignerInstruction,
 };
 use dropset_interface::state::sector::NIL;
 use solana_sdk::{

@@ -23,7 +23,6 @@ use dropset_interface::state::{
 };
 use mollusk_svm::result::Check;
 use solana_address::Address;
-use solana_instruction::Instruction;
 use transaction_parser::{
     program_ids::SPL_TOKEN_ID,
     views::{
@@ -45,7 +44,7 @@ fn register_market() -> anyhow::Result<()> {
 
     let num_sectors = 23;
     let ixn_res = mollusk.process_and_validate_instruction(
-        &Instruction::from(market_ctx.register_market(funder_addr, num_sectors as u16)),
+        &market_ctx.register_market(funder_addr, num_sectors as u16),
         &[Check::account(&market_ctx.market)
             .executable(false)
             .owner(&dropset::ID)

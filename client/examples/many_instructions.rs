@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     // Create the seats for each trader.
     let seat_creations: Vec<Instruction> = traders
         .iter()
-        .map(|pk| -> Instruction { e2e.market.create_seat(pk.address()).into() })
+        .map(|pk| -> Instruction { e2e.market.create_seat(pk.address()) })
         .collect();
     e2e.rpc
         .send_and_confirm_txn(
@@ -80,10 +80,8 @@ async fn main() -> anyhow::Result<()> {
             let trader_addr = trader.address();
             let (deposit, withdraw) = base_amounts.get(&trader_addr).unwrap();
             (
-                e2e.market.deposit_base(trader_addr, *deposit, seat).into(),
-                e2e.market
-                    .withdraw_base(trader_addr, *withdraw, seat)
-                    .into(),
+                e2e.market.deposit_base(trader_addr, *deposit, seat),
+                e2e.market.withdraw_base(trader_addr, *withdraw, seat),
             )
         })
         .unzip();
