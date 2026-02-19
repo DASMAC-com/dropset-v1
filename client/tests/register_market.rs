@@ -43,8 +43,8 @@ fn register_market() -> anyhow::Result<()> {
     let funder_addr = mock_funder.0;
     let mollusk = new_dropset_mollusk_context(vec![mock_funder]);
     let market_ctx = MarketContext::new(
-        TokenContext::new(Address::new_unique(), SPL_TOKEN_ID, 8),
-        TokenContext::new(Address::new_unique(), SPL_TOKEN_ID, 8),
+        TokenContext::new(Some(funder_addr), Address::new_unique(), SPL_TOKEN_ID, 8),
+        TokenContext::new(Some(funder_addr), Address::new_unique(), SPL_TOKEN_ID, 8),
     );
 
     // Create the tokens.

@@ -78,12 +78,14 @@ pub const MOLLUSK_DEFAULT_MINT_AUTHORITY: Address =
 pub const MOLLUSK_DEFAULT_NUM_SECTORS: u16 = 10;
 
 pub const MOLLUSK_DEFAULT_BASE_TOKEN: TokenContext = TokenContext::new(
+    Some(MOLLUSK_DEFAULT_MINT_AUTHORITY),
     pubkey!("base111111111111111111111111111111111111111"),
     SPL_TOKEN_ID,
     8,
 );
 
 pub const MOLLUSK_DEFAULT_QUOTE_TOKEN: TokenContext = TokenContext::new(
+    Some(MOLLUSK_DEFAULT_MINT_AUTHORITY),
     pubkey!("quote11111111111111111111111111111111111111"),
     SPL_TOKEN_ID,
     8,
@@ -103,14 +105,12 @@ pub const MOLLUSK_DEFAULT_MARKET: MarketContext = MarketContext {
 /// Returns both the context and a [`MarketContext`] that can be used to build instructions for
 /// the default market.
 pub fn new_dropset_mollusk_context_with_default_market(
-    accounts: Vec<(Address, Account)>,
+    accounts: &[(Address, Account)],
 ) -> (MolluskContext<HashMap<Address, Account>>, MarketContext) {
     let mint_authority_addr_and_account =
         create_mock_user_account(MOLLUSK_DEFAULT_MINT_AUTHORITY, 100_000_000_000);
 
-    let res = new_dropset_mollusk_context(
-        [accounts, [mint_authority_addr_and_account].to_vec()].concat(),
-    );
+    let res = new_dropset_mollusk_context([accounts, &[mint_authority_addr_and_account]].concat());
 
     let create_tokens = MOLLUSK_DEFAULT_MARKET
         .create_tokens(
@@ -186,7 +186,7 @@ mod tests {
             &MOLLUSK_DEFAULT_BASE_TOKEN.mint_address,
             &MOLLUSK_DEFAULT_QUOTE_TOKEN.mint_address,
         );
-        let (ctx, market) = new_dropset_mollusk_context_with_default_market(vec![]);
+        let (ctx, market) = new_dropset_mollusk_context_with_default_market(&[]);
         assert_eq!(market.market, derived_market);
 
         let account_store = ctx.account_store.borrow();

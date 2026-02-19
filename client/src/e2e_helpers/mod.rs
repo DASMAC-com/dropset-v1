@@ -184,7 +184,12 @@ async fn create_token(
     )
     .await?;
 
-    let token = TokenContext::new(mint.pubkey(), token_program, decimals);
+    let token = TokenContext::new(
+        Some(authority.pubkey()),
+        mint.pubkey(),
+        token_program,
+        decimals,
+    );
     Ok((token, authority))
 }
 
@@ -209,7 +214,7 @@ async fn mint_to(
     amount: u64,
 ) -> anyhow::Result<()> {
     let destination = token.get_ata_for(&owner.pubkey());
-    let ix = token.mint_to(&mint_authority.pubkey(), &destination, amount)?;
+    let ix = token.mint_to(&destination, amount)?;
     rpc.send_and_confirm_txn(owner, &[mint_authority], &[ix])
         .await?;
     Ok(())
