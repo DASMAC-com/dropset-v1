@@ -23,6 +23,11 @@ use dropset_interface::state::{
 };
 use mollusk_svm::result::Check;
 use solana_address::Address;
+use solana_sdk::{
+    program_pack::Pack,
+    rent::Rent,
+};
+use spl_token_interface::state::Mint;
 use transaction_parser::{
     program_ids::SPL_TOKEN_ID,
     views::{
@@ -42,6 +47,14 @@ fn register_market() -> anyhow::Result<()> {
         TokenContext::new(Address::new_unique(), SPL_TOKEN_ID, 8),
     );
 
+    // Create the tokens.
+    mollusk.process_instruction_chain(
+        &market_ctx
+            .create_tokens(funder_addr, Rent::default().minimum_balance(Mint::LEN))
+            .expect("Should create token instructions"),
+    );
+
+    // Register the market and run checks on the account post-registration.
     let num_sectors = 23;
     let ixn_res = mollusk.process_and_validate_instruction(
         &market_ctx.register_market(funder_addr, num_sectors as u16),
@@ -58,6 +71,7 @@ fn register_market() -> anyhow::Result<()> {
         .ok_or(anyhow!("Couldn't find market account"))?
         .data;
 
+    // Run more in-depth checks on the state of the market account.
     let market_view: MarketViewAll =
         try_market_view_all_from_owner_and_data(dropset::ID, market_account_data)?;
 
