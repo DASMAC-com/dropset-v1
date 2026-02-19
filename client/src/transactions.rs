@@ -111,6 +111,8 @@ impl CustomRpcClient {
             .await
     }
 
+    /// Sends and confirms a transaction using [Self::config]. This automatically interpolates the
+    /// payer into the signers array if they're included as a signer in any of the instructions.
     pub async fn send_and_confirm_txn(
         &self,
         payer: &Keypair,
