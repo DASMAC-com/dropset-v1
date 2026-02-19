@@ -53,9 +53,6 @@ pub unsafe fn process_cancel_order<'a>(
     // Safety: The market account is currently not borrowed in any capacity.
     let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
 
-    // Safety: The market account is currently not borrowed in any capacity.
-    let mut market = unsafe { ctx.market_account.load_unchecked_mut() };
-
     // Remove the order from the user seat's order sectors mapping.
     let order_sector_index = {
         Sector::check_in_bounds(market.sectors, user_sector_index_hint)?;
