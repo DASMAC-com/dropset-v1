@@ -1,4 +1,4 @@
-use client::e2e_helpers::mollusk::deploy_file_to_program_name;
+use client::mollusk_helpers::deploy_file_to_program_name;
 use mollusk_svm::Mollusk;
 use solana_address::Address;
 

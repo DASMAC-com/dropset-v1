@@ -30,7 +30,7 @@ use crate::{
 ///
 /// Requires the full file name; for example, `dropset.so` would return the absolute path version of
 /// `../target/deploy/dropset`, which is exactly what [`Mollusk::new`] expects.
-fn deploy_file_to_program_name(program_name: &str) -> String {
+pub fn deploy_file_to_program_name(program_name: &str) -> String {
     PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
         .join("target/deploy/")
         .join(program_name)
