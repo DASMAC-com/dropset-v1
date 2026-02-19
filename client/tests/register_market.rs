@@ -40,24 +40,24 @@ use transaction_parser::{
 #[test]
 fn register_market() -> anyhow::Result<()> {
     let mock_funder = create_mock_user_account(Address::new_unique(), 100_000_000_000);
-    let funder_addr = mock_funder.0;
+    let funder = mock_funder.0;
     let mollusk = new_dropset_mollusk_context(vec![mock_funder]);
     let market_ctx = MarketContext::new(
-        TokenContext::new(Some(funder_addr), Address::new_unique(), SPL_TOKEN_ID, 8),
-        TokenContext::new(Some(funder_addr), Address::new_unique(), SPL_TOKEN_ID, 8),
+        TokenContext::new(Some(funder), Address::new_unique(), SPL_TOKEN_ID, 8),
+        TokenContext::new(Some(funder), Address::new_unique(), SPL_TOKEN_ID, 8),
     );
 
     // Create the tokens.
     mollusk.process_instruction_chain(
         &market_ctx
-            .create_tokens(funder_addr, Rent::default().minimum_balance(Mint::LEN))
+            .create_tokens(funder, Rent::default().minimum_balance(Mint::LEN))
             .expect("Should create token instructions"),
     );
 
     // Register the market and run checks on the account post-registration.
     let num_sectors = 23;
     let ixn_res = mollusk.process_and_validate_instruction(
-        &market_ctx.register_market(funder_addr, num_sectors as u16),
+        &market_ctx.register_market(funder, num_sectors as u16),
         &[Check::account(&market_ctx.market)
             .executable(false)
             .owner(&dropset::ID)
