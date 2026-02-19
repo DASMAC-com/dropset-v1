@@ -68,25 +68,37 @@ pub struct MarketViewAll {
 /// Attempts to parse a Dropset market account from raw Solana account fields and convert it into a
 /// fully-typed market view.
 ///
-/// Validates that:
-/// - `account_owner` matches the Dropset program id, and
-/// - `account_data` is at least [`MarketHeader::LEN`] bytes (i.e., initialized enough to contain a
-///   header).
-///
-/// On success, returns a [`MarketViewAll`] over `account_data` (header + sector bytes).
-///
-/// # Errors
-/// Returns an error if the account is not owned by the Dropset program or if the data is too short.
+/// Checks account data length with [try_market_view_all] in addition to ensuring that the passed
+/// `account_owner` is [dropset::ID].
 pub fn try_market_view_all_from_owner_and_data(
     account_owner: Address,
     account_data: &[u8],
-) -> Result<MarketViewAll, anyhow::Error> {
+) -> anyhow::Result<MarketViewAll> {
     if account_owner != dropset::ID {
         return Err(anyhow::Error::msg("Account isn't owned by dropset program"));
     }
 
+    try_market_view_all(account_data)
+}
+
+/// Attempts to parse a Dropset market account from raw Solana account data and convert it into a
+/// fully-typed market view.
+///
+/// Validates that:
+/// - `account_data` is at least [`MarketHeader::LEN`] bytes (i.e., initialized enough to contain a
+///   header).
+/// - `account_data` is properly aligned for a market with a header + some number of [`Sector`]s.
+///
+/// On success, returns a [`MarketViewAll`] over `account_data` (header + sector bytes).
+pub fn try_market_view_all(account_data: &[u8]) -> anyhow::Result<MarketViewAll> {
     if account_data.len() < MarketHeader::LEN {
         return Err(anyhow::Error::msg("Account is uninitialized"));
+    }
+
+    let bytes_past_header = account_data.len() - MarketHeader::LEN;
+    if bytes_past_header % Sector::LEN != 0 {
+        let msg = format!("Account has an invalid amount of bytes, got {bytes_past_header}");
+        return Err(anyhow::Error::msg(msg));
     }
 
     // Safety: Length was just checked.
