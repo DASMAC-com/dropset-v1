@@ -1015,7 +1015,6 @@ dependencies = [
  "itertools 0.14.0",
  "lazy-regex",
  "mollusk-svm",
- "mollusk-svm-bencher",
  "mollusk-svm-programs-token",
  "price",
  "regex",
@@ -3007,21 +3006,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mollusk-svm-bencher"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7108f861ee144b78caa6a36c19baf398eb680f528c4a7073fc09706c7d68aa3"
-dependencies = [
- "chrono",
- "mollusk-svm",
- "num-format",
- "serde_json",
- "solana-account",
- "solana-instruction",
- "solana-pubkey 4.0.0",
-]
-
-[[package]]
 name = "mollusk-svm-error"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3163,16 +3147,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
-]
-
-[[package]]
-name = "num-format"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a652d9771a63711fd3c3deb670acfbe5c30a4072e664d7a3bf5a9e1056ac72c3"
-dependencies = [
- "arrayvec",
- "itoa",
 ]
 
 [[package]]

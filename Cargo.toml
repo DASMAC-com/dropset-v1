@@ -33,7 +33,6 @@ itertools = "0.14.0"
 futures = "0.3.31"
 lazy-regex = "3.5.1"
 mollusk-svm = { version = "0.10.3", features = ["inner-instructions"] }
-mollusk-svm-bencher= "0.10.3"
 mollusk-svm-programs-token = "0.10.3"
 paste = { version = "1.0" }
 pinocchio = { version = "0.10.1" }

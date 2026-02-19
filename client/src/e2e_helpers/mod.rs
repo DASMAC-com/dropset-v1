@@ -198,7 +198,7 @@ async fn create_ata(
 ) -> anyhow::Result<Address> {
     let owner_pk = owner.pubkey();
     let ix = token.create_ata_idempotent(&owner_pk, &owner_pk);
-    rpc.send_and_confirm_txn(owner, &[owner], &[ix]).await?;
+    rpc.send_and_confirm_txn(owner, &[], &[ix]).await?;
     Ok(token.get_ata_for(&owner_pk))
 }
 
