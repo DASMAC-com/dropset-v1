@@ -25,6 +25,7 @@ use crate::{
     mollusk_helpers::utils::create_mock_user_account,
 };
 
+pub mod helper_trait;
 pub mod utils;
 
 /// Converts an input deploy file to a program name used by the [`Mollusk::new`] function.
