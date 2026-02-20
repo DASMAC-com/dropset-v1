@@ -34,10 +34,11 @@ pub mod test_accounts;
 /// Convenience harness for end-to-end tests and examples.
 ///
 /// Upon instantiation it:
-/// - Funds the default payer if it doesn't exist yet.
+/// - Airdrops [`crate::transactions::DEFAULT_FUND_AMOUNT`] lamports to the
+///   [`test_accounts::default_payer`] account.
 /// - Creates and registers a new market backed by two newly-created SPL token mints (base/quote).
-/// - Airdrops [`crate::transactions::DEFAULT_FUND_AMOUNT`] lamports to each trader. If any trader
-///   account already exists on-chain, returns an error.
+///   The [`test_accounts::default_payer`] account is the registrant.
+/// - Airdrops [`crate::transactions::DEFAULT_FUND_AMOUNT`] lamports to each trader.
 /// - Creates base/quote associated token accounts (ATAs) for each trader.
 /// - Mints the specified `base` and `quote` amounts to each trader's ATAs if the amount is != 0.
 pub struct E2e {
@@ -76,8 +77,6 @@ impl E2e {
     ) -> anyhow::Result<Self> {
         let rpc = rpc.unwrap_or_default();
 
-        // Fund the default payer if it doesn't exist yet. This is a separate account to avoid the
-        // traders incurring unexpected balance changes when paying for gas.
         let default_payer = test_accounts::default_payer().insecure_clone();
         if !account_exists(&rpc.client, &default_payer.pubkey()).await? {
             rpc.fund_account(&default_payer.pubkey()).await?;
@@ -93,13 +92,11 @@ impl E2e {
             .send_single_signer(&rpc, &default_payer)
             .await?;
 
-        // Fund and create the trader accounts if they don't exist, create their base/quote
-        // associated token accounts, and mint + deposit the specified base/quote amounts to each
-        // trader if the amount != 0.
+        // Fund and create the trader accounts, create their base/quote associated token accounts,
+        // and mint + deposit the specified base/quote amounts to each trader if the amount
+        // != 0.
         for trader in traders.as_ref().iter() {
-            if !account_exists(&rpc.client, &trader.address()).await? {
-                rpc.fund_account(&trader.address()).await?;
-            }
+            rpc.fund_account(&trader.address()).await?;
 
             create_ata(&rpc, &market.base, trader.keypair).await?;
             create_ata(&rpc, &market.quote, trader.keypair).await?;
@@ -197,7 +194,7 @@ async fn create_ata(
     owner: &Keypair,
 ) -> anyhow::Result<Address> {
     let owner_pk = owner.pubkey();
-    let ix = token.create_ata_idempotent(&owner_pk, &owner_pk);
+    let ix = token.create_ata(&owner.pubkey(), &owner_pk);
     rpc.send_and_confirm_txn(owner, &[], &[ix]).await?;
     Ok(token.get_ata_for(&owner_pk))
 }
