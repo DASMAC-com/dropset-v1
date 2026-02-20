@@ -32,7 +32,8 @@ derive_more = "2.1.1"
 itertools = "0.14.0"
 futures = "0.3.31"
 lazy-regex = "3.5.1"
-mollusk-svm = "0.10.0"
+mollusk-svm = { version = "0.10.3", features = ["inner-instructions"] }
+mollusk-svm-programs-token = "0.10.3"
 paste = { version = "1.0" }
 pinocchio = { version = "0.10.1" }
 pinocchio-associated-token-account = { version = "0.3.0" }

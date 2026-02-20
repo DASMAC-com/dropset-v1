@@ -1,4 +1,4 @@
-use client::e2e_helpers::mollusk::new_dropset_mollusk_context;
+use client::mollusk_helpers::new_dropset_mollusk_context;
 use dropset_interface::state::SYSTEM_PROGRAM_ID;
 use solana_account::Account;
 use solana_address::Address;

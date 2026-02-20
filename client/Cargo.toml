@@ -14,6 +14,7 @@ itertools.workspace = true
 futures.workspace = true
 lazy-regex.workspace = true
 mollusk-svm.workspace = true
+mollusk-svm-programs-token.workspace = true
 price = { path = "../price" }
 regex.workspace = true
 solana-account.workspace = true

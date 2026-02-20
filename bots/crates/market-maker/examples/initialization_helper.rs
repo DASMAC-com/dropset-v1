@@ -24,8 +24,6 @@ pub struct Info {
     pub maker_keypair: String,
     pub market: Address,
     pub maker_seat: MarketSeatView,
-    pub base_mint_authority_keypair: String,
-    pub quote_mint_authority_keypair: String,
 }
 
 const MAKER_INITIAL_BASE: u64 = 10_000;
@@ -88,8 +86,6 @@ async fn main() -> anyhow::Result<()> {
             .find(|s| s.user == maker_address)
             .expect("Should find seat")
             .clone(),
-        base_mint_authority_keypair: e2e.market.base.mint_authority()?.to_base58_string(),
-        quote_mint_authority_keypair: e2e.market.quote.mint_authority()?.to_base58_string(),
     };
     println!("{info:#?}");
 
