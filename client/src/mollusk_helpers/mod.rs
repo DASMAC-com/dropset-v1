@@ -25,6 +25,7 @@ use crate::{
     mollusk_helpers::utils::create_mock_user_account,
 };
 
+pub mod checks;
 pub mod helper_trait;
 pub mod utils;
 
