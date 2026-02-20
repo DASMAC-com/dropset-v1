@@ -75,12 +75,13 @@ fn find_new_seat_prev_and_next(
     (list.header.seats_dll_tail(), NIL)
 }
 
-/// Tries to find a market seat given an index hint.
+/// Loads a market seat given an index hint, checking that the seat belongs to the user address
+/// passed.
 ///
 /// # Safety
 ///
 /// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
-pub unsafe fn find_seat_with_hint<'m, H, S>(
+pub unsafe fn load_seat_with_hint<'m, H, S>(
     market: &'m Market<H, S>,
     hint: SectorIndex,
     user: &Address,
@@ -99,12 +100,13 @@ where
     }
 }
 
-/// Tries to find a mutable market seat given an index hint.
+/// Loads a mutable market seat given an index hint, checking that the seat belongs to the user
+/// address passed.
 ///
 /// # Safety
 ///
 /// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
-pub unsafe fn find_mut_seat_with_hint<'m>(
+pub unsafe fn load_mut_seat_with_hint<'m>(
     market: &'m mut MarketRefMut<'_>,
     hint: SectorIndex,
     user: &Address,
@@ -117,4 +119,39 @@ pub unsafe fn find_mut_seat_with_hint<'m>(
     } else {
         Err(DropsetError::InvalidIndexHint)
     }
+}
+
+/// Loads a market seat given an index hint without checking that the seat belongs to the user
+/// address passed.
+///
+/// # Safety
+///
+/// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
+#[allow(dead_code)]
+pub unsafe fn load_seat_with_hint_unchecked<H, S>(
+    market: &Market<H, S>,
+    hint: SectorIndex,
+) -> &MarketSeat
+where
+    H: AsRef<MarketHeader>,
+    S: AsRef<[u8]>,
+{
+    // Safety: Caller guarantees `hint` is in-bounds.
+    let sector = unsafe { Sector::from_sector_index(market.sectors.as_ref(), hint) };
+    sector.load_payload::<MarketSeat>()
+}
+
+/// Loads a mutable market seat given an index hint without checking that the seat belongs to the
+/// user address passed.
+///
+/// # Safety
+///
+/// Caller guarantees `hint` is in-bounds of `market.sectors` bytes.
+pub unsafe fn load_mut_seat_with_hint_unchecked<'m>(
+    market: &'m mut MarketRefMut<'_>,
+    hint: SectorIndex,
+) -> &'m mut MarketSeat {
+    // Safety: Caller guarantees `hint` is in-bounds.
+    let sector = unsafe { Sector::from_sector_index_mut(market.sectors, hint) };
+    sector.load_payload_mut::<MarketSeat>()
 }

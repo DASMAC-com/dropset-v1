@@ -1,7 +1,6 @@
 //! See [`process_withdraw`].
 
 use dropset_interface::{
-    error::DropsetError,
     events::WithdrawEventInstructionData,
     instructions::WithdrawInstructionData,
     state::sector::Sector,
@@ -18,7 +17,7 @@ use crate::{
     },
     events::EventBuffer,
     shared::{
-        seat_operations::find_mut_seat_with_hint,
+        seat_operations::load_mut_seat_with_hint,
         token_utils::market_transfers::withdraw_non_zero_from_market,
     },
 };
@@ -59,22 +58,14 @@ pub unsafe fn process_withdraw<'a>(
     Sector::check_in_bounds(market.sectors, sector_index_hint)?;
     // Safety: The hint was just verified as in-bounds.
     let seat =
-        unsafe { find_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
+        unsafe { load_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
 
     // Update the market seat available/deposited, checking for underflow, as that means the user
     // tried to withdraw more than they have available.
     if ctx.mint.is_base_mint {
-        seat.set_base_available(
-            seat.base_available()
-                .checked_sub(amount)
-                .ok_or(DropsetError::InsufficientUserBalance)?,
-        );
+        seat.try_decrement_base_available(amount)?;
     } else {
-        seat.set_quote_available(
-            seat.quote_available()
-                .checked_sub(amount)
-                .ok_or(DropsetError::InsufficientUserBalance)?,
-        );
+        seat.try_decrement_quote_available(amount)?;
     }
 
     event_buffer.add_to_buffer(

@@ -131,8 +131,7 @@ impl MarketSnapshot {
             BookSide::Bid => market.bids.iter(),
         }
         .find(|order| {
-            order.encoded_price == order_info.encoded_price.as_u32()
-                && order.user_seat == maker_seat.index
+            order.encoded_price == order_info.encoded_price && order.user_seat == maker_seat.index
         })
         .cloned();
 

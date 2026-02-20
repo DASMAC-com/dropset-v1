@@ -7,13 +7,16 @@ use dropset_interface::state::{
     market::MarketRef,
     market_header::MarketHeader,
     market_seat::MarketSeat,
-    sector::Sector,
     order::Order,
-    sector::SectorIndex,
+    sector::{
+        Sector,
+        SectorIndex,
+    },
     transmutable::Transmutable,
     user_order_sectors::UserOrderSectors,
 };
 use itertools::Itertools;
+use price::EncodedPrice;
 use solana_address::Address;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -108,7 +111,7 @@ pub struct OrderView {
     pub prev_index: SectorIndex,
     pub index: SectorIndex,
     pub next_index: SectorIndex,
-    pub encoded_price: u32,
+    pub encoded_price: EncodedPrice,
     pub user_seat: SectorIndex,
     pub base_remaining: u64,
     pub quote_remaining: u64,

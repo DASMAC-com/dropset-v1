@@ -56,12 +56,10 @@ pub fn get_non_redundant_order_flow(
 
     let cancels = unique_bid_cancels
         .iter()
-        .map(|c| CancelOrderInstructionData::new(c.encoded_price, true, maker_seat_index))
-        .chain(
-            unique_ask_cancels
-                .iter()
-                .map(|c| CancelOrderInstructionData::new(c.encoded_price, false, maker_seat_index)),
-        )
+        .map(|c| CancelOrderInstructionData::new(c.encoded_price.as_u32(), true, maker_seat_index))
+        .chain(unique_ask_cancels.iter().map(|c| {
+            CancelOrderInstructionData::new(c.encoded_price.as_u32(), false, maker_seat_index)
+        }))
         .collect_vec();
 
     let posts = unique_bid_posts
@@ -114,7 +112,7 @@ mod tests {
             prev_index: 0,
             index: 0,
             next_index: 0,
-            encoded_price: info.encoded_price.as_u32(),
+            encoded_price: info.encoded_price,
             user_seat: MAKER_SEAT_INDEX,
             base_remaining: info.base_atoms,
             quote_remaining: info.quote_atoms,
@@ -201,11 +199,15 @@ mod tests {
             cancels,
             vec![
                 CancelOrderInstructionData::new(
-                    cancel_2.clone().encoded_price,
+                    cancel_2.clone().encoded_price.as_u32(),
                     true,
                     MAKER_SEAT_INDEX
                 ),
-                CancelOrderInstructionData::new(cancel_2.encoded_price, false, MAKER_SEAT_INDEX),
+                CancelOrderInstructionData::new(
+                    cancel_2.encoded_price.as_u32(),
+                    false,
+                    MAKER_SEAT_INDEX
+                ),
             ]
         );
 

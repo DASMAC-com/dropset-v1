@@ -1,5 +1,7 @@
 //! Doubly linked list of bid order sectors with [`crate::state::order::Order`] payloads.
 
+use price::EncodedPrice;
+
 use crate::{
     error::{
         DropsetError,
@@ -9,10 +11,13 @@ use crate::{
         linked_list::{
             LinkedList,
             LinkedListHeaderOperations,
+            LinkedListIter,
         },
         market::Market,
         market_header::MarketHeader,
+        market_seat::MarketSeat,
         order::{
+            NextSectorIndex,
             Order,
             OrdersCollection,
         },
@@ -20,12 +25,18 @@ use crate::{
             SectorIndex,
             NIL,
         },
+        user_order_sectors::{
+            OrderSectors,
+            UserOrderSectors,
+        },
     },
 };
 
 pub struct BidOrders;
 
 impl OrdersCollection for BidOrders {
+    const HIGHEST_PRIORITY_PRICE: EncodedPrice = EncodedPrice::infinity();
+
     /// Bids are inserted in descending order. The top of the book (first price on the book) is thus
     /// the highest price.
     ///
@@ -35,21 +46,21 @@ impl OrdersCollection for BidOrders {
     ///
     /// If the bid is the lowest price on the book, it's inserted at the end.
     #[inline(always)]
-    fn find_new_order_next_index<T: OrdersCollection + LinkedListHeaderOperations>(
-        list: &LinkedList<'_, T>,
+    fn find_new_order_next_index(
+        mut list_iterator: LinkedListIter<'_>,
         new_order: &Order,
-    ) -> SectorIndex {
+    ) -> (NextSectorIndex, SectorIndex) {
         // Find the first price that is less than the new bid.
-        for (index, sector) in list.iter() {
+        for (index, sector) in list_iterator.by_ref() {
             let order = sector.load_payload::<Order>();
             if order.encoded_price() < new_order.encoded_price() {
-                return index;
+                return (NextSectorIndex(index), list_iterator.curr);
             }
         }
 
         // If the sector is to be inserted at the end of the list, the new `next` index is `NIL`,
         // since the new sector is the new tail.
-        NIL
+        (NextSectorIndex(NIL), list_iterator.curr)
     }
 
     /// A post-only bid order can only be posted if the input price < the lowest ask, because it
@@ -79,6 +90,50 @@ impl OrdersCollection for BidOrders {
             // There are no ask orders, so the bid cannot cross and may be posted.
             None => Ok(()),
         }
+    }
+
+    /// Users put up quote as collateral when posting bids.
+    ///
+    /// Returns the quote remaining in an bid.
+    #[inline(always)]
+    fn get_order_collateral(order: &Order) -> u64 {
+        order.quote_remaining()
+    }
+
+    /// Tries to decrement the quote available in a user's seat (bid collateral is quote).
+    #[inline(always)]
+    fn try_decrement_seat_collateral_available(
+        seat: &mut MarketSeat,
+        amount: u64,
+    ) -> DropsetResult {
+        seat.try_decrement_quote_available(amount)
+    }
+
+    /// Tries to increment the quote available in a user's seat (bid collateral is quote).
+    #[inline(always)]
+    fn try_increment_seat_collateral_available(
+        seat: &mut MarketSeat,
+        amount: u64,
+    ) -> DropsetResult {
+        seat.try_increment_quote_available(amount)
+    }
+
+    #[inline(always)]
+    fn get_order_sectors(user_order_sectors: &UserOrderSectors) -> &OrderSectors {
+        &user_order_sectors.bids
+    }
+
+    #[inline(always)]
+    fn get_mut_order_sectors(user_order_sectors: &mut UserOrderSectors) -> &mut OrderSectors {
+        &mut user_order_sectors.bids
+    }
+
+    /// Orders with higher prices are closer to the top of book on the bid side, so they have a
+    /// higher price priority; i.e., they are inserted and thus filled before orders with lower
+    /// prices.
+    #[inline(always)]
+    fn has_higher_price_priority(a: &EncodedPrice, b: &EncodedPrice) -> bool {
+        a.has_higher_bid_priority(b)
     }
 }
 

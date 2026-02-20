@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use price::{
     EncodedPrice,
     LeEncodedPrice,
@@ -10,6 +12,7 @@ use crate::{
         DropsetResult,
     },
     state::{
+        order::OrdersCollection,
         sector::{
             LeSectorIndex,
             SectorIndex,
@@ -35,6 +38,18 @@ pub const MAX_ORDERS_USIZE: usize = MAX_ORDERS as usize;
 pub struct UserOrderSectors {
     pub bids: OrderSectors,
     pub asks: OrderSectors,
+}
+
+impl UserOrderSectors {
+    /// Returns the orders corresponding to the order book side as the generic type passed.
+    pub fn order_sectors<T: OrdersCollection>(&self) -> &OrderSectors {
+        T::get_order_sectors(self)
+    }
+
+    /// Returns the mutable orders corresponding to the order book side as the generic type passed.
+    pub fn order_sectors_mut<T: OrdersCollection>(&mut self) -> &mut OrderSectors {
+        T::get_mut_order_sectors(self)
+    }
 }
 
 /// An array of [`MAX_ORDERS`] [`PriceToIndexEntry`]s that maps unique prices to a sector index.
@@ -109,7 +124,7 @@ impl OrderSectors {
     ///
     /// Returns the mapped order's sector index.
     #[inline(always)]
-    pub fn remove(&mut self, encoded_price: u32) -> Result<LeSectorIndex, DropsetError> {
+    pub fn find_remove(&mut self, encoded_price: u32) -> Result<LeSectorIndex, DropsetError> {
         let entry = self
             .0
             .iter_mut()
@@ -121,6 +136,34 @@ impl OrderSectors {
         mark_as_free(entry);
 
         Ok(sector_index)
+    }
+
+    /// Removes/frees the [PriceToIndexEntry] entries spanning the passed `range`.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee all indices in `range` are less than [MAX_ORDERS_USIZE].
+    #[inline(always)]
+    pub unsafe fn remove_range(&mut self, range: Range<usize>) {
+        for index in range {
+            // Safety: All indices in `range` are less than the max index.
+            let entry = unsafe { self.0.get_unchecked_mut(index) };
+            mark_as_free(entry);
+        }
+    }
+
+    /// Returns the mutable entry at the passed index.
+    ///
+    /// # Safety
+    ///
+    /// - Caller must guarantee the index passed is less than [MAX_ORDERS_USIZE].
+    ///
+    /// Although it will not necessarily result in undefined behavior, caller should ensure that
+    /// mutating the entry will not result in the [OrderSectors] that it belongs to having duplicate
+    /// non-free price entries.
+    #[inline(always)]
+    pub unsafe fn get_mut_entry_at(&mut self, index: usize) -> &mut PriceToIndexEntry {
+        self.0.get_unchecked_mut(index)
     }
 
     /// Returns an array of copied sector indices from the mapped entries.
@@ -179,11 +222,17 @@ impl PriceToIndexEntry {
     }
 }
 
+const FREE_ENTRY: PriceToIndexEntry = PriceToIndexEntry {
+    encoded_price: LeEncodedPrice::zero(),
+    sector_index: LE_NIL,
+};
+
 /// Updates an entry to be marked as free.
 #[inline(always)]
 pub fn mark_as_free(entry: &mut PriceToIndexEntry) {
-    entry.encoded_price = LeEncodedPrice::zero();
-    entry.sector_index = LE_NIL;
+    let ptr = entry as *mut PriceToIndexEntry;
+    // Safety: The pointer comes from a valid mutable reference, so it's valid for writes + aligned.
+    unsafe { core::ptr::write(ptr, FREE_ENTRY) };
 }
 
 // Safety:
@@ -395,7 +444,7 @@ mod tests {
     fn remove_nonexistent_order_error() {
         let mut order_sectors = UserOrderSectors::default();
         let bid_encoded_price = encoded_price!(12_345_678, 1);
-        let failed_remove = order_sectors.bids.remove(bid_encoded_price.as_u32());
+        let failed_remove = order_sectors.bids.find_remove(bid_encoded_price.as_u32());
         assert!(matches!(failed_remove, Err(DropsetError::OrderNotFound)));
     }
 
@@ -422,7 +471,7 @@ mod tests {
 
         assert!(order_sectors
             .bids
-            .remove(bid_encoded_price.as_u32())
+            .find_remove(bid_encoded_price.as_u32())
             .is_ok());
         assert!(order_sectors.bids.iter().all(|bid| bid.is_free()));
     }
@@ -506,7 +555,7 @@ mod tests {
         assert_ne!(old_sector_index, new_sector_index);
 
         // Remove the old price.
-        assert!(order_sectors.bids.remove(old_price.as_u32()).is_ok());
+        assert!(order_sectors.bids.find_remove(old_price.as_u32()).is_ok());
 
         // Add the new price.
         assert!(order_sectors

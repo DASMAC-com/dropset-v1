@@ -24,7 +24,7 @@ use crate::{
     events::EventBuffer,
     shared::{
         seat_operations::{
-            find_mut_seat_with_hint,
+            load_mut_seat_with_hint,
             try_insert_market_seat,
         },
         token_utils::market_transfers::deposit_non_zero_to_market,
@@ -74,20 +74,12 @@ pub unsafe fn process_deposit<'a>(
         Sector::check_in_bounds(market.sectors, sector_index_hint)?;
         // Safety: The index hint was just verified as in-bounds.
         let seat =
-            unsafe { find_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
+            unsafe { load_mut_seat_with_hint(&mut market, sector_index_hint, ctx.user.address()) }?;
 
         if ctx.mint.is_base_mint {
-            seat.set_base_available(
-                seat.base_available()
-                    .checked_add(amount_deposited)
-                    .ok_or(ProgramError::ArithmeticOverflow)?,
-            );
+            seat.try_increment_base_available(amount_deposited)?;
         } else {
-            seat.set_quote_available(
-                seat.quote_available()
-                    .checked_add(amount_deposited)
-                    .ok_or(ProgramError::ArithmeticOverflow)?,
-            );
+            seat.try_increment_quote_available(amount_deposited)?;
         }
 
         sector_index_hint

@@ -172,7 +172,7 @@ fn top_of_book_snapshot<const IS_BUY: bool>(ctx: &'_ MarketOrderContext) -> Opti
         Some(OrderSnapshot {
             base_remaining: order.base_remaining(),
             quote_remaining: order.quote_remaining(),
-            encoded_price: order.encoded_price(),
+            encoded_price: order.encoded_price().as_u32(),
             maker_seat_sector: order.user_seat(),
             order_sector: head_index,
         })
@@ -342,7 +342,10 @@ unsafe fn update_maker_seat_after_fill<const IS_BUY: bool, const PARTIAL_FILL: b
 
         // If it's a complete/full fill, remove the order sector index from the price to index map.
         if !PARTIAL_FILL {
-            maker_seat.user_order_sectors.asks.remove(encoded_price)?;
+            maker_seat
+                .user_order_sectors
+                .asks
+                .find_remove(encoded_price)?;
         }
     } else {
         // Market sell means a maker's bid got filled, so they receive base.
@@ -350,7 +353,10 @@ unsafe fn update_maker_seat_after_fill<const IS_BUY: bool, const PARTIAL_FILL: b
 
         // If it's a complete/full fill, remove the order sector index from the price to index map.
         if !PARTIAL_FILL {
-            maker_seat.user_order_sectors.bids.remove(encoded_price)?;
+            maker_seat
+                .user_order_sectors
+                .bids
+                .find_remove(encoded_price)?;
         }
     }
 

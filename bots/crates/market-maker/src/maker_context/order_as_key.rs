@@ -1,11 +1,14 @@
 use std::hash::Hash;
 
-use price::OrderInfo;
+use price::{
+    EncodedPrice,
+    OrderInfo,
+};
 use transaction_parser::views::OrderView;
 
 #[derive(Hash, Eq, PartialEq)]
 pub struct OrderAsKey {
-    encoded_price: u32,
+    encoded_price: EncodedPrice,
     base: u64,
     quote: u64,
 }
@@ -13,7 +16,7 @@ pub struct OrderAsKey {
 impl From<OrderInfo> for OrderAsKey {
     fn from(o: OrderInfo) -> Self {
         Self {
-            encoded_price: o.encoded_price.as_u32(),
+            encoded_price: o.encoded_price,
             base: o.base_atoms,
             quote: o.quote_atoms,
         }

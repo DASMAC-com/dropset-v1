@@ -45,6 +45,7 @@ pub enum DropsetError {
     InfinityIsNotAFloat,
     PostOnlyWouldImmediatelyFill,
     AmountFilledVsTransferredMismatch,
+    OrdersNotSorted,
 }
 
 impl From<DropsetError> for ProgramError {
@@ -111,6 +112,7 @@ impl From<DropsetError> for &'static str {
             DropsetError::AmountFilledVsTransferredMismatch => {
                 "The amount filled doesn't match the amount transferred."
             }
+            DropsetError::OrdersNotSorted => "Passed orders aren't properly sorted",
         }
     }
 }

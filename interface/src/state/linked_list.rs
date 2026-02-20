@@ -200,6 +200,30 @@ impl<'a, T: LinkedListHeaderOperations> LinkedList<'a, T> {
             sectors: self.sectors,
         }
     }
+
+    /// Creates an iterator starting from the specified sector index.
+    ///
+    /// Useful for batch operations where you want to continue iteration from a specific position
+    /// rather than always starting from the head.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee that:
+    /// - `start` is either NIL or a valid, in-bounds sector index.
+    /// - `start` belongs to this specific `LinkedList<T>` instance (same collection type and
+    ///   sectors).
+    /// - The returned iterator will only be used with operations on this same `LinkedList<T>`
+    ///   instance.
+    ///
+    /// Violating these invariants can lead to undefined behavior through inconsistent metadata
+    /// (e.g., mixing a bid list iterator with ask list header operations, causing out-of-bounds
+    /// access or other structural violations).
+    pub unsafe fn iter_from(&self, start: SectorIndex) -> LinkedListIter<'_> {
+        LinkedListIter {
+            curr: start,
+            sectors: self.sectors,
+        }
+    }
 }
 
 pub struct LinkedListIter<'a> {

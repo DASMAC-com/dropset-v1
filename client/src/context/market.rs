@@ -3,6 +3,7 @@
 use dropset_interface::{
     instructions::{
         generated_client::*,
+        BatchReplaceInstructionData,
         CancelOrderInstructionData,
         CloseSeatInstructionData,
         DepositInstructionData,
@@ -221,6 +222,22 @@ impl MarketContext {
             quote_mint: self.quote.mint_address,
             base_token_program: self.base.token_program,
             quote_token_program: self.quote.token_program,
+            dropset_program: dropset::ID,
+        }
+        .create_instruction(data)
+        .try_into()
+        .expect("Should be a single signer instruction")
+    }
+
+    pub fn batch_replace(
+        &self,
+        user: Address,
+        data: BatchReplaceInstructionData,
+    ) -> SingleSignerInstruction {
+        BatchReplace {
+            event_authority: event_authority::ID,
+            user,
+            market_account: self.market,
             dropset_program: dropset::ID,
         }
         .create_instruction(data)

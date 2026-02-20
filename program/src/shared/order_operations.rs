@@ -3,16 +3,14 @@
 use dropset_interface::{
     error::DropsetError,
     state::{
-        linked_list::{
-            LinkedList,
-            LinkedListHeaderOperations,
-        },
+        linked_list::LinkedList,
         market::{
             Market,
             MarketRefMut,
         },
         market_header::MarketHeader,
         order::{
+            NextSectorIndex,
             Order,
             OrdersCollection,
         },
@@ -28,25 +26,22 @@ use dropset_interface::{
 ///
 /// NOTE: this function solely inserts the order into the orders collection. It doesn't update the
 /// user's seat nor does it check for duplicate prices posted by the same user.
-pub fn insert_order<T: OrdersCollection + LinkedListHeaderOperations>(
+#[inline(always)]
+pub fn insert_order<T: OrdersCollection>(
+    next_index: NextSectorIndex,
     list: &mut LinkedList<'_, T>,
     order: Order,
 ) -> Result<SectorIndex, DropsetError> {
-    let sector_index = {
-        let next_index = T::find_new_order_next_index(list, &order);
-        let order_bytes = order.as_bytes();
-
-        if next_index == T::head(list.header) {
-            list.push_front(order_bytes)
-        } else if next_index == NIL {
-            list.push_back(order_bytes)
-        } else {
-            // Safety: The index used here was returned by the iterator so it must be in-bounds.
-            unsafe { list.insert_before(next_index, order_bytes) }
-        }
-    }?;
-
-    Ok(sector_index)
+    let next = next_index.into();
+    let order_bytes = order.as_bytes();
+    if next == T::head(list.header) {
+        list.push_front(order_bytes)
+    } else if next == NIL {
+        list.push_back(order_bytes)
+    } else {
+        // Safety: The index used here was returned by the iterator so it must be in-bounds.
+        unsafe { list.insert_before(next, order_bytes) }
+    }
 }
 
 /// Converts a sector index to an order given a sector index.
@@ -56,6 +51,7 @@ pub fn insert_order<T: OrdersCollection + LinkedListHeaderOperations>(
 /// # Safety
 ///
 /// Caller guarantees `validated_sector_index` is in-bounds of `market.sectors` bytes.
+#[inline(always)]
 pub unsafe fn load_order_from_sector_index<H, S>(
     market: &'_ Market<H, S>,
     validated_sector_index: SectorIndex,
@@ -77,6 +73,7 @@ where
 /// # Safety
 ///
 /// Caller guarantees `validated_sector_index` is in-bounds of `market.sectors` bytes.
+#[inline(always)]
 pub unsafe fn load_mut_order_from_sector_index<'m>(
     market: &'m mut MarketRefMut<'_>,
     validated_sector_index: SectorIndex,
@@ -138,11 +135,12 @@ mod tests {
     const MARKET_LEN: usize = MarketHeader::LEN + SECTOR_SIZE * N_SECTORS;
 
     /// Test utility function to insert an order and expect (unwrap) the result.
-    pub fn insert_helper<T: OrdersCollection + LinkedListHeaderOperations>(
+    pub fn insert_helper<T: OrdersCollection>(
         list: &mut LinkedList<'_, T>,
         order: &Order,
     ) -> SectorIndex {
-        insert_order(list, order.clone()).expect("Should insert order")
+        let (next_index, _hint) = T::find_new_order_next_index(list.iter(), order);
+        insert_order(next_index, list, order.clone()).expect("Should insert order")
     }
 
     /// Test utility function to create a simple market with a fixed amount of sectors.
@@ -178,23 +176,19 @@ mod tests {
     }
 
     /// Test utility function to convert asks or bids into a vec of (encoded_price, seat) pairs.
-    fn to_prices_and_seats<T: OrdersCollection + LinkedListHeaderOperations>(
-        list: &LinkedList<'_, T>,
-    ) -> Vec<(u32, u32)> {
+    fn to_prices_and_seats<T: OrdersCollection>(list: &LinkedList<'_, T>) -> Vec<(u32, u32)> {
         list.iter()
             .map(|(_, sector)| {
                 let order = sector.load_payload::<Order>();
-                (order.encoded_price(), order.user_seat())
+                (order.encoded_price().as_u32(), order.user_seat())
             })
             .collect()
     }
 
     /// Test utility function to convert asks or bids into a vec of encoded prices.
-    fn to_prices<T: OrdersCollection + LinkedListHeaderOperations>(
-        list: &LinkedList<'_, T>,
-    ) -> Vec<u32> {
+    fn to_prices<T: OrdersCollection>(list: &LinkedList<'_, T>) -> Vec<u32> {
         list.iter()
-            .map(|(_, sector)| sector.load_payload::<Order>().encoded_price())
+            .map(|(_, sector)| sector.load_payload::<Order>().encoded_price().as_u32())
             .collect()
     }
 
@@ -203,11 +197,11 @@ mod tests {
         const ZERO: u32 = 0;
         let get_encoded_price_u32 =
             |price_mantissa| create_test_order(price_mantissa, ZERO).encoded_price();
-        assert_eq!(get_encoded_price_u32(10_000_000), 10_000_000);
-        assert_eq!(get_encoded_price_u32(10_000_001), 10_000_001);
-        assert_eq!(get_encoded_price_u32(10_000_002), 10_000_002);
-        assert_eq!(get_encoded_price_u32(20_000_000), 20_000_000);
-        assert_eq!(get_encoded_price_u32(99_999_999), 99_999_999);
+        assert_eq!(get_encoded_price_u32(10_000_000).as_u32(), 10_000_000);
+        assert_eq!(get_encoded_price_u32(10_000_001).as_u32(), 10_000_001);
+        assert_eq!(get_encoded_price_u32(10_000_002).as_u32(), 10_000_002);
+        assert_eq!(get_encoded_price_u32(20_000_000).as_u32(), 20_000_000);
+        assert_eq!(get_encoded_price_u32(99_999_999).as_u32(), 99_999_999);
     }
 
     #[test]
@@ -444,5 +438,29 @@ mod tests {
         // Placing a bid with a higher price than the top ask should fail.
         assert!(order_3.encoded_price() > get_asks_head_price(market.asks()));
         assert!(BidOrders::post_only_crossing_check(&order_3, &market).is_err());
+    }
+
+    #[test]
+    fn price_priority_checks() {
+        let price_1 = create_test_order(10_000_000, 1).encoded_price();
+        let price_2 = create_test_order(20_000_000, 1).encoded_price();
+        let price_3 = create_test_order(30_000_000, 1).encoded_price();
+        let price_4 = create_test_order(40_000_000, 1).encoded_price();
+
+        assert!(!price_1.has_higher_bid_priority(&price_2));
+        assert!(!price_2.has_higher_bid_priority(&price_3));
+        assert!(!price_3.has_higher_bid_priority(&price_4));
+
+        assert!(price_4.has_higher_bid_priority(&price_3));
+        assert!(price_3.has_higher_bid_priority(&price_2));
+        assert!(price_2.has_higher_bid_priority(&price_1));
+
+        assert!(price_1.has_higher_ask_priority(&price_2));
+        assert!(price_2.has_higher_ask_priority(&price_3));
+        assert!(price_3.has_higher_ask_priority(&price_4));
+
+        assert!(!price_4.has_higher_ask_priority(&price_3));
+        assert!(!price_3.has_higher_ask_priority(&price_2));
+        assert!(!price_2.has_higher_ask_priority(&price_1));
     }
 }
