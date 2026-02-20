@@ -155,21 +155,12 @@ mod tests {
     }
 
     /// Test utility function to create orders where the output encoded price is equal to the input
-    /// input price mantissa.
+    /// price mantissa. See [`OrderInfoArgs::order_at_price`].
     fn create_test_order(price_mantissa: u32, user_seat: SectorIndex) -> Order {
-        let order_info = to_order_info(OrderInfoArgs::new(
-            price_mantissa,
-            1,
-            biased_exponent!(UNBIASED_MAX),
-            biased_exponent!(-1),
-        ))
-        .expect("The unit test should pass a valid price mantissa");
+        let order_info = to_order_info(OrderInfoArgs::order_at_price(price_mantissa))
+            .expect("The unit test should pass a valid price mantissa");
 
-        // The biased base and quote exponent consts passed in should ensure that the encoded price
-        // has no exponent and thus equal the price mantissa exactly.
         assert_eq!(order_info.encoded_price.as_u32(), price_mantissa);
-
-        // The user seat passed should emulate a valid sector index.
         assert_ne!(user_seat, NIL);
 
         Order::new(order_info, user_seat)
