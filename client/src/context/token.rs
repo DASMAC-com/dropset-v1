@@ -77,13 +77,25 @@ impl TokenContext {
         )
     }
 
-    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to `destination`.
-    pub fn mint_to(&self, destination: &Address, amount: u64) -> anyhow::Result<Instruction> {
+    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to the `owner`'s
+    /// associated token account.
+    ///
+    /// To mint directly to an associated token account, use [TokenContext::mint_to_ata]
+    pub fn mint_to_owner(&self, owner: &Address, amount: u64) -> anyhow::Result<Instruction> {
+        self.mint_to_ata(&self.get_ata_for(owner), amount)
+    }
+
+    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to `destination_ata`.
+    pub fn mint_to_ata(
+        &self,
+        destination_ata: &Address,
+        amount: u64,
+    ) -> anyhow::Result<Instruction> {
         if let Some(ref mint_authority) = self.mint_authority {
             Ok(mint_to_checked(
                 &self.token_program,
                 &self.mint_address,
-                destination,
+                destination_ata,
                 mint_authority,
                 &[],
                 amount,

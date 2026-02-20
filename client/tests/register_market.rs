@@ -5,6 +5,7 @@ use client::{
         token::TokenContext,
     },
     mollusk_helpers::{
+        helper_trait::DropsetTestHelper,
         new_dropset_mollusk_context,
         utils::create_mock_user_account,
     },
@@ -105,6 +106,47 @@ fn register_market() -> anyhow::Result<()> {
             nonce: 1, // The register market event.
             _padding: [0, 0, 0],
         }
+    );
+
+    let base_mint = mollusk
+        .account_store
+        .borrow()
+        .get(&market_ctx.base.mint_address)
+        .map(|acc| Mint::unpack(&acc.data).expect("Should unpack"))
+        .expect("Mint account should exist");
+
+    let funder_acc = mollusk
+        .account_store
+        .borrow()
+        .get(&funder)
+        .cloned()
+        .expect("Funder should be in account store");
+
+    assert!(funder_acc.data == Vec::<u8>::new() && funder_acc.lamports != 0);
+
+    assert_eq!(
+        Option::from(base_mint.mint_authority),
+        market_ctx.base.mint_authority,
+    );
+
+    assert!(mollusk
+        .process_instruction_chain(&[
+            market_ctx.base.create_ata_idempotent(&funder, &funder),
+            market_ctx.quote.create_ata_idempotent(&funder, &funder),
+            market_ctx.base.mint_to_owner(&funder, 10_000)?,
+            market_ctx.quote.mint_to_owner(&funder, 20_000)?
+        ])
+        .program_result
+        .is_ok());
+
+    assert_eq!(
+        mollusk.get_token_balance(&funder, &market_ctx.base.mint_address),
+        10_000
+    );
+
+    assert_eq!(
+        mollusk.get_token_balance(&funder, &market_ctx.quote.mint_address),
+        20_000
     );
 
     Ok(())
