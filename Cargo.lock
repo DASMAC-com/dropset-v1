@@ -1260,6 +1260,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "cu-bench-pack-orders"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "dropset-interface",
+ "instruction-macros-traits",
+ "pinocchio 0.10.1",
+ "price",
+ "solana-address 2.0.0",
+]
+
+[[package]]
+name = "cu-bench-tests"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "client",
+ "cu-bench-pack-orders",
+ "dropset-interface",
+ "instruction-macros-traits",
+ "mollusk-svm",
+ "price",
+ "solana-account",
+ "solana-address 2.0.0",
+ "solana-instruction",
+ "static_assertions",
+]
+
+[[package]]
 name = "curve25519-dalek"
 version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
