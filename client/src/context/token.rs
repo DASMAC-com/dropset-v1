@@ -18,14 +18,21 @@ use spl_token_2022_interface::{
 use spl_token_interface::state::Mint;
 
 pub struct TokenContext {
+    pub mint_authority: Option<Address>,
     pub mint_address: Address,
     pub token_program: Address,
     pub mint_decimals: u8,
 }
 
 impl TokenContext {
-    pub const fn new(mint_address: Address, token_program: Address, mint_decimals: u8) -> Self {
+    pub const fn new(
+        mint_authority: Option<Address>,
+        mint_address: Address,
+        token_program: Address,
+        mint_decimals: u8,
+    ) -> Self {
         Self {
+            mint_authority,
             mint_address,
             token_program,
             mint_decimals,
@@ -43,7 +50,12 @@ impl TokenContext {
     ) -> anyhow::Result<Self> {
         check_spl_token_program_account(&owner)?;
         let mint = Mint::unpack(data)?;
-        Ok(Self::new(mint_address, owner, mint.decimals))
+        Ok(Self::new(
+            mint.mint_authority.into(),
+            mint_address,
+            owner,
+            mint.decimals,
+        ))
     }
 
     pub fn get_ata_for(&self, owner: &Address) -> Address {
@@ -65,21 +77,32 @@ impl TokenContext {
         )
     }
 
-    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to `destination`.
-    pub fn mint_to(
+    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to the `owner`'s
+    /// associated token account.
+    ///
+    /// To mint directly to an associated token account, use [TokenContext::mint_to_ata]
+    pub fn mint_to_owner(&self, owner: &Address, amount: u64) -> anyhow::Result<Instruction> {
+        self.mint_to_ata(&self.get_ata_for(owner), amount)
+    }
+
+    /// Builds a `mint_to_checked` instruction that mints `amount` tokens to `destination_ata`.
+    pub fn mint_to_ata(
         &self,
-        mint_authority: &Address,
-        destination: &Address,
+        destination_ata: &Address,
         amount: u64,
     ) -> anyhow::Result<Instruction> {
-        Ok(mint_to_checked(
-            &self.token_program,
-            &self.mint_address,
-            destination,
-            mint_authority,
-            &[],
-            amount,
-            self.mint_decimals,
-        )?)
+        if let Some(ref mint_authority) = self.mint_authority {
+            Ok(mint_to_checked(
+                &self.token_program,
+                &self.mint_address,
+                destination_ata,
+                mint_authority,
+                &[],
+                amount,
+                self.mint_decimals,
+            )?)
+        } else {
+            Err(anyhow::anyhow!("Token doesn't have a mint authority."))
+        }
     }
 }

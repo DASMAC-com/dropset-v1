@@ -19,12 +19,13 @@ use dropset_interface::{
     },
 };
 use solana_address::Address;
+use solana_instruction::Instruction;
 use transaction_parser::views::MarketSeatView;
 
 use crate::{
     context::token::TokenContext,
     pda::find_market_address,
-    single_signer_instruction::SingleSignerInstruction,
+    token_instructions::create_and_initialize_token_instructions,
 };
 
 /// A struct containing contextual fields for a market.
@@ -85,11 +86,40 @@ impl MarketContext {
     ///
     /// This is because the amount cannot be zero:
     /// [`dropset_interface::error::DropsetError::AmountCannotBeZero`]
-    pub fn create_seat(&self, user: Address) -> SingleSignerInstruction {
+    pub fn create_seat(&self, user: Address) -> Instruction {
         self.deposit_base(user, 1, NIL)
     }
 
-    pub fn register_market(&self, payer: Address, num_sectors: u16) -> SingleSignerInstruction {
+    /// Creates the instructions for initializing both the base and quote token mints.
+    pub fn create_tokens(
+        &self,
+        mint_authority: Address,
+        rent_lamports: u64,
+    ) -> anyhow::Result<Vec<Instruction>> {
+        let (create_base, initialize_base) = create_and_initialize_token_instructions(
+            &mint_authority,
+            &self.base.mint_address,
+            rent_lamports,
+            self.base.mint_decimals,
+            &self.base.token_program,
+        )?;
+
+        let (create_quote, initialize_quote) = create_and_initialize_token_instructions(
+            &mint_authority,
+            &self.quote.mint_address,
+            rent_lamports,
+            self.quote.mint_decimals,
+            &self.quote.token_program,
+        )?;
+
+        Ok(
+            vec![create_base, initialize_base, create_quote, initialize_quote]
+                .into_iter()
+                .collect(),
+        )
+    }
+
+    pub fn register_market(&self, payer: Address, num_sectors: u16) -> Instruction {
         RegisterMarket {
             event_authority: event_authority::ID,
             user: payer,
@@ -105,15 +135,13 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(RegisterMarketInstructionData::new(num_sectors))
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     pub fn find_seat(&self, seats: &[MarketSeatView], user: &Address) -> Option<MarketSeatView> {
         seats.iter().find(|seat| &seat.user == user).cloned()
     }
 
-    pub fn close_seat(&self, user: Address, sector_index_hint: u32) -> SingleSignerInstruction {
+    pub fn close_seat(&self, user: Address, sector_index_hint: u32) -> Instruction {
         CloseSeat {
             event_authority: event_authority::ID,
             user,
@@ -129,8 +157,6 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(CloseSeatInstructionData::new(sector_index_hint))
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     pub fn deposit_base(
@@ -138,7 +164,7 @@ impl MarketContext {
         user: Address,
         amount: u64,
         sector_index_hint: u32,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         let data = DepositInstructionData::new(amount, sector_index_hint);
         self.deposit(user, data, true)
     }
@@ -148,7 +174,7 @@ impl MarketContext {
         user: Address,
         amount: u64,
         sector_index_hint: u32,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         let data = DepositInstructionData::new(amount, sector_index_hint);
         self.deposit(user, data, false)
     }
@@ -158,7 +184,7 @@ impl MarketContext {
         user: Address,
         amount: u64,
         sector_index_hint: u32,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         let data = WithdrawInstructionData::new(amount, sector_index_hint);
         self.withdraw(user, data, true)
     }
@@ -168,7 +194,7 @@ impl MarketContext {
         user: Address,
         amount: u64,
         sector_index_hint: u32,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         let data = WithdrawInstructionData::new(amount, sector_index_hint);
         self.withdraw(user, data, false)
     }
@@ -177,7 +203,7 @@ impl MarketContext {
         &self,
         user: Address,
         data: PostOrderInstructionData,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         PostOrder {
             event_authority: event_authority::ID,
             user,
@@ -185,15 +211,13 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     pub fn cancel_order(
         &self,
         user: Address,
         data: CancelOrderInstructionData,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         CancelOrder {
             event_authority: event_authority::ID,
             user,
@@ -201,15 +225,13 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     pub fn market_order(
         &self,
         user: Address,
         data: MarketOrderInstructionData,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         MarketOrder {
             event_authority: event_authority::ID,
             user,
@@ -225,15 +247,13 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     pub fn batch_replace(
         &self,
         user: Address,
         data: BatchReplaceInstructionData,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         BatchReplace {
             event_authority: event_authority::ID,
             user,
@@ -241,8 +261,6 @@ impl MarketContext {
             dropset_program: dropset::ID,
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     fn deposit(
@@ -250,7 +268,7 @@ impl MarketContext {
         user: Address,
         data: DepositInstructionData,
         is_base: bool,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         match is_base {
             true => Deposit {
                 event_authority: event_authority::ID,
@@ -274,8 +292,6 @@ impl MarketContext {
             },
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 
     fn withdraw(
@@ -283,7 +299,7 @@ impl MarketContext {
         user: Address,
         data: WithdrawInstructionData,
         is_base: bool,
-    ) -> SingleSignerInstruction {
+    ) -> Instruction {
         match is_base {
             true => Withdraw {
                 event_authority: event_authority::ID,
@@ -307,7 +323,5 @@ impl MarketContext {
             },
         }
         .create_instruction(data)
-        .try_into()
-        .expect("Should be a single signer instruction")
     }
 }

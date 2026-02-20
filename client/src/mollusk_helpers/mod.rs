@@ -3,7 +3,6 @@ use std::{
     path::PathBuf,
 };
 
-use dropset_interface::state::SYSTEM_PROGRAM_ID;
 use mollusk_svm::{
     Mollusk,
     MolluskContext,
@@ -23,8 +22,12 @@ use crate::{
         market::MarketContext,
         token::TokenContext,
     },
-    token_instructions::create_and_initialize_token_instructions,
+    mollusk_helpers::utils::create_mock_user_account,
 };
+
+pub mod checks;
+pub mod helper_trait;
+pub mod utils;
 
 /// Converts an input deploy file to a program name used by the [`Mollusk::new`] function.
 ///
@@ -77,12 +80,14 @@ pub const MOLLUSK_DEFAULT_MINT_AUTHORITY: Address =
 pub const MOLLUSK_DEFAULT_NUM_SECTORS: u16 = 10;
 
 pub const MOLLUSK_DEFAULT_BASE_TOKEN: TokenContext = TokenContext::new(
+    Some(MOLLUSK_DEFAULT_MINT_AUTHORITY),
     pubkey!("base111111111111111111111111111111111111111"),
     SPL_TOKEN_ID,
     8,
 );
 
 pub const MOLLUSK_DEFAULT_QUOTE_TOKEN: TokenContext = TokenContext::new(
+    Some(MOLLUSK_DEFAULT_MINT_AUTHORITY),
     pubkey!("quote11111111111111111111111111111111111111"),
     SPL_TOKEN_ID,
     8,
@@ -102,51 +107,24 @@ pub const MOLLUSK_DEFAULT_MARKET: MarketContext = MarketContext {
 /// Returns both the context and a [`MarketContext`] that can be used to build instructions for
 /// the default market.
 pub fn new_dropset_mollusk_context_with_default_market(
-    accounts: Vec<(Address, Account)>,
+    accounts: &[(Address, Account)],
 ) -> (MolluskContext<HashMap<Address, Account>>, MarketContext) {
-    let mint_authority_addr_and_account = (
-        MOLLUSK_DEFAULT_MINT_AUTHORITY,
-        Account {
-            data: Default::default(),
-            lamports: 100_000_000_000,
-            owner: SYSTEM_PROGRAM_ID,
-            executable: false,
-            rent_epoch: 0,
-        },
-    );
-    let res = new_dropset_mollusk_context(
-        [accounts, [mint_authority_addr_and_account].to_vec()].concat(),
-    );
+    let mint_authority_addr_and_account =
+        create_mock_user_account(MOLLUSK_DEFAULT_MINT_AUTHORITY, 100_000_000_000);
 
-    let (create_base, initialize_base) = create_and_initialize_token_instructions(
-        &MOLLUSK_DEFAULT_MINT_AUTHORITY,
-        &MOLLUSK_DEFAULT_BASE_TOKEN.mint_address,
-        Rent::default().minimum_balance(Mint::LEN),
-        MOLLUSK_DEFAULT_BASE_TOKEN.mint_decimals,
-        &MOLLUSK_DEFAULT_BASE_TOKEN.token_program,
-    )
-    .expect("Should create base mint instructions");
+    let res = new_dropset_mollusk_context([accounts, &[mint_authority_addr_and_account]].concat());
 
-    let (create_quote, initialize_quote) = create_and_initialize_token_instructions(
-        &MOLLUSK_DEFAULT_MINT_AUTHORITY,
-        &MOLLUSK_DEFAULT_QUOTE_TOKEN.mint_address,
-        Rent::default().minimum_balance(Mint::LEN),
-        MOLLUSK_DEFAULT_QUOTE_TOKEN.mint_decimals,
-        &MOLLUSK_DEFAULT_QUOTE_TOKEN.token_program,
-    )
-    .expect("Should create quote mint instructions");
+    let create_tokens = MOLLUSK_DEFAULT_MARKET
+        .create_tokens(
+            MOLLUSK_DEFAULT_MINT_AUTHORITY,
+            Rent::default().minimum_balance(Mint::LEN),
+        )
+        .expect("Should create token instructions");
 
-    let register_market: solana_instruction::Instruction = MOLLUSK_DEFAULT_MARKET
-        .register_market(MOLLUSK_DEFAULT_MINT_AUTHORITY, MOLLUSK_DEFAULT_NUM_SECTORS)
-        .into();
+    let register_market = MOLLUSK_DEFAULT_MARKET
+        .register_market(MOLLUSK_DEFAULT_MINT_AUTHORITY, MOLLUSK_DEFAULT_NUM_SECTORS);
 
-    res.process_instruction_chain(&[
-        create_base,
-        initialize_base,
-        create_quote,
-        initialize_quote,
-        register_market,
-    ]);
+    res.process_instruction_chain(&[create_tokens, vec![register_market]].concat());
 
     (res, MOLLUSK_DEFAULT_MARKET)
 }
@@ -210,7 +188,7 @@ mod tests {
             &MOLLUSK_DEFAULT_BASE_TOKEN.mint_address,
             &MOLLUSK_DEFAULT_QUOTE_TOKEN.mint_address,
         );
-        let (ctx, market) = new_dropset_mollusk_context_with_default_market(vec![]);
+        let (ctx, market) = new_dropset_mollusk_context_with_default_market(&[]);
         assert_eq!(market.market, derived_market);
 
         let account_store = ctx.account_store.borrow();

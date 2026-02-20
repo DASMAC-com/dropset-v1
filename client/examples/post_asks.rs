@@ -6,6 +6,7 @@ use client::{
         E2e,
         Trader,
     },
+    single_signer_instruction::SingleSignerInstruction,
     transactions::{
         CustomRpcClient,
         SendTransactionConfig,
@@ -76,21 +77,19 @@ async fn main() -> anyhow::Result<()> {
 
     let ask_instructions = (1..5)
         .map(|i| {
-            e2e.market
-                .post_order(
-                    trader.pubkey(),
-                    PostOrderInstructionData::new(
-                        OrderInfoArgs::new(
-                            order_info_args.price_mantissa + i,
-                            order_info_args.base_scalar,
-                            order_info_args.base_exponent_biased,
-                            order_info_args.quote_exponent_biased,
-                        ),
-                        is_bid,
-                        user_seat.index,
+            e2e.market.post_order(
+                trader.pubkey(),
+                PostOrderInstructionData::new(
+                    OrderInfoArgs::new(
+                        order_info_args.price_mantissa + i,
+                        order_info_args.base_scalar,
+                        order_info_args.base_exponent_biased,
+                        order_info_args.quote_exponent_biased,
                     ),
-                )
-                .into()
+                    is_bid,
+                    user_seat.index,
+                ),
+            )
         })
         .collect_vec();
 

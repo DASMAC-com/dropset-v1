@@ -135,6 +135,18 @@ impl OrderInfoArgs {
             quote_exponent_biased: biased_exponent!(0),
         }
     }
+
+    /// Creates [`Self`] such that the output [`EncodedPrice`] from [`to_order_info`] equals the
+    /// input `price_mantissa` exactly. Useful for writing tests where the encoded price is known.
+    #[inline(always)]
+    pub fn order_at_price(price_mantissa: u32) -> Self {
+        Self {
+            price_mantissa,
+            base_scalar: 1,
+            base_exponent_biased: biased_exponent!(UNBIASED_MAX),
+            quote_exponent_biased: biased_exponent!(-1),
+        }
+    }
 }
 
 impl From<(u32, u64, u8, u8)> for OrderInfoArgs {
@@ -378,6 +390,19 @@ mod tests {
             calculated
         );
         assert_eq!(calculated, expected);
+    }
+
+    #[test]
+    fn order_at_price_encoded_price_equals_mantissa() {
+        for mantissa in [
+            MANTISSA_DIGITS_LOWER_BOUND,
+            50_000_000,
+            MANTISSA_DIGITS_UPPER_BOUND,
+        ] {
+            let order = to_order_info(OrderInfoArgs::order_at_price(mantissa))
+                .expect("Should be a valid mantissa");
+            assert_eq!(order.encoded_price.as_u32(), mantissa);
+        }
     }
 
     #[test]

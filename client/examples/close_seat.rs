@@ -6,6 +6,7 @@ use client::{
         Trader,
     },
     print_kv,
+    single_signer_instruction::SingleSignerInstruction,
     transactions::{
         CustomRpcClient,
         SendTransactionConfig,
