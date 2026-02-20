@@ -393,6 +393,19 @@ mod tests {
     }
 
     #[test]
+    fn order_at_price_encoded_price_equals_mantissa() {
+        for mantissa in [
+            MANTISSA_DIGITS_LOWER_BOUND,
+            50_000_000,
+            MANTISSA_DIGITS_UPPER_BOUND,
+        ] {
+            let order = to_order_info(OrderInfoArgs::order_at_price(mantissa))
+                .expect("Should be a valid mantissa");
+            assert_eq!(order.encoded_price.as_u32(), mantissa);
+        }
+    }
+
+    #[test]
     fn check_unscaled_args_output() {
         let price_mantissa = 12_345_678;
         let base_scalar = 87_654_321;
