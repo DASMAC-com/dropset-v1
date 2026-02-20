@@ -107,7 +107,7 @@ pub fn try_market_view_all(account_data: &[u8]) -> anyhow::Result<MarketViewAll>
     Ok(market.into())
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MarketSeatView {
     pub prev_index: SectorIndex,
     pub index: SectorIndex,
