@@ -119,10 +119,8 @@ mod tests {
         transmutable::Transmutable,
     };
     use price::{
-        biased_exponent,
         to_order_info,
         OrderInfoArgs,
-        UNBIASED_MAX,
     };
     use solana_address::Address;
 
